@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: wallpaper_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: reza_abasi
+      POSTGRES_PASSWORD: r1367R1367
+      POSTGRES_DB: wallpaper_db
+    ports:
+      - "5440:5432"
+    volumes:
+      - wallpaper_pg_data:/var/lib/postgresql/data
+
+volumes:
+  wallpaper_pg_data:

@@ -19,3 +19,10 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// JitPack is required for Cafe Bazaar's Poolakey in-app billing library.
+allprojects {
+    repositories {
+        maven { url("https://jitpack.io") }
+    }
+}

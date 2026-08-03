@@ -57,7 +57,7 @@ react {
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
-def enableProguardInReleaseBuilds = false
+def enableProguardInReleaseBuilds = true
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -78,6 +78,7 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.wallpaper"
+
     defaultConfig {
         applicationId "com.wallpaper"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -85,24 +86,38 @@ android {
         versionCode 1
         versionName "1.0"
     }
-    signingConfigs {
-        debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+
+    splits {
+        abi {
+            enable true
+            reset()
+            include "arm64-v8a", "armeabi-v7a"
+            universalApk false
         }
     }
+
+    signingConfigs {
+        debug {
+            storeFile file("debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }
+
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
+
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
             signingConfig signingConfigs.debug
-            minifyEnabled enableProguardInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+
+            minifyEnabled true
+            shrinkResources true
+
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
         }
     }
 }
@@ -110,6 +125,11 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+
+    // Cafe Bazaar in-app billing (Poolakey). Needs the JitPack repo (see root build.gradle).
+    implementation("com.github.cafebazaar.Poolakey:poolakey:2.2.0")
+    // Poolakey launches its purchase flow via the Activity's ActivityResultRegistry.
+    implementation("androidx.appcompat:appcompat:1.7.0")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

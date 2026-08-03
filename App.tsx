@@ -1,43 +1,42 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
+ * Noor Launcher — Holographic home (prototype)
  *
  * @format
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import React from 'react';
+import {StatusBar, StyleSheet, View} from 'react-native';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import HolographicHome from './src/holographic/HolographicHome';
+import {SettingsProvider} from './src/holographic/SettingsContext';
+import {StoreProvider} from './src/holographic/store/StoreContext';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
+/**
+ * `mode` arrives as an initial prop from native. The Screen Saver
+ * (HolographicDreamService) launches the same root with mode="dream" so the
+ * scene can hide its interactive chrome while dreaming.
+ */
+function App({mode}: {mode?: string}) {
+  const dream = mode === 'dream';
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <SettingsProvider>
+          <StoreProvider>
+            <StatusBar hidden translucent backgroundColor="transparent" />
+            <View style={styles.root}>
+              <HolographicHome dream={dream} />
+            </View>
+          </StoreProvider>
+        </SettingsProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
   },
 });

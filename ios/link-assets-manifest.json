@@ -1,0 +1,81 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/Amiri-Bold.ttf",
+      "sha1": "eb84bdc491cdb1a8d6b3d4a1fba9508759789836"
+    },
+    {
+      "path": "assets/fonts/Amiri-Regular.ttf",
+      "sha1": "a5f4fe8279d587ca8e65b01159c405788850c6d3"
+    },
+    {
+      "path": "assets/fonts/ArefRuqaa-Bold.ttf",
+      "sha1": "ae5320f680c03a3698ebcc9d7fcd590ca8b93ca1"
+    },
+    {
+      "path": "assets/fonts/ArefRuqaa-Regular.ttf",
+      "sha1": "fbbec1f169d7c9b8fd972abd256c76758baa0e72"
+    },
+    {
+      "path": "assets/fonts/Gandom.ttf",
+      "sha1": "aa0ef0a5181dc6208f14d80e672e5278d9fbb1c3"
+    },
+    {
+      "path": "assets/fonts/Iranian-Sans.ttf",
+      "sha1": "57a067c2bd298f39439b5a69ac6dce3803812623"
+    },
+    {
+      "path": "assets/fonts/irsans.ttf",
+      "sha1": "36645cacd58f14abc24e1240339058839ec5a6cc"
+    },
+    {
+      "path": "assets/fonts/irsansb.ttf",
+      "sha1": "bbba4ee931b134be7ccbecc495b69e62d8a348d4"
+    },
+    {
+      "path": "assets/fonts/Lalezar-Regular.ttf",
+      "sha1": "79542329d39093000769ec97aedb3f9cf13c43ec"
+    },
+    {
+      "path": "assets/fonts/Sahel-Bold.ttf",
+      "sha1": "ebafb0ab4eb352f96f140c1fcce3d5a97f781340"
+    },
+    {
+      "path": "assets/fonts/Sahel.ttf",
+      "sha1": "919458a18e2ae638448f4255c71130a08c4dba81"
+    },
+    {
+      "path": "assets/fonts/Samim-Bold.ttf",
+      "sha1": "2df69a7ec1e2c129ba1386083057bc271eb884b9"
+    },
+    {
+      "path": "assets/fonts/Samim.ttf",
+      "sha1": "842a764f4884d9db38a499f4ad68ecd1b4ebc27c"
+    },
+    {
+      "path": "assets/fonts/Shabnam-Bold.ttf",
+      "sha1": "c5606a3da09e2ed8f5005dfdbb2199f46b167fef"
+    },
+    {
+      "path": "assets/fonts/Shabnam.ttf",
+      "sha1": "070a4618e121bdb4e3e121625a55a20b61c58516"
+    },
+    {
+      "path": "assets/fonts/Vazirmatn-Bold.ttf",
+      "sha1": "c01e41bc392a8b2cd4b9f7ae995c5a284a2920c7"
+    },
+    {
+      "path": "assets/fonts/Vazirmatn-Light.ttf",
+      "sha1": "3981d44c761cf7dc717761cb134d2d288bfc1c3c"
+    },
+    {
+      "path": "assets/fonts/Vazirmatn-Medium.ttf",
+      "sha1": "5c21c7fe0ae95852891f0d527fbcbee5b51e637e"
+    },
+    {
+      "path": "assets/fonts/Vazirmatn-Regular.ttf",
+      "sha1": "253d2f6e4121d70ee0928568470b032d5eec773a"
+    }
+  ]
+}

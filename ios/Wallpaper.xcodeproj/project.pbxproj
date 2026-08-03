@@ -11,6 +11,25 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		EC5987B87B2F4E5FAAF7230C /* Vazirmatn-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7146619B7F554BE8BCE99500 /* Vazirmatn-Bold.ttf */; };
+		60697418AD004D4380DFC1DD /* Vazirmatn-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 96255E0AF0FD49AB92C04CEB /* Vazirmatn-Medium.ttf */; };
+		BD2BE914C18F4EB28A72E040 /* Vazirmatn-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C484DBF3088F49C38C8D9463 /* Vazirmatn-Light.ttf */; };
+		6C8DEE7B1A4849A9A2C96B6D /* Vazirmatn-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 241FEA5925D44D2FA04B3392 /* Vazirmatn-Regular.ttf */; };
+		0015E9D8D87544F09078F34A /* Amiri-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B42BC6414C7846D7943BDD09 /* Amiri-Bold.ttf */; };
+		34F249A114A646EFABB8DCBC /* Sahel.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1B6D72257EC04654999AE941 /* Sahel.ttf */; };
+		577506C66F3B43DD8F34A68D /* Iranian-Sans.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EB2545A942914F1DA8EFB02F /* Iranian-Sans.ttf */; };
+		C12E7CCDED1A4CE48EE70585 /* Shabnam.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 84844AC787164F53A1623050 /* Shabnam.ttf */; };
+		B80DE4C60E634233ABCDB7F1 /* Shabnam-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BD1506B0ED8C49468BD6C6AF /* Shabnam-Bold.ttf */; };
+		088144C3D91B4D809D744A82 /* ArefRuqaa-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1212B6036E6B41AC842757D0 /* ArefRuqaa-Regular.ttf */; };
+		BDE03265CF654A5692C0F846 /* irsans.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E577B8A7D9D34470BCB6808F /* irsans.ttf */; };
+		138522CB05EC4819A4DB6791 /* Gandom.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 67ADDC2DB5FC470C82CA8405 /* Gandom.ttf */; };
+		ED2C70D9D592484FB85D7FC5 /* ArefRuqaa-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7AD7CF231B834A78A70CB9EB /* ArefRuqaa-Bold.ttf */; };
+		CDE1E245B22A409CB62408B2 /* Samim.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3A4C6E33EDAF4A9E8ACA1ECE /* Samim.ttf */; };
+		BB0D3478E1284644B30673B0 /* Amiri-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F6E608D3B1F94C6A8DC9C874 /* Amiri-Regular.ttf */; };
+		B6EBF48E39E74FFB8F55C606 /* Sahel-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EC36854485DD46EE89BEBEF2 /* Sahel-Bold.ttf */; };
+		5A5D0DE3CE8D448F8A798FBC /* Samim-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 066923AA4BCB4193BB651733 /* Samim-Bold.ttf */; };
+		C162F6E772E74EEF8F3B5B87 /* irsansb.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9E4BA278BE47485F98D4BEB9 /* irsansb.ttf */; };
+		59594DC1BFA34E38B5229F40 /* Lalezar-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C4356F92EA3B46DAAEA5D300 /* Lalezar-Regular.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +43,25 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Wallpaper/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Wallpaper/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		7146619B7F554BE8BCE99500 /* Vazirmatn-Bold.ttf */ = {isa = PBXFileReference; name = "Vazirmatn-Bold.ttf"; path = "../assets/fonts/Vazirmatn-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		96255E0AF0FD49AB92C04CEB /* Vazirmatn-Medium.ttf */ = {isa = PBXFileReference; name = "Vazirmatn-Medium.ttf"; path = "../assets/fonts/Vazirmatn-Medium.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		C484DBF3088F49C38C8D9463 /* Vazirmatn-Light.ttf */ = {isa = PBXFileReference; name = "Vazirmatn-Light.ttf"; path = "../assets/fonts/Vazirmatn-Light.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		241FEA5925D44D2FA04B3392 /* Vazirmatn-Regular.ttf */ = {isa = PBXFileReference; name = "Vazirmatn-Regular.ttf"; path = "../assets/fonts/Vazirmatn-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		B42BC6414C7846D7943BDD09 /* Amiri-Bold.ttf */ = {isa = PBXFileReference; name = "Amiri-Bold.ttf"; path = "../assets/fonts/Amiri-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		1B6D72257EC04654999AE941 /* Sahel.ttf */ = {isa = PBXFileReference; name = "Sahel.ttf"; path = "../assets/fonts/Sahel.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		EB2545A942914F1DA8EFB02F /* Iranian-Sans.ttf */ = {isa = PBXFileReference; name = "Iranian-Sans.ttf"; path = "../assets/fonts/Iranian-Sans.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		84844AC787164F53A1623050 /* Shabnam.ttf */ = {isa = PBXFileReference; name = "Shabnam.ttf"; path = "../assets/fonts/Shabnam.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		BD1506B0ED8C49468BD6C6AF /* Shabnam-Bold.ttf */ = {isa = PBXFileReference; name = "Shabnam-Bold.ttf"; path = "../assets/fonts/Shabnam-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		1212B6036E6B41AC842757D0 /* ArefRuqaa-Regular.ttf */ = {isa = PBXFileReference; name = "ArefRuqaa-Regular.ttf"; path = "../assets/fonts/ArefRuqaa-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		E577B8A7D9D34470BCB6808F /* irsans.ttf */ = {isa = PBXFileReference; name = "irsans.ttf"; path = "../assets/fonts/irsans.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		67ADDC2DB5FC470C82CA8405 /* Gandom.ttf */ = {isa = PBXFileReference; name = "Gandom.ttf"; path = "../assets/fonts/Gandom.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		7AD7CF231B834A78A70CB9EB /* ArefRuqaa-Bold.ttf */ = {isa = PBXFileReference; name = "ArefRuqaa-Bold.ttf"; path = "../assets/fonts/ArefRuqaa-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		3A4C6E33EDAF4A9E8ACA1ECE /* Samim.ttf */ = {isa = PBXFileReference; name = "Samim.ttf"; path = "../assets/fonts/Samim.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		F6E608D3B1F94C6A8DC9C874 /* Amiri-Regular.ttf */ = {isa = PBXFileReference; name = "Amiri-Regular.ttf"; path = "../assets/fonts/Amiri-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		EC36854485DD46EE89BEBEF2 /* Sahel-Bold.ttf */ = {isa = PBXFileReference; name = "Sahel-Bold.ttf"; path = "../assets/fonts/Sahel-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		066923AA4BCB4193BB651733 /* Samim-Bold.ttf */ = {isa = PBXFileReference; name = "Samim-Bold.ttf"; path = "../assets/fonts/Samim-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		9E4BA278BE47485F98D4BEB9 /* irsansb.ttf */ = {isa = PBXFileReference; name = "irsansb.ttf"; path = "../assets/fonts/irsansb.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		C4356F92EA3B46DAAEA5D300 /* Lalezar-Regular.ttf */ = {isa = PBXFileReference; name = "Lalezar-Regular.ttf"; path = "../assets/fonts/Lalezar-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +112,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				2EEF88683913431EB9F20D3A /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -96,6 +135,33 @@
 			);
 			path = Pods;
 			sourceTree = "<group>";
+		};
+		2EEF88683913431EB9F20D3A /* Resources */ = {
+			isa = "PBXGroup";
+			children = (
+				7146619B7F554BE8BCE99500 /* Vazirmatn-Bold.ttf */,
+				96255E0AF0FD49AB92C04CEB /* Vazirmatn-Medium.ttf */,
+				C484DBF3088F49C38C8D9463 /* Vazirmatn-Light.ttf */,
+				241FEA5925D44D2FA04B3392 /* Vazirmatn-Regular.ttf */,
+				B42BC6414C7846D7943BDD09 /* Amiri-Bold.ttf */,
+				1B6D72257EC04654999AE941 /* Sahel.ttf */,
+				EB2545A942914F1DA8EFB02F /* Iranian-Sans.ttf */,
+				84844AC787164F53A1623050 /* Shabnam.ttf */,
+				BD1506B0ED8C49468BD6C6AF /* Shabnam-Bold.ttf */,
+				1212B6036E6B41AC842757D0 /* ArefRuqaa-Regular.ttf */,
+				E577B8A7D9D34470BCB6808F /* irsans.ttf */,
+				67ADDC2DB5FC470C82CA8405 /* Gandom.ttf */,
+				7AD7CF231B834A78A70CB9EB /* ArefRuqaa-Bold.ttf */,
+				3A4C6E33EDAF4A9E8ACA1ECE /* Samim.ttf */,
+				F6E608D3B1F94C6A8DC9C874 /* Amiri-Regular.ttf */,
+				EC36854485DD46EE89BEBEF2 /* Sahel-Bold.ttf */,
+				066923AA4BCB4193BB651733 /* Samim-Bold.ttf */,
+				9E4BA278BE47485F98D4BEB9 /* irsansb.ttf */,
+				C4356F92EA3B46DAAEA5D300 /* Lalezar-Regular.ttf */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+			path = "";
 		};
 /* End PBXGroup section */
 
@@ -159,6 +225,25 @@
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
+				EC5987B87B2F4E5FAAF7230C /* Vazirmatn-Bold.ttf in Resources */,
+				60697418AD004D4380DFC1DD /* Vazirmatn-Medium.ttf in Resources */,
+				BD2BE914C18F4EB28A72E040 /* Vazirmatn-Light.ttf in Resources */,
+				6C8DEE7B1A4849A9A2C96B6D /* Vazirmatn-Regular.ttf in Resources */,
+				0015E9D8D87544F09078F34A /* Amiri-Bold.ttf in Resources */,
+				34F249A114A646EFABB8DCBC /* Sahel.ttf in Resources */,
+				577506C66F3B43DD8F34A68D /* Iranian-Sans.ttf in Resources */,
+				C12E7CCDED1A4CE48EE70585 /* Shabnam.ttf in Resources */,
+				B80DE4C60E634233ABCDB7F1 /* Shabnam-Bold.ttf in Resources */,
+				088144C3D91B4D809D744A82 /* ArefRuqaa-Regular.ttf in Resources */,
+				BDE03265CF654A5692C0F846 /* irsans.ttf in Resources */,
+				138522CB05EC4819A4DB6791 /* Gandom.ttf in Resources */,
+				ED2C70D9D592484FB85D7FC5 /* ArefRuqaa-Bold.ttf in Resources */,
+				CDE1E245B22A409CB62408B2 /* Samim.ttf in Resources */,
+				BB0D3478E1284644B30673B0 /* Amiri-Regular.ttf in Resources */,
+				B6EBF48E39E74FFB8F55C606 /* Sahel-Bold.ttf in Resources */,
+				5A5D0DE3CE8D448F8A798FBC /* Samim-Bold.ttf in Resources */,
+				C162F6E772E74EEF8F3B5B87 /* irsansb.ttf in Resources */,
+				59594DC1BFA34E38B5229F40 /* Lalezar-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
