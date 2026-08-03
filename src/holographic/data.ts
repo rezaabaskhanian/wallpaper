@@ -1,14 +1,13 @@
 /**
- * Placeholder data for the Holographic home screen.
- *
- * NOTE: All imagery here is placeholder-only. Replace `image` with a
- * `require('...')` (or a remote uri) pointing to the real portraits when
- * assets are provided. Nothing here ships copyrighted material.
+ * Derived data for the Holographic home screen: the leader hero and the
+ * orbiting martyr avatars. Both come from the backend (see `store/`); while
+ * loading or when the server has no entries yet, a placeholder set is used so
+ * the screen never looks empty or broken.
  */
 
+import {useMemo} from 'react';
 import type {ImageSourcePropType} from 'react-native';
-import rawMartyrs from './martyrs.json';
-import {MARTYR_PHOTOS} from './martyrPhotos';
+import {useStore} from './store/StoreContext';
 
 export type OrbitItem = {
   id: string;
@@ -16,8 +15,8 @@ export type OrbitItem = {
   label: string;
   /** Placeholder gradient colors — swapped for a real portrait later. */
   colors: [string, string];
-  /** Real portrait goes here once assets exist. */
-  image?: number | { uri: string } | ImageSourcePropType;
+  /** Real portrait, fetched from the backend. */
+  image?: number | {uri: string} | ImageSourcePropType;
   /** Links this icon to a martyr entry so a tap can open its modal. */
   martyrId?: string;
 };
@@ -26,24 +25,27 @@ export type HeroConfig = {
   title: string;
   slogan: string;
   colors: [string, string];
-  image?: number | { uri: string };
+  image?: number | {uri: string};
 };
+
+// Fallback full-screen photo, used while the hero image hasn't loaded/been set yet.
+const FALLBACK_HERO_IMAGE = require('./assets/leader.png');
+const HERO_COLORS: [string, string] = ['#1f6f6f', '#0a2a2a'];
 
 /** Central hero: the leader portrait shown in the middle of the sphere. */
-export const HERO: HeroConfig = {
-  title: '',
-  slogan: '',
-  colors: ['#1f6f6f', '#0a2a2a'],
-  image: require('./assets/leader.png'),
-};
+export function useHero(): HeroConfig {
+  const {hero} = useStore();
+  return useMemo(
+    () => ({
+      title: hero?.title ?? '',
+      slogan: hero?.slogan ?? '',
+      colors: HERO_COLORS,
+      image: hero?.image ? {uri: hero.image} : FALLBACK_HERO_IMAGE,
+    }),
+    [hero],
+  );
+}
 
-/**
- * Orbiting "app icons" — each is a placeholder for a martyr portrait.
- *
- * Generated so there are enough unique tiles for several rings. Replace the
- * generated pool with real entries (and `image: require(...)`) when assets
- * arrive. To pin a real portrait, just edit/extend this array.
- */
 const PALETTE: [string, string][] = [
   ['#3ad0c9', '#0e4f56'],
   ['#6ee7b7', '#0f5132'],
@@ -58,27 +60,32 @@ const PALETTE: [string, string][] = [
 const toFaDigits = (n: number) =>
   String(n).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 
-/**
- * Orbiting icons. Built from the martyrs DB when it has entries (each icon
- * carries its `martyrId` so a tap opens that martyr's modal); otherwise falls
- * back to enough unique placeholder tiles to fill every ring without repeats.
- */
-type MartyrLite = {id: string; name: string};
-// Metro may hand the JSON back as the array itself or wrapped as {default: []}.
-const MARTYR_LIST: MartyrLite[] = Array.isArray(rawMartyrs)
-  ? (rawMartyrs as MartyrLite[])
-  : ((rawMartyrs as {default?: MartyrLite[]}).default ?? []);
+/** Enough unique placeholder tiles to fill every ring without repeats. */
+function fallbackOrbitItems(): OrbitItem[] {
+  return Array.from({length: 40}).map((_, i) => ({
+    id: `m${i + 1}`,
+    label: `شهید ${toFaDigits(i + 1)}`,
+    colors: PALETTE[i % PALETTE.length],
+  }));
+}
 
-export const ORBIT_ITEMS: OrbitItem[] = MARTYR_LIST.length
-  ? MARTYR_LIST.map((m, i) => ({
+/**
+ * Orbiting icons, built from the fetched martyrs list (each icon carries its
+ * `martyrId` so a tap opens that martyr's modal). Falls back to placeholder
+ * tiles while loading or when the backend has no entries yet.
+ */
+export function useOrbitItems(): OrbitItem[] {
+  const {martyrs} = useStore();
+  return useMemo(() => {
+    if (!martyrs.length) {
+      return fallbackOrbitItems();
+    }
+    return martyrs.map((m, i) => ({
       id: m.id,
       label: m.name,
       colors: PALETTE[i % PALETTE.length],
-      image: MARTYR_PHOTOS[m.id],
+      image: m.photo ? {uri: m.photo} : undefined,
       martyrId: m.id,
-    }))
-  : Array.from({length: 40}).map((_, i) => ({
-      id: `m${i + 1}`,
-      label: `شهید ${toFaDigits(i + 1)}`,
-      colors: PALETTE[i % PALETTE.length],
     }));
+  }, [martyrs]);
+}

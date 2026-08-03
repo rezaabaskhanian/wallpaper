@@ -28,22 +28,12 @@ func (s Service) GetCatalog(ctx context.Context) (dto.CatalogResponse, error) {
 
 	catDTOs := make([]dto.CategoryDTO, 0, len(cats))
 	for _, c := range cats {
-		catDTOs = append(catDTOs, dto.CategoryDTO{ID: c.ID, Title: c.Title})
+		catDTOs = append(catDTOs, toCategoryDTO(c))
 	}
 
 	wpDTOs := make([]dto.WallpaperDTO, 0, len(wps))
 	for _, w := range wps {
-		wpDTOs = append(wpDTOs, dto.WallpaperDTO{
-			ID:       string(w.ID),
-			Title:    w.Title,
-			Category: w.Category,
-			Premium:  w.Premium,
-			Thumb:    w.Thumb,
-			Full:     w.Full,
-			Width:    w.Width,
-			Height:   w.Height,
-			Bytes:    w.Bytes,
-		})
+		wpDTOs = append(wpDTOs, toWallpaperDTO(w))
 	}
 
 	return dto.CatalogResponse{

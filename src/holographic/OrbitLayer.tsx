@@ -5,7 +5,7 @@ import Animated, {
   SharedValue,
 } from 'react-native-reanimated';
 import Avatar from './Avatar';
-import {ORBIT_ITEMS} from './data';
+import {useOrbitItems, type OrbitItem} from './data';
 import {RINGS} from './config';
 import {useSettings} from './SettingsContext';
 
@@ -76,6 +76,7 @@ type OrbitAvatarProps = {
   parallaxX: SharedValue<number>;
   parallaxY: SharedValue<number>;
   onSelectMartyr?: (martyrId: string) => void;
+  items: OrbitItem[];
 };
 
 function OrbitAvatar({
@@ -91,8 +92,9 @@ function OrbitAvatar({
   parallaxX,
   parallaxY,
   onSelectMartyr,
+  items,
 }: OrbitAvatarProps) {
-  const item = ORBIT_ITEMS[point.itemIndex % ORBIT_ITEMS.length];
+  const item = items[point.itemIndex % items.length];
   const size = point.sizeFactor * minSide;
 
   const style = useAnimatedStyle(() => {
@@ -172,6 +174,7 @@ export default function OrbitLayer({
   onSelectMartyr,
 }: Props) {
   const {settings} = useSettings();
+  const items = useOrbitItems();
   const rings = RINGS.slice(0, Math.max(1, settings.ringCount));
 
   // Orb count is set directly by the user; density no longer tied to rings.
@@ -209,6 +212,7 @@ export default function OrbitLayer({
           parallaxX={parallaxX}
           parallaxY={parallaxY}
           onSelectMartyr={onSelectMartyr}
+          items={items}
         />
       ))}
     </View>

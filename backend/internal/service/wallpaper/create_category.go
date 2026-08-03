@@ -27,6 +27,6 @@ func (s Service) CreateCategory(ctx context.Context, req dto.CreateCategoryReque
 	}
 
 	return dto.CreateCategoryResponse{
-		Category: dto.CategoryDTO{ID: created.ID, Title: created.Title},
+		Category: toCategoryDTO(created),
 	}, nil
 }

@@ -8,6 +8,7 @@ import React from 'react';
 import {StatusBar, StyleSheet, View} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
+import AppAlertHost from './src/holographic/AppAlert';
 import HolographicHome from './src/holographic/HolographicHome';
 import {SettingsProvider} from './src/holographic/SettingsContext';
 import {StoreProvider} from './src/holographic/store/StoreContext';
@@ -28,6 +29,7 @@ function App({mode}: {mode?: string}) {
             <View style={styles.root}>
               <HolographicHome dream={dream} />
             </View>
+            <AppAlertHost />
           </StoreProvider>
         </SettingsProvider>
       </SafeAreaProvider>

@@ -61,7 +61,6 @@ export const THEMES: Theme[] = [
     id: 'D',
     label: 'تاریخی',
     patch: {
-      backgroundId: 'hero',
       dayNightMode: 'auto',
       particleMode: 'on',
       particleIntensity: 'low',

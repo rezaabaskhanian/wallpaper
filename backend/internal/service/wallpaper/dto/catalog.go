@@ -4,6 +4,7 @@ package dto
 type CategoryDTO struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
+	Sort  int    `json:"sort"`
 }
 
 // WallpaperDTO خروجی یک والپیپر در کاتالوگ (دقیقاً مطابق چیزی که کلاینت انتظار دارد).
@@ -17,6 +18,7 @@ type WallpaperDTO struct {
 	Width    int    `json:"width"`
 	Height   int    `json:"height"`
 	Bytes    int64  `json:"bytes"`
+	IsActive bool   `json:"isActive"`
 }
 
 // CatalogResponse پاسخ اندپوینت GET /api/v1/catalog.

@@ -7,16 +7,22 @@ import React, {
   useState,
 } from 'react';
 import {fetchCatalog} from './catalog';
+import {fetchMartyrs} from './martyrs';
+import {fetchQuotes} from './quotes';
+import {fetchHero} from './hero';
 import {
   getOwnedSkus,
   isBillingAvailable,
   PREMIUM_SKU,
   purchase as billingPurchase,
 } from './billing';
-import type {Catalog, WallpaperItem} from './types';
+import type {Catalog, HeroData, MartyrItem, QuoteItem, WallpaperItem} from './types';
 
 type StoreValue = {
   catalog: Catalog | null;
+  martyrs: MartyrItem[];
+  quotes: QuoteItem[];
+  hero: HeroData | null;
   loading: boolean;
   error: string | null;
   /** SKUs the user owns. */
@@ -39,6 +45,9 @@ const StoreContext = createContext<StoreValue | null>(null);
 
 export function StoreProvider({children}: {children: React.ReactNode}) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [martyrs, setMartyrs] = useState<MartyrItem[]>([]);
+  const [quotes, setQuotes] = useState<QuoteItem[]>([]);
+  const [hero, setHero] = useState<HeroData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [owned, setOwned] = useState<string[]>([]);
@@ -46,9 +55,14 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   const reload = useCallback(() => {
     setLoading(true);
     setError(null);
-    fetchCatalog()
-      .then(setCatalog)
-      .catch(e => setError(e?.message ?? 'خطا در دریافت کاتالوگ'))
+    Promise.all([fetchCatalog(), fetchMartyrs(), fetchQuotes(), fetchHero()])
+      .then(([cat, ms, qs, h]) => {
+        setCatalog(cat);
+        setMartyrs(ms);
+        setQuotes(qs);
+        setHero(h);
+      })
+      .catch(e => setError(e?.message ?? 'خطا در دریافت اطلاعات'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -79,6 +93,9 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   const value = useMemo<StoreValue>(
     () => ({
       catalog,
+      martyrs,
+      quotes,
+      hero,
       loading,
       error,
       owned,
@@ -91,6 +108,9 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
     }),
     [
       catalog,
+      martyrs,
+      quotes,
+      hero,
       loading,
       error,
       owned,

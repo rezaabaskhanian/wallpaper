@@ -1,6 +1,5 @@
-import React from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import AppText from './AppText';
+import {showAlert} from './AppAlert';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {BACKGROUNDS, RINGS} from './config';
 import {FONTS} from './fonts';
@@ -37,6 +37,16 @@ const GLOW_COLORS = [
   '#7dd3fc', // blue
 ];
 
+/** Tabs that split the once-long settings list into focused categories. */
+type TabId = 'general' | 'background' | 'fonts' | 'widgets' | 'device';
+const TABS: {id: TabId; label: string}[] = [
+  {id: 'general', label: 'عمومی'},
+  {id: 'background', label: 'پس‌زمینه'},
+  {id: 'fonts', label: 'فونت'},
+  {id: 'widgets', label: 'ویجت‌ها'},
+  {id: 'device', label: 'دستگاه'},
+];
+
 /** Bottom-sheet style settings panel for the wallpaper. */
 export default function SettingsPanel({
   visible,
@@ -45,6 +55,20 @@ export default function SettingsPanel({
   onOpenGallery,
 }: Props) {
   const {settings, update, applyTheme} = useSettings();
+  const [tab, setTab] = useState<TabId>('general');
+  const scrollRef = useRef<ScrollView>(null);
+
+  // Start from the first tab every time the sheet is (re)opened.
+  useEffect(() => {
+    if (visible) {
+      setTab('general');
+    }
+  }, [visible]);
+
+  const selectTab = (id: TabId) => {
+    setTab(id);
+    scrollRef.current?.scrollTo({y: 0, animated: false});
+  };
 
   // Bundled backgrounds + a "gallery" entry once the user has picked a photo.
   const backgroundOptions = [
@@ -70,7 +94,7 @@ export default function SettingsPanel({
         update('backgroundId', 'custom');
       }
     } catch {
-      Alert.alert('خطا', 'انتخاب عکس ممکن نشد.');
+      showAlert('خطا', 'انتخاب عکس ممکن نشد.');
     }
   };
 
@@ -85,345 +109,411 @@ export default function SettingsPanel({
         <View style={styles.handle} />
         <AppText style={styles.title}>تنظیمات والپیپر</AppText>
 
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-          <Pressable
-            style={styles.galleryEntry}
-            onPress={() => onOpenGallery?.()}>
-            <AppText style={styles.galleryEntryText}>
-              🖼️ گالری والپیپرها
-            </AppText>
-          </Pressable>
+        <Pressable style={styles.galleryEntry} onPress={() => onOpenGallery?.()}>
+          <AppText style={styles.galleryEntryText}>🖼️ گالری والپیپرها</AppText>
+        </Pressable>
 
-          <AppText style={styles.sectionTitle}>تم آماده</AppText>
-          <View style={styles.chips}>
-            {THEMES.map(t => {
-              const active = t.id === settings.themeId;
-              return (
-                <Pressable
-                  key={t.id}
-                  style={[styles.chip, active && styles.chipActive]}
-                  onPress={() => applyTheme(t.id)}>
-                  <AppText
-                    style={[styles.chipText, active && styles.chipTextActive]}>
-                    {t.label}
-                  </AppText>
-                </Pressable>
-              );
-            })}
-          </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabBar}
+          contentContainerStyle={styles.tabBarContent}>
+          {TABS.map(t => {
+            const active = t.id === tab;
+            return (
+              <Pressable
+                key={t.id}
+                style={[styles.tabBtn, active && styles.tabBtnActive]}
+                onPress={() => selectTab(t.id)}>
+                <AppText
+                  numberOfLines={1}
+                  style={[styles.tabBtnText, active && styles.tabBtnTextActive]}>
+                  {t.label}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
-          <RowColors
-            label="رنگ نور"
-            colors={GLOW_COLORS}
-            selected={settings.glowColor}
-            onSelect={c => update('glowColor', c)}
-          />
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={styles.content}>
+          {tab === 'general' ? (
+            <>
+              <AppText style={styles.sectionTitle}>تم آماده</AppText>
+              <View style={styles.chips}>
+                {THEMES.map(t => {
+                  const active = t.id === settings.themeId;
+                  return (
+                    <Pressable
+                      key={t.id}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => applyTheme(t.id)}>
+                      <AppText
+                        style={[
+                          styles.chipText,
+                          active && styles.chipTextActive,
+                        ]}>
+                        {t.label}
+                      </AppText>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-          <View style={styles.divider} />
+              <RowColors
+                label="رنگ نور"
+                colors={GLOW_COLORS}
+                selected={settings.glowColor}
+                onSelect={c => update('glowColor', c)}
+              />
 
-          <RowSwitch
-            label="چرخش خودکار"
-            value={settings.autoRotate}
-            onChange={v => update('autoRotate', v)}
-          />
+              <View style={styles.divider} />
 
-          <RowStepper
-            label="سرعت چرخش"
-            value={`${settings.speed.toFixed(2)}×`}
-            onDec={() =>
-              update('speed', Math.max(0.25, +(settings.speed - 0.25).toFixed(2)))
-            }
-            onInc={() =>
-              update('speed', Math.min(3, +(settings.speed + 0.25).toFixed(2)))
-            }
-          />
+              <RowSwitch
+                label="چرخش خودکار"
+                value={settings.autoRotate}
+                onChange={v => update('autoRotate', v)}
+              />
 
-          <RowStepper
-            label="اندازه کره"
-            value={`${settings.ringCount}`}
-            onDec={() => update('ringCount', Math.max(1, settings.ringCount - 1))}
-            onInc={() =>
-              update('ringCount', Math.min(RINGS.length, settings.ringCount + 1))
-            }
-          />
+              <RowStepper
+                label="سرعت چرخش"
+                value={`${settings.speed.toFixed(2)}×`}
+                onDec={() =>
+                  update(
+                    'speed',
+                    Math.max(0.25, +(settings.speed - 0.25).toFixed(2)),
+                  )
+                }
+                onInc={() =>
+                  update(
+                    'speed',
+                    Math.min(3, +(settings.speed + 0.25).toFixed(2)),
+                  )
+                }
+              />
 
-          <RowSwitch
-            label="نمایش گوی‌ها"
-            value={settings.showOrbs}
-            onChange={v => update('showOrbs', v)}
-          />
+              <RowStepper
+                label="اندازه کره"
+                value={`${settings.ringCount}`}
+                onDec={() =>
+                  update('ringCount', Math.max(1, settings.ringCount - 1))
+                }
+                onInc={() =>
+                  update(
+                    'ringCount',
+                    Math.min(RINGS.length, settings.ringCount + 1),
+                  )
+                }
+              />
 
-          <RowStepper
-            label="تعداد گوی‌ها"
-            value={`${settings.ballCount}`}
-            onDec={() => update('ballCount', Math.max(4, settings.ballCount - 2))}
-            onInc={() =>
-              update('ballCount', Math.min(40, settings.ballCount + 2))
-            }
-          />
+              <RowSwitch
+                label="نمایش گوی‌ها"
+                value={settings.showOrbs}
+                onChange={v => update('showOrbs', v)}
+              />
 
-          <RowChoices
-            label="محور چرخش"
-            options={[
-              {id: 'x', label: 'محور X'},
-              {id: 'y', label: 'محور Y'},
-              {id: 'z', label: 'محور Z'},
-            ]}
-            selected={settings.rotationAxis}
-            onSelect={id => update('rotationAxis', id as 'x' | 'y' | 'z')}
-          />
+              <RowStepper
+                label="تعداد گوی‌ها"
+                value={`${settings.ballCount}`}
+                onDec={() =>
+                  update('ballCount', Math.max(4, settings.ballCount - 2))
+                }
+                onInc={() =>
+                  update('ballCount', Math.min(40, settings.ballCount + 2))
+                }
+              />
 
-          <RowChoices
-            label="پس‌زمینه"
-            options={backgroundOptions}
-            selected={settings.backgroundId}
-            onSelect={id => update('backgroundId', id)}
-          />
-
-          <Pressable style={styles.galleryBtn} onPress={pickFromGallery}>
-            <AppText style={styles.galleryBtnText}>
-              📷 انتخاب عکس از گالری
-            </AppText>
-          </Pressable>
-          {settings.customBackgroundUri ? (
-            <AppText style={styles.hint}>
-              یک عکس از گالری انتخاب شده — گزینهٔ «گالری» را در بالا بزن.
-            </AppText>
+              <RowChoices
+                label="محور چرخش"
+                options={[
+                  {id: 'x', label: 'محور X'},
+                  {id: 'y', label: 'محور Y'},
+                  {id: 'z', label: 'محور Z'},
+                ]}
+                selected={settings.rotationAxis}
+                onSelect={id => update('rotationAxis', id as 'x' | 'y' | 'z')}
+              />
+            </>
           ) : null}
 
-          <RowChoices
-            label="حالت روز/شب"
-            options={[
-              {id: 'auto', label: 'خودکار'},
-              {id: 'day', label: 'روز'},
-              {id: 'night', label: 'شب'},
-              {id: 'off', label: 'خاموش'},
-            ]}
-            selected={settings.dayNightMode}
-            onSelect={id =>
-              update('dayNightMode', id as 'auto' | 'day' | 'night' | 'off')
-            }
-          />
+          {tab === 'background' ? (
+            <>
+              <RowChoices
+                label="پس‌زمینه"
+                options={backgroundOptions}
+                selected={settings.backgroundId}
+                onSelect={id => update('backgroundId', id)}
+              />
 
-          <RowChoices
-            label="ذرات نور"
-            options={[
-              {id: 'off', label: 'خاموش'},
-              {id: 'on', label: 'روشن'},
-              {id: 'auto', label: 'خودکار'},
-            ]}
-            selected={settings.particleMode}
-            onSelect={id =>
-              update('particleMode', id as 'off' | 'on' | 'auto')
-            }
-          />
+              <Pressable style={styles.galleryBtn} onPress={pickFromGallery}>
+                <AppText style={styles.galleryBtnText}>
+                  📷 انتخاب عکس از گالری
+                </AppText>
+              </Pressable>
+              {settings.customBackgroundUri ? (
+                <AppText style={styles.hint}>
+                  یک عکس از گالری انتخاب شده — گزینهٔ «گالری» را در بالا بزن.
+                </AppText>
+              ) : null}
 
-          <RowChoices
-            label="شدت ذرات"
-            options={[
-              {id: 'low', label: 'کم'},
-              {id: 'medium', label: 'متوسط'},
-              {id: 'high', label: 'زیاد'},
-            ]}
-            selected={settings.particleIntensity}
-            onSelect={id =>
-              update('particleIntensity', id as 'low' | 'medium' | 'high')
-            }
-          />
+              <RowChoices
+                label="حالت روز/شب"
+                options={[
+                  {id: 'auto', label: 'خودکار'},
+                  {id: 'day', label: 'روز'},
+                  {id: 'night', label: 'شب'},
+                  {id: 'off', label: 'خاموش'},
+                ]}
+                selected={settings.dayNightMode}
+                onSelect={id =>
+                  update('dayNightMode', id as 'auto' | 'day' | 'night' | 'off')
+                }
+              />
 
-          <RowSwitch
-            label="خطوط توپوگرافی"
-            value={settings.showTopographic}
-            onChange={v => update('showTopographic', v)}
-          />
+              <RowChoices
+                label="ذرات نور"
+                options={[
+                  {id: 'off', label: 'خاموش'},
+                  {id: 'on', label: 'روشن'},
+                  {id: 'auto', label: 'خودکار'},
+                ]}
+                selected={settings.particleMode}
+                onSelect={id =>
+                  update('particleMode', id as 'off' | 'on' | 'auto')
+                }
+              />
 
-          <RowSwitch
-            label="افکت سینمایی (تیرگی لبه‌ها)"
-            value={settings.vignette}
-            onChange={v => update('vignette', v)}
-          />
+              <RowChoices
+                label="شدت ذرات"
+                options={[
+                  {id: 'low', label: 'کم'},
+                  {id: 'medium', label: 'متوسط'},
+                  {id: 'high', label: 'زیاد'},
+                ]}
+                selected={settings.particleIntensity}
+                onSelect={id =>
+                  update('particleIntensity', id as 'low' | 'medium' | 'high')
+                }
+              />
 
-          <RowSwitch
-            label="نمایش ساعت"
-            value={settings.showClock}
-            onChange={v => update('showClock', v)}
-          />
+              <RowSwitch
+                label="خطوط توپوگرافی"
+                value={settings.showTopographic}
+                onChange={v => update('showTopographic', v)}
+              />
 
-          <RowSwitch
-            label="نمایش تاریخ"
-            value={settings.showDate}
-            onChange={v => update('showDate', v)}
-          />
+              <RowSwitch
+                label="افکت سینمایی (تیرگی لبه‌ها)"
+                value={settings.vignette}
+                onChange={v => update('vignette', v)}
+              />
+            </>
+          ) : null}
 
-          <RowSwitch
-            label="نمایش هوا"
-            value={settings.showWeather}
-            onChange={v => update('showWeather', v)}
-          />
+          {tab === 'fonts' ? (
+            <>
+              <AppText style={styles.sectionTitle}>فونت نوشته‌ها</AppText>
+              <View style={styles.fontList}>
+                {FONTS.map(f => {
+                  const active = f.id === settings.fontId;
+                  return (
+                    <Pressable
+                      key={f.id}
+                      style={[styles.fontChip, active && styles.fontChipActive]}
+                      onPress={() => update('fontId', f.id)}>
+                      <AppText
+                        style={[
+                          styles.fontSample,
+                          {fontFamily: f.families.regular},
+                        ]}>
+                        {f.sample}
+                      </AppText>
+                      <AppText
+                        style={[
+                          styles.fontName,
+                          active && styles.fontNameActive,
+                        ]}>
+                        {f.label}
+                      </AppText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          ) : null}
 
-          <RowSwitch
-            label="هوای زنده (GPS)"
-            value={settings.liveWeather}
-            onChange={v => update('liveWeather', v)}
-          />
+          {tab === 'widgets' ? (
+            <>
+              <RowSwitch
+                label="نمایش ساعت"
+                value={settings.showClock}
+                onChange={v => update('showClock', v)}
+              />
 
-          <RowStepper
-            label="دمای دستی"
-            value={`${settings.manualTemp}°`}
-            onDec={() => update('manualTemp', settings.manualTemp - 1)}
-            onInc={() => update('manualTemp', settings.manualTemp + 1)}
-          />
+              <RowSwitch
+                label="نمایش تاریخ"
+                value={settings.showDate}
+                onChange={v => update('showDate', v)}
+              />
 
-          <View style={styles.divider} />
-          <AppText style={styles.sectionTitle}>فونت نوشته‌ها</AppText>
-          <View style={styles.fontList}>
-            {FONTS.map(f => {
-              const active = f.id === settings.fontId;
-              return (
+              <RowSwitch
+                label="نمایش هوا"
+                value={settings.showWeather}
+                onChange={v => update('showWeather', v)}
+              />
+
+              <RowSwitch
+                label="هوای زنده (GPS)"
+                value={settings.liveWeather}
+                onChange={v => update('liveWeather', v)}
+              />
+
+              <RowStepper
+                label="دمای دستی"
+                value={`${settings.manualTemp}°`}
+                onDec={() => update('manualTemp', settings.manualTemp - 1)}
+                onInc={() => update('manualTemp', settings.manualTemp + 1)}
+              />
+
+              <View style={styles.divider} />
+              <AppText style={styles.sectionTitle}>چیدمان صفحه</AppText>
+
+              <RowSwitch
+                label="جابجایی ساعت و متن (کشیدن)"
+                value={settings.editLayout}
+                onChange={v => {
+                  update('editLayout', v);
+                  if (v) {
+                    onClose();
+                  }
+                }}
+              />
+              <AppText style={styles.hint}>
+                روشن کن و پنجره را ببند، سپس ساعت، دما یا متن پایین را با انگشت
+                بکش تا جابه‌جا شود.
+              </AppText>
+              <Pressable
+                style={styles.galleryBtn}
+                onPress={() => {
+                  update('clockOffset', {x: 0, y: 0});
+                  update('weatherOffset', {x: 0, y: 0});
+                  update('quoteOffset', {x: 0, y: 0});
+                }}>
+                <AppText style={styles.galleryBtnText}>
+                  ↺ بازنشانی موقعیت‌ها
+                </AppText>
+              </Pressable>
+
+              <View style={styles.divider} />
+              <AppText style={styles.sectionTitle}>متن پایین صفحه</AppText>
+
+              <RowSwitch
+                label="نمایش متن پایین"
+                value={settings.showQuote}
+                onChange={v => update('showQuote', v)}
+              />
+
+              <AppText style={styles.fieldLabel}>خط اول (کوچک)</AppText>
+              <TextInput
+                style={styles.input}
+                value={settings.quoteLine1}
+                onChangeText={t => update('quoteLine1', t)}
+                placeholder="ما با این جوان‌ها"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+              />
+
+              <AppText style={styles.fieldLabel}>خط دوم (بزرگ طلایی)</AppText>
+              <TextInput
+                style={styles.input}
+                value={settings.quoteLine2}
+                onChangeText={t => update('quoteLine2', t)}
+                placeholder="به جایی خواهیم رسید"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+              />
+
+              {/* --- COUNTDOWN FEATURE (disabled) ---------------------------------
+              <View style={styles.divider} />
+              <AppText style={styles.sectionTitle}>شمارش معکوس</AppText>
+
+              <AppText style={styles.fieldLabel}>عنوان</AppText>
+              <TextInput
+                style={styles.input}
+                value={settings.countdownLabel}
+                onChangeText={t => update('countdownLabel', t)}
+                placeholder="عنوان شمارش معکوس"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+              />
+
+              <AppText style={styles.fieldLabel}>تاریخ مقصد (ISO)</AppText>
+              <TextInput
+                style={styles.input}
+                value={settings.countdownTargetISO}
+                onChangeText={t => update('countdownTargetISO', t)}
+                placeholder="2040-01-01T00:00:00"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+                autoCapitalize="none"
+              />
+              <AppText style={styles.hint}>
+                نمونه: ۲۰۴۰-۰۱-۰۱T۰۰:۰۰:۰۰ — تاریخ و عنوان دلخواه خودت را وارد کن.
+              </AppText>
+              ------------------------------------------------------------------ */}
+            </>
+          ) : null}
+
+          {tab === 'device' ? (
+            <>
+              <AppText style={styles.sectionTitle}>نمایش روی گوشی</AppText>
+
+              <AppText style={styles.fieldLabel}>
+                والپیپر (تصویر ثابت از پس‌زمینهٔ فعلی)
+              </AppText>
+              <View style={styles.btnRow}>
                 <Pressable
-                  key={f.id}
-                  style={[styles.fontChip, active && styles.fontChipActive]}
-                  onPress={() => update('fontId', f.id)}>
-                  <AppText
-                    style={[styles.fontSample, {fontFamily: f.families.regular}]}>
-                    {f.sample}
-                  </AppText>
-                  <AppText
-                    style={[styles.fontName, active && styles.fontNameActive]}>
-                    {f.label}
-                  </AppText>
+                  style={styles.smallBtn}
+                  onPress={() => onSetWallpaper?.('lock')}>
+                  <AppText style={styles.smallBtnText}>🔒 قفل</AppText>
                 </Pressable>
-              );
-            })}
-          </View>
+                <Pressable
+                  style={styles.smallBtn}
+                  onPress={() => onSetWallpaper?.('home')}>
+                  <AppText style={styles.smallBtnText}>🏠 اصلی</AppText>
+                </Pressable>
+                <Pressable
+                  style={styles.smallBtn}
+                  onPress={() => onSetWallpaper?.('both')}>
+                  <AppText style={styles.smallBtnText}>🔒🏠 هردو</AppText>
+                </Pressable>
+              </View>
+              <AppText style={styles.hint}>
+                ساعت و متن حذف می‌شوند و فقط پس‌زمینه ذخیره می‌شود. تصویر ثابت
+                است (اندروید انیمیشن زنده روی صفحهٔ قفل نمی‌دهد).
+              </AppText>
 
-          <View style={styles.divider} />
-          <AppText style={styles.sectionTitle}>چیدمان صفحه</AppText>
+              <Pressable
+                style={styles.galleryBtn}
+                onPress={openScreenSaverSettings}>
+                <AppText style={styles.galleryBtnText}>
+                  🖥️ انتخاب به‌عنوان محافظ صفحه
+                </AppText>
+              </Pressable>
+              <AppText style={styles.hint}>
+                هنگام بی‌کاری یا شارژ، صحنهٔ زنده به‌جای محافظ صفحه اجرا می‌شود.
+              </AppText>
 
-          <RowSwitch
-            label="جابجایی ساعت و متن (کشیدن)"
-            value={settings.editLayout}
-            onChange={v => {
-              update('editLayout', v);
-              if (v) {
-                onClose();
-              }
-            }}
-          />
-          <AppText style={styles.hint}>
-            روشن کن و پنجره را ببند، سپس ساعت، دما یا متن پایین را با انگشت بکش تا
-            جابه‌جا شود.
-          </AppText>
-          <Pressable
-            style={styles.galleryBtn}
-            onPress={() => {
-              update('clockOffset', {x: 0, y: 0});
-              update('weatherOffset', {x: 0, y: 0});
-              update('quoteOffset', {x: 0, y: 0});
-            }}>
-            <AppText style={styles.galleryBtnText}>↺ بازنشانی موقعیت‌ها</AppText>
-          </Pressable>
-
-          <View style={styles.divider} />
-          <AppText style={styles.sectionTitle}>نمایش روی گوشی</AppText>
-
-          <AppText style={styles.fieldLabel}>
-            والپیپر (تصویر ثابت از پس‌زمینهٔ فعلی)
-          </AppText>
-          <View style={styles.btnRow}>
-            <Pressable
-              style={styles.smallBtn}
-              onPress={() => onSetWallpaper?.('lock')}>
-              <AppText style={styles.smallBtnText}>🔒 قفل</AppText>
-            </Pressable>
-            <Pressable
-              style={styles.smallBtn}
-              onPress={() => onSetWallpaper?.('home')}>
-              <AppText style={styles.smallBtnText}>🏠 اصلی</AppText>
-            </Pressable>
-            <Pressable
-              style={styles.smallBtn}
-              onPress={() => onSetWallpaper?.('both')}>
-              <AppText style={styles.smallBtnText}>🔒🏠 هردو</AppText>
-            </Pressable>
-          </View>
-          <AppText style={styles.hint}>
-            ساعت و متن حذف می‌شوند و فقط پس‌زمینه ذخیره می‌شود. تصویر ثابت است
-            (اندروید انیمیشن زنده روی صفحهٔ قفل نمی‌دهد).
-          </AppText>
-
-          <Pressable style={styles.galleryBtn} onPress={openScreenSaverSettings}>
-            <AppText style={styles.galleryBtnText}>
-              🖥️ انتخاب به‌عنوان محافظ صفحه
-            </AppText>
-          </Pressable>
-          <AppText style={styles.hint}>
-            هنگام بی‌کاری یا شارژ، صحنهٔ زنده به‌جای محافظ صفحه اجرا می‌شود.
-          </AppText>
-
-          <Pressable style={styles.galleryBtn} onPress={openLauncherSettings}>
-            <AppText style={styles.galleryBtnText}>
-              🏠 تنظیم به‌عنوان صفحهٔ خانه (لانچر)
-            </AppText>
-          </Pressable>
-          <AppText style={styles.hint}>
-            صحنهٔ زنده پشت آیکون‌های خانه اجرا می‌شود. توجه: این اپ فعلاً مدیریت
-            اپ‌ها/آیکون‌ها را ندارد؛ برای بازگشت، لانچر پیش‌فرض گوشی را عوض کن.
-          </AppText>
-
-          <View style={styles.divider} />
-          <AppText style={styles.sectionTitle}>متن پایین صفحه</AppText>
-
-          <RowSwitch
-            label="نمایش متن پایین"
-            value={settings.showQuote}
-            onChange={v => update('showQuote', v)}
-          />
-
-          <AppText style={styles.fieldLabel}>خط اول (کوچک)</AppText>
-          <TextInput
-            style={styles.input}
-            value={settings.quoteLine1}
-            onChangeText={t => update('quoteLine1', t)}
-            placeholder="ما با این جوان‌ها"
-            placeholderTextColor="rgba(255,255,255,0.35)"
-          />
-
-          <AppText style={styles.fieldLabel}>خط دوم (بزرگ طلایی)</AppText>
-          <TextInput
-            style={styles.input}
-            value={settings.quoteLine2}
-            onChangeText={t => update('quoteLine2', t)}
-            placeholder="به جایی خواهیم رسید"
-            placeholderTextColor="rgba(255,255,255,0.35)"
-          />
-
-          {/* --- COUNTDOWN FEATURE (disabled) ---------------------------------
-          <View style={styles.divider} />
-          <AppText style={styles.sectionTitle}>شمارش معکوس</AppText>
-
-          <AppText style={styles.fieldLabel}>عنوان</AppText>
-          <TextInput
-            style={styles.input}
-            value={settings.countdownLabel}
-            onChangeText={t => update('countdownLabel', t)}
-            placeholder="عنوان شمارش معکوس"
-            placeholderTextColor="rgba(255,255,255,0.35)"
-          />
-
-          <AppText style={styles.fieldLabel}>تاریخ مقصد (ISO)</AppText>
-          <TextInput
-            style={styles.input}
-            value={settings.countdownTargetISO}
-            onChangeText={t => update('countdownTargetISO', t)}
-            placeholder="2040-01-01T00:00:00"
-            placeholderTextColor="rgba(255,255,255,0.35)"
-            autoCapitalize="none"
-          />
-          <AppText style={styles.hint}>
-            نمونه: ۲۰۴۰-۰۱-۰۱T۰۰:۰۰:۰۰ — تاریخ و عنوان دلخواه خودت را وارد کن.
-          </AppText>
-          ------------------------------------------------------------------ */}
+              <Pressable style={styles.galleryBtn} onPress={openLauncherSettings}>
+                <AppText style={styles.galleryBtnText}>
+                  🏠 تنظیم به‌عنوان صفحهٔ خانه (لانچر)
+                </AppText>
+              </Pressable>
+              <AppText style={styles.hint}>
+                صحنهٔ زنده پشت آیکون‌های خانه اجرا می‌شود. توجه: این اپ فعلاً
+                مدیریت اپ‌ها/آیکون‌ها را ندارد؛ برای بازگشت، لانچر پیش‌فرض گوشی
+                را عوض کن.
+              </AppText>
+            </>
+          ) : null}
         </ScrollView>
 
         <Pressable style={styles.closeBtn} onPress={onClose}>
@@ -587,6 +677,39 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     writingDirection: 'rtl',
   },
+  tabBar: {
+    flexGrow: 0,
+    height: 40,
+    marginBottom: 10,
+  },
+  tabBarContent: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 2,
+  },
+  tabBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(64,224,208,0.2)',
+  },
+  tabBtnActive: {
+    backgroundColor: 'rgba(64,224,208,0.22)',
+    borderColor: '#2dd4bf',
+  },
+  tabBtnText: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 12,
+    fontWeight: '600',
+    writingDirection: 'rtl',
+  },
+  tabBtnTextActive: {
+    color: '#eafffb',
+    fontWeight: '700',
+  },
   scroll: {
     alignSelf: 'stretch',
   },
@@ -689,7 +812,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 10,
   },
   galleryEntryText: {
     color: '#f5e6b3',

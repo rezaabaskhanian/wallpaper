@@ -30,16 +30,6 @@ func (s Service) CreateWallpaper(ctx context.Context, req dto.CreateWallpaperReq
 	}
 
 	return dto.CreateWallpaperResponse{
-		Wallpaper: dto.WallpaperDTO{
-			ID:       string(created.ID),
-			Title:    created.Title,
-			Category: created.Category,
-			Premium:  created.Premium,
-			Thumb:    created.Thumb,
-			Full:     created.Full,
-			Width:    created.Width,
-			Height:   created.Height,
-			Bytes:    created.Bytes,
-		},
+		Wallpaper: toWallpaperDTO(created),
 	}, nil
 }

@@ -5,7 +5,7 @@ import Animated, {
   SharedValue,
 } from 'react-native-reanimated';
 import Avatar from './Avatar';
-import {HERO} from './data';
+import {useHero} from './data';
 import {useSettings} from './SettingsContext';
 
 type Props = {
@@ -29,6 +29,7 @@ export default function CenterPortrait({
   parallaxY,
 }: Props) {
   const {settings} = useSettings();
+  const hero = useHero();
   const size = minSide * 0.5;
 
   const style = useAnimatedStyle(() => ({
@@ -38,7 +39,7 @@ export default function CenterPortrait({
     ],
   }));
 
-  if (!HERO.image) {
+  if (!hero.image) {
     return null;
   }
 
@@ -57,8 +58,8 @@ export default function CenterPortrait({
       ]}>
       <Avatar
         size={size}
-        colors={HERO.colors}
-        image={HERO.image}
+        colors={hero.colors}
+        image={hero.image}
         glow={settings.glowColor}
         ringWidth={0}
       />

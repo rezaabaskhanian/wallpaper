@@ -65,6 +65,40 @@ func (d DB) GetActiveWallpapers(ctx context.Context) ([]domain.Wallpaper, error)
 	return wallpapers, rows.Err()
 }
 
+func (d DB) GetAllWallpapers(ctx context.Context) ([]domain.Wallpaper, error) {
+	const op = "postgreswallpaper.GetAllWallpapers"
+
+	query := `
+	SELECT id, title, category, premium, thumb, full_url, width, height, bytes,
+	       is_active, created_at, updated_at
+	FROM wallpapers
+	ORDER BY created_at DESC
+`
+
+	rows, err := d.conn.Query(ctx, query)
+	if err != nil {
+		return nil, richerror.New(op).WithErr(err).WithMessage("failed to query wallpapers")
+	}
+	defer rows.Close()
+
+	wallpapers := make([]domain.Wallpaper, 0)
+	for rows.Next() {
+		var (
+			w  domain.Wallpaper
+			id string
+		)
+		if err := rows.Scan(
+			&id, &w.Title, &w.Category, &w.Premium, &w.Thumb, &w.Full,
+			&w.Width, &w.Height, &w.Bytes, &w.IsActive, &w.CreatedAt, &w.UpdatedAt,
+		); err != nil {
+			return nil, richerror.New(op).WithErr(err)
+		}
+		w.ID = wallpapervalueobject.WallpaperID(id)
+		wallpapers = append(wallpapers, w)
+	}
+	return wallpapers, rows.Err()
+}
+
 func (d DB) GetCatalogVersion(ctx context.Context) (int, error) {
 	const op = "postgreswallpaper.GetCatalogVersion"
 
@@ -113,6 +147,56 @@ func (d DB) SaveCategory(ctx context.Context, c domain.Category) (domain.Categor
 		return domain.Category{}, richerror.New(op).WithErr(err).WithMessage("failed to upsert category")
 	}
 	return c, nil
+}
+
+func (d DB) UpdateWallpaper(ctx context.Context, w domain.Wallpaper) (domain.Wallpaper, error) {
+	const op = "postgreswallpaper.UpdateWallpaper"
+
+	query := `
+	UPDATE wallpapers
+	SET title = $2, category = $3, premium = $4, thumb = $5, full_url = $6,
+	    width = $7, height = $8, bytes = $9, is_active = $10, updated_at = NOW()
+	WHERE id = $1
+	RETURNING id
+`
+
+	var id string
+	err := d.conn.QueryRow(ctx, query,
+		string(w.ID), w.Title, w.Category, w.Premium, w.Thumb, w.Full,
+		w.Width, w.Height, w.Bytes, w.IsActive,
+	).Scan(&id)
+	if err != nil {
+		return domain.Wallpaper{}, richerror.New(op).WithErr(err).WithMessage("والپیپر مورد نظر پیدا نشد")
+	}
+
+	w.ID = wallpapervalueobject.WallpaperID(id)
+	return w, nil
+}
+
+func (d DB) DeleteWallpaper(ctx context.Context, id string) error {
+	const op = "postgreswallpaper.DeleteWallpaper"
+
+	tag, err := d.conn.Exec(ctx, `DELETE FROM wallpapers WHERE id = $1`, id)
+	if err != nil {
+		return richerror.New(op).WithErr(err).WithMessage("failed to delete wallpaper")
+	}
+	if tag.RowsAffected() == 0 {
+		return richerror.New(op).WithMessage("والپیپر مورد نظر پیدا نشد")
+	}
+	return nil
+}
+
+func (d DB) DeleteCategory(ctx context.Context, id string) error {
+	const op = "postgreswallpaper.DeleteCategory"
+
+	tag, err := d.conn.Exec(ctx, `DELETE FROM categories WHERE id = $1`, id)
+	if err != nil {
+		return richerror.New(op).WithErr(err).WithMessage("failed to delete category")
+	}
+	if tag.RowsAffected() == 0 {
+		return richerror.New(op).WithMessage("دسته مورد نظر پیدا نشد")
+	}
+	return nil
 }
 
 func (d DB) BumpCatalogVersion(ctx context.Context) error {

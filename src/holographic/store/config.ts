@@ -7,7 +7,12 @@
  */
 // Local dev: the Go backend running on the Mac; 10.0.2.2 = host localhost from
 // the Android emulator. Swap for your real server URL in production.
-export const CATALOG_URL = 'http://10.0.2.2:8090/api/v1/catalog';
+const API_BASE_URL = 'http://10.0.2.2:8090/api/v1';
+
+export const CATALOG_URL = `${API_BASE_URL}/catalog`;
+export const MARTYRS_URL = `${API_BASE_URL}/martyrs`;
+export const QUOTES_URL = `${API_BASE_URL}/quotes`;
+export const HERO_URL = `${API_BASE_URL}/hero`;
 
 /**
  * The single non-consumable in-app product (defined in the Cafe Bazaar panel)

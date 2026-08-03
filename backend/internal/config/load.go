@@ -21,9 +21,11 @@ func Load() Config {
 		},
 		HttpServer: HttpServer{
 			Port:           getEnvInt("HTTP_PORT", 8090),
-			AllowedOrigins: getEnvList("ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
+			AllowedOrigins: getEnvList("ALLOWED_ORIGINS", []string{"http://localhost:3000", "http://localhost:5173"}),
 		},
-		AdminAPIKey: getEnv("ADMIN_API_KEY", ""),
+		AdminAPIKey:   getEnv("ADMIN_API_KEY", ""),
+		UploadDir:     getEnv("UPLOAD_DIR", "./storage/uploads"),
+		PublicBaseURL: getEnv("PUBLIC_BASE_URL", "http://localhost:8090"),
 	}
 }
 

@@ -10,7 +10,7 @@ import Animated, {
   SharedValue,
 } from 'react-native-reanimated';
 import Avatar from './Avatar';
-import {HERO} from './data';
+import {useHero} from './data';
 
 type Props = {
   centerX: number;
@@ -27,6 +27,7 @@ export default function HeroCenter({
   parallaxX,
   parallaxY,
 }: Props) {
+  const hero = useHero();
   const pulse = useSharedValue(0);
 
   useEffect(() => {
@@ -75,13 +76,13 @@ export default function HeroCenter({
         />
         <Avatar
           size={size}
-          colors={HERO.colors}
-          image={HERO.image}
+          colors={hero.colors}
+          image={hero.image}
           glow="rgba(212, 175, 55, 0.95)"
           ringWidth={3}
         />
       </View>
-      <AppText style={styles.slogan}>{HERO.slogan}</AppText>
+      <AppText style={styles.slogan}>{hero.slogan}</AppText>
     </Animated.View>
   );
 }

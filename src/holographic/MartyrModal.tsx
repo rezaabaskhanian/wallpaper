@@ -8,9 +8,7 @@ import {
   View,
 } from 'react-native';
 import AppText from './AppText';
-import rawMartyrs from './martyrs.json';
-import {MARTYR_PHOTOS} from './martyrPhotos';
-import type {Martyr} from './martyrs';
+import {useStore} from './store/StoreContext';
 
 type Props = {
   /** id of the martyr to show, or null when the modal is closed. */
@@ -18,24 +16,13 @@ type Props = {
   onClose: () => void;
 };
 
-// Read the martyr list straight from the JSON (same proven path data.ts uses),
-// so the modal never depends on another module's init order.
-const MARTYR_LIST: Martyr[] = (
-  Array.isArray(rawMartyrs)
-    ? rawMartyrs
-    : (rawMartyrs as {default?: Omit<Martyr, 'photo'>[]}).default ?? []
-).map((m: Omit<Martyr, 'photo'>) => ({...m, photo: MARTYR_PHOTOS[m.id]}));
-
-function findMartyr(id: string | null): Martyr | undefined {
-  return id ? MARTYR_LIST.find(m => m.id === id) : undefined;
-}
-
 /**
  * Full-info modal that opens when an orbiting martyr icon is tapped: portrait,
  * name and the story of the martyrdom.
  */
 export default function MartyrModal({martyrId, onClose}: Props) {
-  const martyr = findMartyr(martyrId);
+  const {martyrs} = useStore();
+  const martyr = martyrId ? martyrs.find(m => m.id === martyrId) : undefined;
   const meta = martyr
     ? [martyr.place, martyr.martyredOn].filter(Boolean).join(' — ')
     : '';
@@ -52,7 +39,7 @@ export default function MartyrModal({martyrId, onClose}: Props) {
           {martyr ? (
             <ScrollView contentContainerStyle={styles.content}>
               {martyr.photo ? (
-                <Image source={martyr.photo} style={styles.photo} />
+                <Image source={{uri: martyr.photo}} style={styles.photo} />
               ) : (
                 <View style={[styles.photo, styles.photoPlaceholder]} />
               )}

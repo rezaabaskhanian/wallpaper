@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import {
-  Alert,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -17,6 +16,7 @@ import {
   Easing,
 } from 'react-native-reanimated';
 import AppText from './AppText';
+import {showAlert} from './AppAlert';
 import TopographicBackground from './TopographicBackground';
 import DayNightLayer from './DayNightLayer';
 import ParticleField from './ParticleField';
@@ -73,9 +73,9 @@ export default function HolographicHome({dream = false}: Props) {
           : target === 'both'
           ? 'صفحهٔ اصلی و قفل'
           : 'صفحهٔ قفل';
-      Alert.alert('انجام شد', `والپیپر ${where} تنظیم شد.`);
+      showAlert('انجام شد', `والپیپر ${where} تنظیم شد.`);
     } catch {
-      Alert.alert('خطا', 'تنظیم والپیپر ممکن نشد. (اپ را rebuild کرده‌ای؟)');
+      showAlert('خطا', 'تنظیم والپیپر ممکن نشد. (اپ را rebuild کرده‌ای؟)');
     } finally {
       setCapturing(false);
     }

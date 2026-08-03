@@ -1,7 +1,6 @@
 import React, {useMemo, useState} from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Modal,
@@ -11,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import AppText from './AppText';
+import {showAlert} from './AppAlert';
 import {setWallpaperFromUrl} from './lockWallpaper';
 import type {WallpaperTarget} from './lockWallpaper';
 import {useSettings} from './SettingsContext';
@@ -61,10 +61,10 @@ export default function WallpaperGallery({visible, onClose}: Props) {
     try {
       const ok = await buyUnlock();
       if (ok) {
-        Alert.alert('باز شد', 'همهٔ والپیپرها باز شدند. لذت ببر!');
+        showAlert('باز شد', 'همهٔ والپیپرها باز شدند. لذت ببر!');
       }
     } catch (e: any) {
-      Alert.alert(
+      showAlert(
         'پرداخت',
         e?.message === 'BILLING_UNAVAILABLE'
           ? 'پرداخت کافه‌بازار هنوز روی این نسخه فعال نیست.'
@@ -75,13 +75,10 @@ export default function WallpaperGallery({visible, onClose}: Props) {
 
   const onPressItem = (item: WallpaperItem) => {
     if (!isUnlocked(item)) {
-      Alert.alert(
+      showAlert(
         'والپیپر ویژه 🔒',
         'برای دسترسی به همهٔ والپیپرها، بستهٔ کامل را باز کن.',
-        [
-          {text: 'باز کردن همه', onPress: startPurchase},
-          {text: 'بستن', style: 'cancel'},
-        ],
+        {confirmText: 'باز کردن همه', onConfirm: startPurchase},
       );
       return;
     }
@@ -93,7 +90,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
     update('backgroundId', 'custom');
     setSelected(null);
     onClose();
-    Alert.alert('انجام شد', 'به‌عنوان پس‌زمینهٔ اپ تنظیم شد.');
+    showAlert('انجام شد', 'به‌عنوان پس‌زمینهٔ اپ تنظیم شد.');
   };
 
   const applyToDevice = async (item: WallpaperItem, target: WallpaperTarget) => {
@@ -102,10 +99,10 @@ export default function WallpaperGallery({visible, onClose}: Props) {
       await setWallpaperFromUrl(item.full, target);
       const where =
         target === 'home' ? 'صفحهٔ اصلی' : target === 'both' ? 'اصلی و قفل' : 'صفحهٔ قفل';
-      Alert.alert('انجام شد', `والپیپر ${where} تنظیم شد.`);
+      showAlert('انجام شد', `والپیپر ${where} تنظیم شد.`);
       setSelected(null);
     } catch {
-      Alert.alert('خطا', 'تنظیم والپیپر ممکن نشد. (اپ را rebuild کرده‌ای؟)');
+      showAlert('خطا', 'تنظیم والپیپر ممکن نشد. (اپ را rebuild کرده‌ای؟)');
     } finally {
       setBusy(false);
     }

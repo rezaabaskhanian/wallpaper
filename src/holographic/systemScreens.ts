@@ -1,4 +1,5 @@
-import {Alert, Linking} from 'react-native';
+import {Linking} from 'react-native';
+import {showAlert} from './AppAlert';
 
 /**
  * Opens Android's Screen Saver (Daydream) settings so the user can pick this app
@@ -8,7 +9,7 @@ export async function openScreenSaverSettings(): Promise<void> {
   try {
     await Linking.sendIntent('android.settings.DREAM_SETTINGS');
   } catch {
-    Alert.alert(
+    showAlert(
       'محافظ صفحه',
       'در «تنظیمات → صفحه‌نمایش → محافظ صفحه»، این اپ را انتخاب کن.',
     );
@@ -25,12 +26,12 @@ export async function openLauncherSettings(): Promise<void> {
   } catch {
     try {
       await Linking.sendIntent('android.settings.SETTINGS');
-      Alert.alert(
+      showAlert(
         'لانچر',
         'در «برنامه‌ها → برنامه‌های پیش‌فرض → برنامهٔ صفحهٔ اصلی»، این اپ را انتخاب کن.',
       );
     } catch {
-      Alert.alert(
+      showAlert(
         'لانچر',
         'در تنظیمات گوشی، بخش «برنامهٔ صفحهٔ اصلی/Home» را باز کن و این اپ را انتخاب کن.',
       );

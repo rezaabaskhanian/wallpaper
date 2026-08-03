@@ -28,3 +28,34 @@ export type Catalog = {
   categories: WallpaperCategory[];
   wallpapers: WallpaperItem[];
 };
+
+/** One martyr from `GET /api/v1/martyrs`. */
+export type MartyrItem = {
+  id: string;
+  name: string;
+  martyrdom: string;
+  born: string;
+  martyredOn: string;
+  place: string;
+  will: string;
+  photo: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+/** One quote from `GET /api/v1/quotes`. */
+export type QuoteItem = {
+  id: string;
+  line1: string;
+  line2: string;
+  source: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+/** The hero/leader config from `GET /api/v1/hero`. */
+export type HeroData = {
+  title: string;
+  slogan: string;
+  image: string;
+};

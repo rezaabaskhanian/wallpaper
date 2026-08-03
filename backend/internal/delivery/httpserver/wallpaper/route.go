@@ -1,19 +1,21 @@
 package wallpaperhandler
 
 import (
-	"wallpaperstore/internal/delivery/middlware"
-
 	"github.com/labstack/echo/v4"
 )
 
-func (h Handler) SetWallpaperRoutes(e *echo.Echo) {
-	api := e.Group("/api/v1")
-
-	// عمومی: کاتالوگ برای اپ
+// SetWallpaperRoutes مسیرهای عمومی (کاتالوگ) و ادمین (CRUD والپیپر/دسته) را ثبت می‌کند.
+// api = گروه /api/v1 (عمومی)، admin = گروه /api/v1/admin (پشت کلید ادمین).
+func (h Handler) SetWallpaperRoutes(api *echo.Group, admin *echo.Group) {
 	api.GET("/catalog", h.GetCatalog)
 
-	// ادمین: افزودن والپیپر/دسته (پشت کلید ادمین)
-	admin := api.Group("", middlware.AdminKey(h.adminKey))
+	admin.GET("/wallpapers", h.AdminListWallpapers)
 	admin.POST("/wallpapers", h.CreateWallpaper)
+	admin.PUT("/wallpapers/:id", h.UpdateWallpaper)
+	admin.DELETE("/wallpapers/:id", h.DeleteWallpaper)
+
+	admin.GET("/categories", h.AdminListCategories)
 	admin.POST("/categories", h.CreateCategory)
+	admin.PUT("/categories/:id", h.UpdateCategory)
+	admin.DELETE("/categories/:id", h.DeleteCategory)
 }
