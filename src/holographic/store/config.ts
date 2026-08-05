@@ -1,13 +1,12 @@
 /**
  * Wallpaper-store configuration.
  *
- * Point CATALOG_URL at your Go backend's catalog endpoint. During development
- * you can host a static JSON file anywhere reachable from the device/emulator
- * (on the Android emulator, `10.0.2.2` maps to your Mac's localhost).
+ * Point CATALOG_URL at your Go backend's catalog endpoint.
  */
-// Local dev: the Go backend running on the Mac; 10.0.2.2 = host localhost from
-// the Android emulator. Swap for your real server URL in production.
-const API_BASE_URL = 'http://10.0.2.2:8090/api/v1';
+// Production API (api.wallpaperapp.ir). For local dev against a Go backend
+// running on your Mac, swap this to 'http://10.0.2.2:8090/api/v1' (Android
+// emulator) — 10.0.2.2 maps to the host machine's localhost.
+const API_BASE_URL = 'https://api.wallpaperapp.ir/api/v1';
 
 export const CATALOG_URL = `${API_BASE_URL}/catalog`;
 export const MARTYRS_URL = `${API_BASE_URL}/martyrs`;

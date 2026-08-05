@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import ImageUploadField from '@/components/ImageUploadField';
+import WallpaperImageUploadField from '@/components/WallpaperImageUploadField';
 import DeleteConfirmButton from '@/components/DeleteConfirmButton';
 import SpotlightCard from '@/components/SpotlightCard';
 import BulkActionsBar from '@/components/BulkActionsBar';
@@ -125,15 +125,12 @@ function WallpaperDialog({
             </select>
           </div>
 
-          <ImageUploadField
-            label="تصویر کوچک (thumb)"
-            value={form.thumb}
-            onChange={url => setForm({...form, thumb: url})}
-          />
-          <ImageUploadField
-            label="تصویر کامل (full)"
-            value={form.full}
-            onChange={url => setForm({...form, full: url})}
+          <WallpaperImageUploadField
+            thumb={form.thumb}
+            full={form.full}
+            onUploaded={({thumb, full, width, height, bytes}) =>
+              setForm({...form, thumb, full, width, height, bytes})
+            }
           />
 
           <div className="grid grid-cols-3 gap-3">
@@ -144,7 +141,8 @@ function WallpaperDialog({
                 type="number"
                 className="font-mono"
                 value={form.width}
-                onChange={e => setForm({...form, width: Number(e.target.value)})}
+                readOnly
+                disabled
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -154,7 +152,8 @@ function WallpaperDialog({
                 type="number"
                 className="font-mono"
                 value={form.height}
-                onChange={e => setForm({...form, height: Number(e.target.value)})}
+                readOnly
+                disabled
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -164,7 +163,8 @@ function WallpaperDialog({
                 type="number"
                 className="font-mono"
                 value={form.bytes}
-                onChange={e => setForm({...form, bytes: Number(e.target.value)})}
+                readOnly
+                disabled
               />
             </div>
           </div>

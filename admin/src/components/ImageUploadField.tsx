@@ -22,8 +22,8 @@ export default function ImageUploadField({label, value, onChange}: Props) {
     if (!file) return;
     setUploading(true);
     try {
-      const {url} = await api.upload(file);
-      onChange(url);
+      const {full} = await api.upload(file);
+      onChange(full);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'آپلود ناموفق بود');
     } finally {

@@ -23,6 +23,16 @@ export function clearAdminKey(): void {
   localStorage.removeItem(ADMIN_AUTHED_STORAGE_KEY);
 }
 
+// خروجی POST /admin/upload: بک‌اند از هر آپلود دو نسخه‌ی WebP می‌سازد
+// (thumb برای گرید، full برای کیفیت اصلی) و ابعاد/حجم نسخه‌ی full را هم برمی‌گرداند.
+export type UploadResult = {
+  thumb: string;
+  full: string;
+  width: number;
+  height: number;
+  bytes: number;
+};
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -66,9 +76,9 @@ export const api = {
   put: <T>(path: string, body: unknown) =>
     request<T>(path, {method: 'PUT', body: JSON.stringify(body)}),
   delete: <T>(path: string) => request<T>(path, {method: 'DELETE'}),
-  upload: (file: File): Promise<{url: string}> => {
+  upload: (file: File): Promise<UploadResult> => {
     const form = new FormData();
     form.append('file', file);
-    return request<{url: string}>('/admin/upload', {method: 'POST', body: form});
+    return request<UploadResult>('/admin/upload', {method: 'POST', body: form});
   },
 };
