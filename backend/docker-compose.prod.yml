@@ -7,18 +7,25 @@
 # Traefik مشترکی که برای آرامینا بالاست؛ با `docker network ls` تأیید شد).
 #
 # اجرا: docker compose -f docker-compose.prod.yml up -d --build
+#
+# نکته: name/volume/container اینجا عمداً با پسوند _prod از docker-compose.yml
+# (نسخه‌ی dev) جدا نگه داشته شدن. چون هر دو فایل تو یک پوشه‌ان، اگر اسم‌ها یکی
+# بود Docker Compose اسم پروژه رو از روی پوشه می‌ساخت و ولوم/کانتینر بین dev و
+# prod به‌اشتراک/تداخل پیدا می‌کرد (همون چیزی که باعث خطای auth شد).
 # ============================================================
+name: wallpaper-prod
+
 services:
   postgres:
     image: postgres:15
-    container_name: wallpaper_postgres
+    container_name: wallpaper_postgres_prod
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     volumes:
-      - wallpaper_pg_data:/var/lib/postgresql/data
+      - wallpaper_prod_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
@@ -30,7 +37,7 @@ services:
   backend:
     build:
       context: .
-    container_name: wallpaper_backend
+    container_name: wallpaper_backend_prod
     restart: unless-stopped
     depends_on:
       postgres:
@@ -64,7 +71,7 @@ services:
       - traefik_net
 
 volumes:
-  wallpaper_pg_data:
+  wallpaper_prod_pg_data:
 
 networks:
   wallpaper_net:
