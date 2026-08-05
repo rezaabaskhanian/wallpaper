@@ -6,6 +6,7 @@ import (
 
 	"wallpaperstore/internal/config"
 	"wallpaperstore/internal/delivery/middlware"
+	"wallpaperstore/internal/pkg/objectstorage"
 
 	herohandler "wallpaperstore/internal/delivery/httpserver/hero"
 	martyrhandler "wallpaperstore/internal/delivery/httpserver/martyr"
@@ -38,6 +39,7 @@ func New(
 	martyrSvc martyrservice.Service,
 	quoteSvc quoteservice.Service,
 	heroSvc heroservice.Service,
+	storage *objectstorage.Client,
 ) Service {
 	return Service{
 		cfg:              cfg,
@@ -45,7 +47,7 @@ func New(
 		martyrHandler:    martyrhandler.New(martyrSvc),
 		quoteHandler:     quotehandler.New(quoteSvc),
 		heroHandler:      herohandler.New(heroSvc),
-		uploadHandler:    uploadhandler.New(cfg.UploadDir, cfg.PublicBaseURL),
+		uploadHandler:    uploadhandler.New(storage),
 	}
 }
 

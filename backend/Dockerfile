@@ -31,7 +31,10 @@ FROM alpine:latest
 
 WORKDIR /root
 
-RUN apk add --no-cache ca-certificates tzdata
+# libwebp-tools فرمان cwebp را می‌دهد؛ اندپوینت آپلود برای ساخت نسخه‌های thumb/full
+# با WebP از آن استفاده می‌کند (به‌جای cgo، از CLI صدا زده می‌شود تا build همچنان
+# CGO_ENABLED=0 و استاتیک بماند).
+RUN apk add --no-cache ca-certificates tzdata libwebp-tools
 
 COPY --from=builder /app/main .
 COPY --from=builder /app/internal/repository/postgres/migrations ./migrations

@@ -23,9 +23,17 @@ func Load() Config {
 			Port:           getEnvInt("HTTP_PORT", 8090),
 			AllowedOrigins: getEnvList("ALLOWED_ORIGINS", []string{"http://localhost:3000", "http://localhost:5173"}),
 		},
-		AdminAPIKey:   getEnv("ADMIN_API_KEY", ""),
-		UploadDir:     getEnv("UPLOAD_DIR", "./storage/uploads"),
-		PublicBaseURL: getEnv("PUBLIC_BASE_URL", "http://localhost:8090"),
+		AdminAPIKey: getEnv("ADMIN_API_KEY", ""),
+		UploadDir:   getEnv("UPLOAD_DIR", "./storage/uploads"),
+		ObjectStorage: ObjectStorage{
+			Endpoint:      getEnv("ARVAN_S3_ENDPOINT", ""),
+			Region:        getEnv("ARVAN_S3_REGION", "ir-thr-at1"),
+			Bucket:        getEnv("ARVAN_S3_BUCKET", ""),
+			AccessKey:     getEnv("ARVAN_S3_ACCESS_KEY", ""),
+			SecretKey:     getEnv("ARVAN_S3_SECRET_KEY", ""),
+			UseSSL:        getEnv("ARVAN_S3_USE_SSL", "true") == "true",
+			PublicBaseURL: getEnv("ARVAN_S3_PUBLIC_BASE_URL", ""),
+		},
 	}
 }
 

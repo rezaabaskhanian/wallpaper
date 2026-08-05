@@ -4,6 +4,7 @@ import (
 	"wallpaperstore/internal/config"
 	"wallpaperstore/internal/delivery/httpserver"
 	"wallpaperstore/internal/pkg/logger"
+	"wallpaperstore/internal/pkg/objectstorage"
 	"wallpaperstore/internal/repository/migrator"
 	"wallpaperstore/internal/repository/postgres"
 	postgreshero "wallpaperstore/internal/repository/postgres/hero"
@@ -37,6 +38,16 @@ func main() {
 	quoteSvc := quoteservice.New(postgresquote.New(db.DB))
 	heroSvc := heroservice.New(postgreshero.New(db.DB))
 
-	server := httpserver.New(cfg, wallpaperSvc, martyrSvc, quoteSvc, heroSvc)
+	storage := objectstorage.New(objectstorage.Config{
+		Endpoint:      cfg.ObjectStorage.Endpoint,
+		Region:        cfg.ObjectStorage.Region,
+		Bucket:        cfg.ObjectStorage.Bucket,
+		AccessKey:     cfg.ObjectStorage.AccessKey,
+		SecretKey:     cfg.ObjectStorage.SecretKey,
+		UseSSL:        cfg.ObjectStorage.UseSSL,
+		PublicBaseURL: cfg.ObjectStorage.PublicBaseURL,
+	})
+
+	server := httpserver.New(cfg, wallpaperSvc, martyrSvc, quoteSvc, heroSvc, storage)
 	server.Server()
 }
