@@ -1,0 +1,26 @@
+# ============================================================
+# دیپلوی پنل ادمین روی VPS — پشت همون Traefik مشترک (arama_aramina_net).
+# یه nginx سبک که خروجی build شده‌ی Vite رو سرو می‌کنه.
+#
+# اجرا: docker compose -f docker-compose.prod.yml up -d --build
+# ============================================================
+name: wallpaper-admin
+
+services:
+  admin:
+    build:
+      context: .
+    container_name: wallpaper_admin_prod
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wallpaper-admin.rule=Host(`admin.wallpaperapp.ir`)"
+      - "traefik.http.routers.wallpaper-admin.entrypoints=web"
+      - "traefik.http.services.wallpaper-admin.loadbalancer.server.port=80"
+    networks:
+      - traefik_net
+
+networks:
+  traefik_net:
+    external: true
+    name: arama_aramina_net
