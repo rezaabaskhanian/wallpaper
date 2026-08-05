@@ -23,9 +23,10 @@ export default function ClockWidget() {
   }, []);
 
   const hours24 = now.getHours();
+  const is24 = settings.hourFormat === '24';
   const ampm = hours24 < 12 ? 'AM' : 'PM';
   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
-  const clock = `${pad(hours12)}:${pad(now.getMinutes())}`;
+  const clock = `${pad(is24 ? hours24 : hours12)}:${pad(now.getMinutes())}`;
 
   return (
     <DraggableWidget
@@ -36,7 +37,7 @@ export default function ClockWidget() {
       label="ساعت">
       <View style={styles.clockRow}>
         <AppText style={styles.clock}>{toFa(clock)}</AppText>
-        <AppText style={styles.ampm}>{ampm}</AppText>
+        {is24 ? null : <AppText style={styles.ampm}>{ampm}</AppText>}
       </View>
 
       {settings.showDate ? (

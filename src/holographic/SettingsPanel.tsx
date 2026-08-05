@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  TextInput,
   View,
 } from 'react-native';
 import AppText from './AppText';
@@ -107,33 +106,30 @@ export default function SettingsPanel({
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={styles.sheet}>
         <View style={styles.handle} />
-        <AppText style={styles.title}>تنظیمات والپیپر</AppText>
 
-        <Pressable style={styles.galleryEntry} onPress={() => onOpenGallery?.()}>
-          <AppText style={styles.galleryEntryText}>🖼️ گالری والپیپرها</AppText>
-        </Pressable>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabBar}
-          contentContainerStyle={styles.tabBarContent}>
+        {/* تب‌بار دسته‌ها: اولین چیزی که دیده می‌شود، بالای مودال. */}
+        <View style={styles.tabBar}>
           {TABS.map(t => {
             const active = t.id === tab;
             return (
               <Pressable
                 key={t.id}
-                style={[styles.tabBtn, active && styles.tabBtnActive]}
+                style={styles.tabBtn}
                 onPress={() => selectTab(t.id)}>
                 <AppText
                   numberOfLines={1}
                   style={[styles.tabBtnText, active && styles.tabBtnTextActive]}>
                   {t.label}
                 </AppText>
+                <View style={[styles.tabIndicator, active && styles.tabIndicatorActive]} />
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
+
+        <Pressable style={styles.galleryEntry} onPress={() => onOpenGallery?.()}>
+          <AppText style={styles.galleryEntryText}>🖼️ گالری والپیپرها</AppText>
+        </Pressable>
 
         <ScrollView
           ref={scrollRef}
@@ -231,9 +227,12 @@ export default function SettingsPanel({
                   {id: 'x', label: 'محور X'},
                   {id: 'y', label: 'محور Y'},
                   {id: 'z', label: 'محور Z'},
+                  {id: 'mixed', label: 'مخلوط (اتمی)'},
                 ]}
                 selected={settings.rotationAxis}
-                onSelect={id => update('rotationAxis', id as 'x' | 'y' | 'z')}
+                onSelect={id =>
+                  update('rotationAxis', id as 'x' | 'y' | 'z' | 'mixed')
+                }
               />
             </>
           ) : null}
@@ -247,11 +246,11 @@ export default function SettingsPanel({
                 onSelect={id => update('backgroundId', id)}
               />
 
-              <Pressable style={styles.galleryBtn} onPress={pickFromGallery}>
+              {/* <Pressable style={styles.galleryBtn} onPress={pickFromGallery}>
                 <AppText style={styles.galleryBtnText}>
                   📷 انتخاب عکس از گالری
                 </AppText>
-              </Pressable>
+              </Pressable> */}
               {settings.customBackgroundUri ? (
                 <AppText style={styles.hint}>
                   یک عکس از گالری انتخاب شده — گزینهٔ «گالری» را در بالا بزن.
@@ -296,12 +295,6 @@ export default function SettingsPanel({
                 onSelect={id =>
                   update('particleIntensity', id as 'low' | 'medium' | 'high')
                 }
-              />
-
-              <RowSwitch
-                label="خطوط توپوگرافی"
-                value={settings.showTopographic}
-                onChange={v => update('showTopographic', v)}
               />
 
               <RowSwitch
@@ -356,6 +349,16 @@ export default function SettingsPanel({
                 label="نمایش تاریخ"
                 value={settings.showDate}
                 onChange={v => update('showDate', v)}
+              />
+
+              <RowChoices
+                label="حالت نمایش ساعت"
+                options={[
+                  {id: '12', label: '۱۲ ساعته'},
+                  {id: '24', label: '۲۴ ساعته'},
+                ]}
+                selected={settings.hourFormat}
+                onSelect={id => update('hourFormat', id as '12' | '24')}
               />
 
               <RowSwitch
@@ -415,7 +418,7 @@ export default function SettingsPanel({
                 onChange={v => update('showQuote', v)}
               />
 
-              <AppText style={styles.fieldLabel}>خط اول (کوچک)</AppText>
+              {/* <AppText style={styles.fieldLabel}>خط اول (کوچک)</AppText>
               <TextInput
                 style={styles.input}
                 value={settings.quoteLine1}
@@ -431,7 +434,7 @@ export default function SettingsPanel({
                 onChangeText={t => update('quoteLine2', t)}
                 placeholder="به جایی خواهیم رسید"
                 placeholderTextColor="rgba(255,255,255,0.35)"
-              />
+              /> */}
 
               {/* --- COUNTDOWN FEATURE (disabled) ---------------------------------
               <View style={styles.divider} />
@@ -651,7 +654,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    maxHeight: '82%',
+    height: '82%',
     backgroundColor: '#08201f',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -669,39 +672,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.25)',
     marginBottom: 12,
   },
-  title: {
-    color: '#eafffb',
-    fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 8,
-    writingDirection: 'rtl',
-  },
   tabBar: {
-    flexGrow: 0,
-    height: 40,
-    marginBottom: 10,
-  },
-  tabBarContent: {
     flexDirection: 'row-reverse',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 2,
+    marginBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   tabBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.2)',
-  },
-  tabBtnActive: {
-    backgroundColor: 'rgba(64,224,208,0.22)',
-    borderColor: '#2dd4bf',
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 8,
   },
   tabBtnText: {
-    color: 'rgba(255,255,255,0.65)',
+    color: 'rgba(255,255,255,0.55)',
     fontSize: 12,
     fontWeight: '600',
     writingDirection: 'rtl',
@@ -710,7 +694,17 @@ const styles = StyleSheet.create({
     color: '#eafffb',
     fontWeight: '700',
   },
+  tabIndicator: {
+    height: 3,
+    width: '70%',
+    borderRadius: 2,
+    backgroundColor: 'transparent',
+  },
+  tabIndicatorActive: {
+    backgroundColor: '#2dd4bf',
+  },
   scroll: {
+    flex: 1,
     alignSelf: 'stretch',
   },
   content: {

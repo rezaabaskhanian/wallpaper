@@ -3,17 +3,13 @@ import {ImageBackground, StyleSheet} from 'react-native';
 import {BACKGROUNDS} from './config';
 import {useSettings} from './SettingsContext';
 
-// Fallback full-screen photo, used for backgrounds that carry no image of their
-// own (e.g. 'black' / 'topographic'). Drop your PNG at
-// src/holographic/assets/main.png to replace it.
-const MAIN_IMAGE = require('./assets/main.png');
-
 /**
  * The full-screen background photo behind the orbiting avatars.
  *
  * Honours the current selection: a photo picked from the gallery or the device
- * ('custom' + customBackgroundUri), otherwise the bundled image of the selected
- * background, otherwise the default main image.
+ * ('custom' + customBackgroundUri), or the bundled image of the selected
+ * background. IDs with no photo of their own (e.g. 'black') render nothing
+ * here on purpose, falling through to the root view's solid black fill.
  */
 export default function MainBackground() {
   const {settings} = useSettings();
@@ -22,9 +18,12 @@ export default function MainBackground() {
     settings.backgroundId === 'custom'
       ? settings.customBackgroundUri
         ? {uri: settings.customBackgroundUri}
-        : MAIN_IMAGE
-      : BACKGROUNDS.find(b => b.id === settings.backgroundId)?.source ??
-        MAIN_IMAGE;
+        : undefined
+      : BACKGROUNDS.find(b => b.id === settings.backgroundId)?.source;
+
+  if (!source) {
+    return null;
+  }
 
   // ImageBackground (not a bare Image) because it sizes the inner image to
   // 100% × 100%; absolute insets alone leave it at its intrinsic pixel size.

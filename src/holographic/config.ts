@@ -51,13 +51,14 @@ export type BackgroundOption = {
  * with `source: require('./assets/your-photo.jpg')`.
  */
 export const BACKGROUNDS: BackgroundOption[] = [
-  {id: 'black', label: 'مشکی'},
-  {id: 'hero', label: 'پرتره', source: require('./assets/hero.jpg')},
-  {id: 'topographic', label: 'توپوگرافی'},
+  {id: 'main', label: 'اصلی', source: require('./assets/main.png')},
+  // {id: 'black', label: 'مشکی'},
+  // {id: 'hero', label: 'پرتره', source: require('./assets/hero.jpg')},
+  // {id: 'topographic', label: 'توپوگرافی'},
 ];
 
 /** Which background is selected by default. */
-export const DEFAULT_BACKGROUND_ID = 'black';
+export const DEFAULT_BACKGROUND_ID = 'main';
 
 /**
  * Countdown widget defaults. This is a GENERIC countdown to a configurable

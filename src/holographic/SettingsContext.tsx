@@ -19,8 +19,9 @@ export type WallpaperSettings = {
   showOrbs: boolean;
   /** How many rotating orbs sit on the sphere. */
   ballCount: number;
-  /** Axis the sphere spins around: 'x', 'y' or 'z'. */
-  rotationAxis: 'x' | 'y' | 'z';
+  /** Axis the sphere spins around: 'x', 'y', 'z', or 'mixed' (each orb picks
+   * its own axis round-robin, like electrons around an atom). */
+  rotationAxis: 'x' | 'y' | 'z' | 'mixed';
   /** Selected background id (see BACKGROUNDS in config, or 'custom'). */
   backgroundId: string;
   /** Uri of a photo the user picked from their gallery (for backgroundId 'custom'). */
@@ -37,8 +38,6 @@ export type WallpaperSettings = {
   vignette: boolean;
   /** Last applied theme id (see THEMES in config). */
   themeId: string;
-  /** Show the topographic Skia contour lines. */
-  showTopographic: boolean;
   /** Show the clock widget. */
   showClock: boolean;
   /** Show the weather line (icon + temperature). */
@@ -49,6 +48,8 @@ export type WallpaperSettings = {
   manualTemp: number;
   /** Show the date under the clock. */
   showDate: boolean;
+  /** Clock format: 12-hour (with AM/PM) or 24-hour (no AM/PM). */
+  hourFormat: '12' | '24';
   /** Selected on-screen font id (see FONTS in fonts.ts). */
   fontId: string;
   /** When true, clock & bottom text become draggable to reposition them. */
@@ -95,12 +96,12 @@ const DEFAULTS: WallpaperSettings = {
   vignette: false,
   themeId: 'A',
   backgroundId: DEFAULT_BACKGROUND_ID,
-  showTopographic: false,
   showClock: true,
   showWeather: true,
   liveWeather: true,
   manualTemp: 24,
   showDate: true,
+  hourFormat: '12',
   fontId: DEFAULT_FONT_ID,
   editLayout: false,
   clockOffset: {x: 0, y: 0},

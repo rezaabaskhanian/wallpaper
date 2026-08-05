@@ -13,6 +13,7 @@ class LockWallpaperPackage : ReactPackage {
       listOf(
           LockWallpaperModule(reactContext),
           BazaarBillingModule(reactContext),
+          InstalledAppsModule(reactContext),
       )
 
   override fun createViewManagers(

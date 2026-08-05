@@ -6,18 +6,22 @@ import {
   View,
 } from 'react-native';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
-import {
+import Animated, {
   useSharedValue,
+  useAnimatedStyle,
   withRepeat,
+  withSequence,
+  withDelay,
   withTiming,
   withSpring,
   withDecay,
   useFrameCallback,
+  runOnJS,
+  cancelAnimation,
   Easing,
 } from 'react-native-reanimated';
 import AppText from './AppText';
 import {showAlert} from './AppAlert';
-import TopographicBackground from './TopographicBackground';
 import DayNightLayer from './DayNightLayer';
 import ParticleField from './ParticleField';
 import Vignette from './Vignette';
@@ -29,7 +33,8 @@ import SettingsPanel from './SettingsPanel';
 import TopLeftBar from './TopLeftBar';
 import MartyrModal from './MartyrModal';
 import WallpaperGallery from './WallpaperGallery';
-import {BACKGROUNDS, BASE_TURN_SECONDS} from './config';
+import AppDrawer from './AppDrawer';
+import {BASE_TURN_SECONDS} from './config';
 import {setDeviceWallpaper, type WallpaperTarget} from './lockWallpaper';
 import {useSettings} from './SettingsContext';
 
@@ -56,6 +61,10 @@ export default function HolographicHome({dream = false}: Props) {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  // Once the user has opened the drawer once, the "swipe up" hint stops —
+  // no need to keep teaching a gesture they already found.
+  const [drawerDiscovered, setDrawerDiscovered] = useState(false);
   // While true, the clock/quote/status chrome is hidden so a clean background
   // frame can be grabbed for the lock-screen wallpaper.
   const [capturing, setCapturing] = useState(false);
@@ -83,8 +92,6 @@ export default function HolographicHome({dream = false}: Props) {
   // Which martyr's modal is open (null = closed).
   const [activeMartyrId, setActiveMartyrId] = useState<string | null>(null);
 
-  // Slow background holographic loop (0..1).
-  const bgProgress = useSharedValue(0);
   // Accumulated auto-orbit angle (radians), integrated every frame so speed
   // can change live without the rings jumping.
   const orbit = useSharedValue(0);
@@ -103,14 +110,6 @@ export default function HolographicHome({dream = false}: Props) {
     speed.value = settings.speed;
     autoRotate.value = settings.autoRotate ? 1 : 0;
   }, [settings.speed, settings.autoRotate, speed, autoRotate]);
-
-  useEffect(() => {
-    bgProgress.value = withRepeat(
-      withTiming(1, {duration: 60000, easing: Easing.linear}),
-      -1,
-      false,
-    );
-  }, [bgProgress]);
 
   // Pause the sphere whenever a martyr modal is open.
   useEffect(() => {
@@ -150,28 +149,93 @@ export default function HolographicHome({dream = false}: Props) {
       parallaxY.value = withSpring(0, {damping: 12, stiffness: 90});
     });
 
-  const hasPhoto =
-    settings.backgroundId === 'custom'
-      ? !!settings.customBackgroundUri
-      : !!BACKGROUNDS.find(b => b.id === settings.backgroundId)?.source;
+  // Small dedicated gesture on the bottom handle only, so it never competes
+  // with the full-screen orbit-rotation pan above. A tap or an upward swipe
+  // both open the app drawer.
+  const openDrawer = () => {
+    setDrawerOpen(true);
+    setDrawerDiscovered(true);
+  };
+  const drawerHandlePan = Gesture.Pan().onEnd(e => {
+    'worklet';
+    if (e.translationY < -15 || Math.abs(e.translationY) < 6) {
+      runOnJS(openDrawer)();
+    }
+  });
+
+  // "Shake"/bounce hint on the drawer handle so a first-time user notices it
+  // can be dragged up, like a little earthquake nudging it toward the top.
+  // Stops for good once they've opened the drawer once.
+  const handleHintY = useSharedValue(0);
+  useEffect(() => {
+    if (dream || drawerDiscovered) {
+      cancelAnimation(handleHintY);
+      handleHintY.value = withTiming(0, {duration: 150});
+      return;
+    }
+    handleHintY.value = withRepeat(
+      withSequence(
+        withTiming(-16, {duration: 220, easing: Easing.out(Easing.quad)}),
+        withTiming(0, {duration: 220, easing: Easing.in(Easing.quad)}),
+        withTiming(-10, {duration: 160, easing: Easing.out(Easing.quad)}),
+        withTiming(0, {duration: 160, easing: Easing.in(Easing.quad)}),
+        withTiming(-16, {duration: 220, easing: Easing.out(Easing.quad)}),
+        withTiming(0, {duration: 220, easing: Easing.in(Easing.quad)}),
+        withDelay(2200, withTiming(0, {duration: 0})),
+      ),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(handleHintY);
+  }, [dream, drawerDiscovered, handleHintY]);
+  const handleHintStyle = useAnimatedStyle(() => ({
+    transform: [{translateY: handleHintY.value}],
+  }));
+
+  // A finger glyph that visibly slides up from the handle and fades out —
+  // demonstrating the actual swipe-up motion, not just drawing attention to
+  // the handle. Runs on the same on/off condition as the handle bounce.
+  const fingerY = useSharedValue(0);
+  const fingerOpacity = useSharedValue(0);
+  useEffect(() => {
+    if (dream || drawerDiscovered) {
+      cancelAnimation(fingerY);
+      cancelAnimation(fingerOpacity);
+      fingerOpacity.value = withTiming(0, {duration: 150});
+      return;
+    }
+    fingerY.value = withRepeat(
+      withSequence(
+        withTiming(0, {duration: 0}),
+        withTiming(-90, {duration: 750, easing: Easing.out(Easing.cubic)}),
+        withDelay(2400, withTiming(0, {duration: 0})),
+      ),
+      -1,
+      false,
+    );
+    fingerOpacity.value = withRepeat(
+      withSequence(
+        withTiming(1, {duration: 150}),
+        withTiming(1, {duration: 450}),
+        withTiming(0, {duration: 200}),
+        withDelay(2350, withTiming(0, {duration: 0})),
+      ),
+      -1,
+      false,
+    );
+    return () => {
+      cancelAnimation(fingerY);
+      cancelAnimation(fingerOpacity);
+    };
+  }, [dream, drawerDiscovered, fingerY, fingerOpacity]);
+  const fingerStyle = useAnimatedStyle(() => ({
+    opacity: fingerOpacity.value,
+    transform: [{translateY: fingerY.value}],
+  }));
 
   return (
     <View style={styles.root}>
-
-
-
-<DayNightLayer hideStars={capturing} />
-
-{settings.showTopographic ? (
-  <TopographicBackground
-    width={width}
-    height={height}
-    progress={bgProgress}
-    parallaxX={parallaxX}
-    parallaxY={parallaxY}
-    transparentBase={hasPhoto}
-  />
-) : null}
+      <DayNightLayer hideStars={capturing} />
 
       <GestureDetector gesture={pan}>
         <View style={styles.root}>
@@ -223,6 +287,24 @@ export default function HolographicHome({dream = false}: Props) {
         <TopLeftBar dream={dream} onOpenSettings={() => setSettingsOpen(true)} />
       ) : null}
 
+      {/* App-drawer handle: a small dedicated hit area at the bottom edge so
+          its swipe-up gesture never competes with the orbit-rotation pan.
+          Hidden while dreaming, mid-capture, or repositioning widgets. */}
+      {!dream && !capturing && !settings.editLayout ? (
+        <>
+          <Animated.Text
+            style={[styles.fingerHint, fingerStyle]}
+            pointerEvents="none">
+            👆
+          </Animated.Text>
+          <GestureDetector gesture={drawerHandlePan}>
+            <View style={styles.drawerHandleZone}>
+              <Animated.View style={[styles.drawerHandleBar, handleHintStyle]} />
+            </View>
+          </GestureDetector>
+        </>
+      ) : null}
+
       {/* Interactive chrome — hidden while running as the screen saver. */}
       {!dream ? (
         <>
@@ -240,6 +322,8 @@ export default function HolographicHome({dream = false}: Props) {
             visible={galleryOpen}
             onClose={() => setGalleryOpen(false)}
           />
+
+          <AppDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
           <MartyrModal
             martyrId={activeMartyrId}
@@ -300,5 +384,31 @@ const styles = StyleSheet.create({
     color: '#eafffb',
     fontSize: 15,
     fontWeight: '700',
+  },
+  fingerHint: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 34,
+    textAlign: 'center',
+    fontSize: 30,
+    zIndex: 351,
+  },
+  drawerHandleZone: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 10,
+    zIndex: 350,
+  },
+  drawerHandleBar: {
+    width: 56,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.35)',
   },
 });

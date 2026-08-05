@@ -184,7 +184,9 @@ export default function OrbitLayer({
   const sizeFactor =
     rings.reduce((sum, r) => sum + r.sizeFactor, 0) / rings.length;
   const sphereRadius = sphereRadiusFactor * minSide;
-  const axis = settings.rotationAxis === 'x' ? 0 : settings.rotationAxis === 'z' ? 2 : 1;
+  const globalAxis =
+    settings.rotationAxis === 'x' ? 0 : settings.rotationAxis === 'z' ? 2 : 1;
+  const mixedAxis = settings.rotationAxis === 'mixed';
 
   const points = React.useMemo(
     () => buildSphere(totalCount, sizeFactor),
@@ -202,7 +204,7 @@ export default function OrbitLayer({
           key={point.itemIndex}
           point={point}
           sphereRadius={sphereRadius}
-          axis={axis}
+          axis={mixedAxis ? point.itemIndex % 3 : globalAxis}
           glow={settings.glowColor}
           minSide={minSide}
           centerX={centerX}
