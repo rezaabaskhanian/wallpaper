@@ -1,4 +1,4 @@
-import React, {useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   Modal,
   Pressable,
@@ -222,7 +222,7 @@ export default function SettingsPanel({
                   {id: 'x', label: 'محور X'},
                   {id: 'y', label: 'محور Y'},
                   {id: 'z', label: 'محور Z'},
-                  {id: 'mixed', label: 'مخلوط (اتمی)'},
+                  {id: 'mixed', label: 'ناهمگون (اتمی)'},
                 ]}
                 selected={settings.rotationAxis}
                 onSelect={id =>
@@ -311,21 +311,6 @@ export default function SettingsPanel({
                   update('fogMode', id as 'off' | 'bottom' | 'top' | 'both')
                 }
               />
-
-              {settings.fogMode !== 'off' ? (
-                <RowChoices
-                  label="شدت مه"
-                  options={[
-                    {id: 'low', label: 'کم'},
-                    {id: 'medium', label: 'متوسط'},
-                    {id: 'high', label: 'زیاد'},
-                  ]}
-                  selected={settings.fogIntensity}
-                  onSelect={id =>
-                    update('fogIntensity', id as 'low' | 'medium' | 'high')
-                  }
-                />
-              ) : null}
             </>
           ) : null}
 

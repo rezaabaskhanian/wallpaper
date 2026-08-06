@@ -17,7 +17,6 @@ export const THEMES: Theme[] = [
     id: 'A',
     label: 'مسیر نور',
     patch: {
-      backgroundId: 'main',
       dayNightMode: 'auto',
       particleMode: 'auto',
       particleIntensity: 'medium',
