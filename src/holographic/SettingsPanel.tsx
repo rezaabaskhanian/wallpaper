@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {
   Modal,
   Pressable,
@@ -54,15 +54,10 @@ export default function SettingsPanel({
   onOpenGallery,
 }: Props) {
   const {settings, update, applyTheme} = useSettings();
+  // Persists across opens/closes (the panel stays mounted, only `visible`
+  // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('general');
   const scrollRef = useRef<ScrollView>(null);
-
-  // Start from the first tab every time the sheet is (re)opened.
-  useEffect(() => {
-    if (visible) {
-      setTab('general');
-    }
-  }, [visible]);
 
   const selectTab = (id: TabId) => {
     setTab(id);
@@ -302,6 +297,35 @@ export default function SettingsPanel({
                 value={settings.vignette}
                 onChange={v => update('vignette', v)}
               />
+
+              <RowChoices
+                label="مه"
+                options={[
+                  {id: 'off', label: 'خاموش'},
+                  {id: 'bottom', label: 'از پایین'},
+                  {id: 'top', label: 'از بالا'},
+                  {id: 'both', label: 'هر دو'},
+                ]}
+                selected={settings.fogMode}
+                onSelect={id =>
+                  update('fogMode', id as 'off' | 'bottom' | 'top' | 'both')
+                }
+              />
+
+              {settings.fogMode !== 'off' ? (
+                <RowChoices
+                  label="شدت مه"
+                  options={[
+                    {id: 'low', label: 'کم'},
+                    {id: 'medium', label: 'متوسط'},
+                    {id: 'high', label: 'زیاد'},
+                  ]}
+                  selected={settings.fogIntensity}
+                  onSelect={id =>
+                    update('fogIntensity', id as 'low' | 'medium' | 'high')
+                  }
+                />
+              ) : null}
             </>
           ) : null}
 

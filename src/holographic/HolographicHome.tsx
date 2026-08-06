@@ -25,6 +25,7 @@ import {showAlert} from './AppAlert';
 import DayNightLayer from './DayNightLayer';
 import ParticleField from './ParticleField';
 import Vignette from './Vignette';
+import AtmosphericFog from './AtmosphericFog';
 import MainBackground from './MainBackground';
 import OrbitLayer from './OrbitLayer';
 import ClockWidget from './ClockWidget';
@@ -51,6 +52,10 @@ type Props = {
   /** True when hosted by the Screen Saver (DreamService): hide interactive UI. */
   dream?: boolean;
 };
+
+// How many times the "swipe up to open drawer" hint bounces before giving up
+// on its own, so it doesn't nag forever if the user never discovers it.
+const HINT_REPEAT_COUNT = 6;
 
 export default function HolographicHome({dream = false}: Props) {
   const {settings, update} = useSettings();
@@ -165,7 +170,8 @@ export default function HolographicHome({dream = false}: Props) {
 
   // "Shake"/bounce hint on the drawer handle so a first-time user notices it
   // can be dragged up, like a little earthquake nudging it toward the top.
-  // Stops for good once they've opened the drawer once.
+  // Stops for good once they've opened the drawer, or after HINT_REPEAT_COUNT
+  // bounces if they never do — it shouldn't nag forever.
   const handleHintY = useSharedValue(0);
   useEffect(() => {
     if (dream || drawerDiscovered) {
@@ -183,8 +189,14 @@ export default function HolographicHome({dream = false}: Props) {
         withTiming(0, {duration: 220, easing: Easing.in(Easing.quad)}),
         withDelay(2200, withTiming(0, {duration: 0})),
       ),
-      -1,
+      HINT_REPEAT_COUNT,
       false,
+      finished => {
+        'worklet';
+        if (finished) {
+          runOnJS(setDrawerDiscovered)(true);
+        }
+      },
     );
     return () => cancelAnimation(handleHintY);
   }, [dream, drawerDiscovered, handleHintY]);
@@ -210,7 +222,7 @@ export default function HolographicHome({dream = false}: Props) {
         withTiming(-90, {duration: 750, easing: Easing.out(Easing.cubic)}),
         withDelay(2400, withTiming(0, {duration: 0})),
       ),
-      -1,
+      HINT_REPEAT_COUNT,
       false,
     );
     fingerOpacity.value = withRepeat(
@@ -220,7 +232,7 @@ export default function HolographicHome({dream = false}: Props) {
         withTiming(0, {duration: 200}),
         withDelay(2350, withTiming(0, {duration: 0})),
       ),
-      -1,
+      HINT_REPEAT_COUNT,
       false,
     );
     return () => {
@@ -260,6 +272,11 @@ export default function HolographicHome({dream = false}: Props) {
           {!capturing ? <ParticleField /> : null}
 
           <Vignette />
+
+          {/* Ambient mist rolling in from an edge; off by default, toggled
+              in Settings → پس‌زمینه. Hidden during capture like the other
+              decorative layers. */}
+          {!capturing ? <AtmosphericFog /> : null}
 
           {/* Hidden during capture so the lock wallpaper is background-only. */}
           {settings.showClock && !capturing ? <ClockWidget /> : null}
@@ -331,6 +348,7 @@ export default function HolographicHome({dream = false}: Props) {
           />
         </>
       ) : null}
+
     </View>
   );
 }

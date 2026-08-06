@@ -36,6 +36,11 @@ export type WallpaperSettings = {
   glowColor: string;
   /** Cinematic dark-edge vignette overlay. */
   vignette: boolean;
+  /** Ambient mist rolling in from an edge: off, bottom, top, or both. */
+  fogMode: 'off' | 'bottom' | 'top' | 'both';
+  /** How thick the ambient mist is (edge reach + how much of the whole
+   * screen it gradually hazes over). */
+  fogIntensity: 'low' | 'medium' | 'high';
   /** Last applied theme id (see THEMES in config). */
   themeId: string;
   /** Show the clock widget. */
@@ -94,6 +99,8 @@ const DEFAULTS: WallpaperSettings = {
   particleIntensity: 'medium',
   glowColor: '#5eead4',
   vignette: false,
+  fogMode: 'off',
+  fogIntensity: 'medium',
   themeId: 'A',
   backgroundId: DEFAULT_BACKGROUND_ID,
   showClock: true,
