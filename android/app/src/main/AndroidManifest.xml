@@ -57,5 +57,17 @@
             android:name="android.service.dream"
             android:resource="@xml/dream_info" />
       </service>
+
+      <!-- Home-screen widget: live clock + quote (see QuoteWidgetProvider.kt). -->
+      <receiver
+        android:name=".QuoteWidgetProvider"
+        android:exported="false">
+        <intent-filter>
+            <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        </intent-filter>
+        <meta-data
+            android:name="android.appwidget.provider"
+            android:resource="@xml/widget_quote_info" />
+      </receiver>
     </application>
 </manifest>

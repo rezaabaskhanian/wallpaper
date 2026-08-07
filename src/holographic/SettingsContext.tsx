@@ -75,6 +75,20 @@ export type WallpaperSettings = {
   countdownTargetISO: string;
   /** Countdown label. [countdown feature disabled] */
   countdownLabel: string;
+  // [combat mode disabled for now — planned for a future version, see
+  // ProjectileLayer.tsx]
+  // /** "Combat" mode: hides the fog and the bottom quote/emblem, and instead
+  //  * flies a missile/drone silhouette across the screen every 8s. */
+  // combatMode: boolean;
+  /** Tilt the scene with the device's gyroscope, on top of the drag parallax. */
+  gyroParallax: boolean;
+  /** Rain/snow particles driven by the live weather condition. */
+  weatherEffects: boolean;
+  /** Animate (Ken Burns zoom) the locked-wallpaper thumbnails in the gallery. */
+  animatedLockedPreview: boolean;
+  /** Home-screen widget: pick a new quote each time it refreshes, instead of
+   * always showing the same one. */
+  widgetAutoRotateQuote: boolean;
 };
 
 type SettingsContextValue = {
@@ -119,6 +133,11 @@ const DEFAULTS: WallpaperSettings = {
   quoteLine2: 'به جایی خواهیم رسید',
   countdownTargetISO: COUNTDOWN.targetISO,
   countdownLabel: COUNTDOWN.label,
+  // combatMode: false, // [combat mode disabled for now]
+  gyroParallax: false,
+  weatherEffects: false,
+  animatedLockedPreview: true,
+  widgetAutoRotateQuote: true,
 };
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);

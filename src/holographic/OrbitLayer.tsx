@@ -20,6 +20,10 @@ type Props = {
   manualRotation: SharedValue<number>;
   parallaxX: SharedValue<number>;
   parallaxY: SharedValue<number>;
+  /** Extra offset from the device gyroscope (0 when disabled), added on top
+   * of the drag-driven parallax above. */
+  tiltX: SharedValue<number>;
+  tiltY: SharedValue<number>;
   /** Called with a martyr id when its icon is tapped. */
   onSelectMartyr?: (martyrId: string) => void;
 };
@@ -75,6 +79,8 @@ type OrbitAvatarProps = {
   manualRotation: SharedValue<number>;
   parallaxX: SharedValue<number>;
   parallaxY: SharedValue<number>;
+  tiltX: SharedValue<number>;
+  tiltY: SharedValue<number>;
   onSelectMartyr?: (martyrId: string) => void;
   items: OrbitItem[];
 };
@@ -91,6 +97,8 @@ function OrbitAvatar({
   manualRotation,
   parallaxX,
   parallaxY,
+  tiltX,
+  tiltY,
   onSelectMartyr,
   items,
 }: OrbitAvatarProps) {
@@ -134,8 +142,8 @@ function OrbitAvatar({
     const scale = 0.5 + depth * 0.55;
     return {
       transform: [
-        {translateX: x + parallaxX.value * 2},
-        {translateY: y + parallaxY.value * 2},
+        {translateX: x + parallaxX.value * 2 + tiltX.value * 1.4},
+        {translateY: y + parallaxY.value * 2 + tiltY.value * 1.4},
         {scale},
       ],
       opacity: 0.35 + depth * 0.65,
@@ -171,6 +179,8 @@ export default function OrbitLayer({
   manualRotation,
   parallaxX,
   parallaxY,
+  tiltX,
+  tiltY,
   onSelectMartyr,
 }: Props) {
   const {settings} = useSettings();
@@ -213,6 +223,8 @@ export default function OrbitLayer({
           manualRotation={manualRotation}
           parallaxX={parallaxX}
           parallaxY={parallaxY}
+          tiltX={tiltX}
+          tiltY={tiltY}
           onSelectMartyr={onSelectMartyr}
           items={items}
         />

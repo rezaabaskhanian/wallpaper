@@ -8,21 +8,27 @@ import BoltIcon from './BoltIcon';
 import GearIcon from './GearIcon';
 import {toFa} from './date';
 import {useSettings} from './SettingsContext';
-import {useWeather, weatherIcon} from './useWeather';
+import {weatherIcon, type Weather} from './useWeather';
 
 type Props = {
   onOpenSettings: () => void;
   /** When true (screen saver), hide the battery + settings gear group. */
   dream?: boolean;
+  /** Live weather, fetched once and shared with WeatherEffects (see
+   * HolographicHome); null when unavailable/disabled. */
+  weather?: Weather | null;
 };
 
 /**
  * Top status row: air temperature pinned to the left, battery + settings gear
  * grouped on the right.
  */
-export default function TopLeftBar({onOpenSettings, dream = false}: Props) {
+export default function TopLeftBar({
+  onOpenSettings,
+  dream = false,
+  weather = null,
+}: Props) {
   const {settings, update} = useSettings();
-  const weather = useWeather(settings.showWeather && settings.liveWeather);
   const batteryLevel = useBatteryLevel(); // 0..1 (null/-1 when unavailable)
   const {batteryState} = usePowerState();
 

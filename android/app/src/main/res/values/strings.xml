@@ -1,3 +1,22 @@
 <resources>
     <string name="app_name">Wallpaper</string>
+
+    <!-- Fallback quotes bundled for the home-screen widget (QuoteWidgetProvider),
+         since a widget can update while the RN app/JS isn't running and can't
+         reach the in-app quotes DB (see src/holographic/store). Kept in sync in
+         spirit with the app's built-in default quote (SettingsContext.tsx). -->
+    <string-array name="widget_quote_line1">
+        <item>ما با این جوان‌ها</item>
+        <item>یاد و راه</item>
+        <item>قدر می‌دانیم</item>
+        <item>چراغ راه ماست</item>
+        <item>الگوی ایستادگی و مقاومت</item>
+    </string-array>
+    <string-array name="widget_quote_line2">
+        <item>به جایی خواهیم رسید</item>
+        <item>شهدای عزیز، همیشه جاودان</item>
+        <item>ایثار و فداکاری شهدا را</item>
+        <item>خاطرهٔ شهدای وطن</item>
+        <item>شهدای سرافراز ایران</item>
+    </string-array>
 </resources>

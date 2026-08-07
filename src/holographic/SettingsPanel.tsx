@@ -12,6 +12,7 @@ import {showAlert} from './AppAlert';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {BACKGROUNDS, RINGS} from './config';
 import {FONTS} from './fonts';
+import {setWidgetAutoRotateQuote} from './homeWidget';
 import type {WallpaperTarget} from './lockWallpaper';
 import {openLauncherSettings, openScreenSaverSettings} from './systemScreens';
 import {useSettings} from './SettingsContext';
@@ -229,6 +230,24 @@ export default function SettingsPanel({
                   update('rotationAxis', id as 'x' | 'y' | 'z' | 'mixed')
                 }
               />
+
+              <View style={styles.divider} />
+
+              <RowSwitch
+                label="پارالاکس با حرکت گوشی (ژیروسکوپ)"
+                value={settings.gyroParallax}
+                onChange={v => update('gyroParallax', v)}
+              />
+              <AppText style={styles.hint}>
+                با کج‌کردن گوشی، پس‌زمینه و گوی‌ها کمی جابه‌جا می‌شوند — علاوه
+                بر کشیدن با انگشت.
+              </AppText>
+
+              <RowSwitch
+                label="پیش‌نمایش متحرک والپیپرهای قفل‌شده (گالری)"
+                value={settings.animatedLockedPreview}
+                onChange={v => update('animatedLockedPreview', v)}
+              />
             </>
           ) : null}
 
@@ -311,6 +330,34 @@ export default function SettingsPanel({
                   update('fogMode', id as 'off' | 'bottom' | 'top' | 'both')
                 }
               />
+
+              <RowSwitch
+                label="جلوه‌های آب‌وهوا (باران/برف)"
+                value={settings.weatherEffects}
+                onChange={v => update('weatherEffects', v)}
+              />
+              {settings.weatherEffects && !settings.liveWeather ? (
+                <AppText style={styles.hint}>
+                  برای این جلوه، «دمای زنده» باید روشن باشد تا وضعیت هوا
+                  مشخص شود.
+                </AppText>
+              ) : null}
+
+              {/* [combat mode disabled for now — planned for a future
+                  version] Re-enable by uncommenting this switch + the
+                  `combatMode` field in SettingsContext.tsx, and the
+                  ProjectileLayer wiring in HolographicHome.tsx. */}
+              {/* <RowSwitch
+                label="حالت رزمی (موشک و پهباد)"
+                value={settings.combatMode}
+                onChange={v => update('combatMode', v)}
+              />
+              {settings.combatMode ? (
+                <AppText style={styles.hint}>
+                  مه و متن پایین صفحه خاموش می‌شود و هر ۸ ثانیه یک موشک یا
+                  پهباد از یک گوشهٔ صفحه رد می‌شود.
+                </AppText>
+              ) : null} */}
             </>
           ) : null}
 
@@ -523,6 +570,23 @@ export default function SettingsPanel({
                 صحنهٔ زنده پشت آیکون‌های خانه اجرا می‌شود. توجه: این اپ فعلاً
                 مدیریت اپ‌ها/آیکون‌ها را ندارد؛ برای بازگشت، لانچر پیش‌فرض گوشی
                 را عوض کن.
+              </AppText>
+
+              <View style={styles.divider} />
+              <AppText style={styles.sectionTitle}>ویجت صفحهٔ اصلی</AppText>
+
+              <RowSwitch
+                label="چرخش خودکار نقل‌قول ویجت"
+                value={settings.widgetAutoRotateQuote}
+                onChange={v => {
+                  update('widgetAutoRotateQuote', v);
+                  setWidgetAutoRotateQuote(v).catch(() => {});
+                }}
+              />
+              <AppText style={styles.hint}>
+                ویجت ساعت و نقل‌قول را با انگشت روی صفحهٔ اصلی نگه‌دار و از
+                فهرست ویجت‌ها، «Wallpaper» را اضافه کن. این سوییچ مشخص می‌کند
+                نقل‌قول هر بار تغییر کند یا ثابت بماند.
               </AppText>
             </>
           ) : null}

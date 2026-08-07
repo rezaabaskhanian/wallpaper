@@ -9,6 +9,9 @@ import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedSensor,
+  useAnimatedReaction,
+  SensorType,
   withRepeat,
   withSequence,
   withDelay,
@@ -26,16 +29,20 @@ import DayNightLayer from './DayNightLayer';
 import ParticleField from './ParticleField';
 import Vignette from './Vignette';
 import AtmosphericFog from './AtmosphericFog';
+// import ProjectileLayer from './ProjectileLayer'; // [combat mode disabled for now]
 import MainBackground from './MainBackground';
 import OrbitLayer from './OrbitLayer';
 import ClockWidget from './ClockWidget';
 import QuoteWidget from './QuoteWidget';
 import SettingsPanel from './SettingsPanel';
 import TopLeftBar from './TopLeftBar';
+import WeatherEffects from './WeatherEffects';
+import {useWeather} from './useWeather';
 import MartyrModal from './MartyrModal';
 import WallpaperGallery from './WallpaperGallery';
 import AppDrawer from './AppDrawer';
 import {BASE_TURN_SECONDS} from './config';
+import {setWidgetBackgroundImage} from './homeWidget';
 import {setDeviceWallpaper, type WallpaperTarget} from './lockWallpaper';
 import {useSettings} from './SettingsContext';
 
@@ -63,6 +70,20 @@ export default function HolographicHome({dream = false}: Props) {
   const centerX = width / 2;
   const centerY = height / 2;
   const minSide = Math.min(width, height);
+
+  // Fetched once here and shared by the temperature readout (TopLeftBar) and
+  // the rain/snow effect (WeatherEffects) so they don't each poll GPS/network.
+  const weather = useWeather(
+    settings.liveWeather && (settings.showWeather || settings.weatherEffects),
+  );
+
+  // Mirrors the chosen background photo onto the home-screen widget (see
+  // QuoteWidgetProvider.kt). Only 'custom' has a real file/URL to sync — the
+  // bundled default background is a JS asset, not something native can read.
+  useEffect(() => {
+    const uri = settings.backgroundId === 'custom' ? settings.customBackgroundUri : null;
+    setWidgetBackgroundImage(uri ?? null).catch(() => {});
+  }, [settings.backgroundId, settings.customBackgroundUri]);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -111,10 +132,48 @@ export default function HolographicHome({dream = false}: Props) {
   // Freezes the auto-rotation while a martyr modal is open.
   const paused = useSharedValue(0);
 
+  // Tilt offsets driven by the device gyroscope (Settings → عمومی), added on
+  // top of the drag parallax above so both sources can move the scene.
+  const gyroEnabled = useSharedValue(settings.gyroParallax ? 1 : 0);
+  const tiltX = useSharedValue(0);
+  const tiltY = useSharedValue(0);
+  const gravity = useAnimatedSensor(SensorType.GRAVITY, {interval: 32});
+
   useEffect(() => {
     speed.value = settings.speed;
     autoRotate.value = settings.autoRotate ? 1 : 0;
   }, [settings.speed, settings.autoRotate, speed, autoRotate]);
+
+  useEffect(() => {
+    gyroEnabled.value = settings.gyroParallax ? 1 : 0;
+  }, [settings.gyroParallax, gyroEnabled]);
+
+  const maxTilt = 16;
+  useAnimatedReaction(
+    () => gravity.sensor.value,
+    g => {
+      'worklet';
+      if (gyroEnabled.value === 0) {
+        tiltX.value = withTiming(0, {duration: 300});
+        tiltY.value = withTiming(0, {duration: 300});
+        return;
+      }
+      // Gravity components are in m/s² (~±9.8); normalize to -1..1.
+      const nx = Math.max(-1, Math.min(1, g.x / 6));
+      const ny = Math.max(-1, Math.min(1, g.y / 6));
+      tiltX.value = withTiming(nx * maxTilt, {duration: 220});
+      tiltY.value = withTiming(-ny * maxTilt, {duration: 220});
+    },
+    [gyroEnabled],
+  );
+
+  const backgroundTiltStyle = useAnimatedStyle(() => ({
+    transform: [
+      {scale: 1.08},
+      {translateX: -tiltX.value * 0.6},
+      {translateY: -tiltY.value * 0.6},
+    ],
+  }));
 
   // Pause the sphere whenever a martyr modal is open.
   useEffect(() => {
@@ -251,7 +310,9 @@ export default function HolographicHome({dream = false}: Props) {
 
       <GestureDetector gesture={pan}>
         <View style={styles.root}>
-         <MainBackground />
+          <Animated.View style={[styles.root, backgroundTiltStyle]}>
+            <MainBackground />
+          </Animated.View>
           {/* Orbiting martyr avatars — hidden during capture so the wallpaper
               is a clean background without the floating icons. */}
           {!capturing ? (
@@ -263,6 +324,8 @@ export default function HolographicHome({dream = false}: Props) {
               manualRotation={manualRotation}
               parallaxX={parallaxX}
               parallaxY={parallaxY}
+              tiltX={tiltX}
+              tiltY={tiltY}
               onSelectMartyr={setActiveMartyrId}
             />
           ) : null}
@@ -275,11 +338,22 @@ export default function HolographicHome({dream = false}: Props) {
 
           {/* Ambient mist rolling in from an edge; off by default, toggled
               in Settings → پس‌زمینه. Hidden during capture like the other
-              decorative layers. */}
+              decorative layers.
+              [combat mode disabled for now — planned for a future version]
+              When re-enabled, gate this with `&& !settings.combatMode` and
+              render <ProjectileLayer /> alongside it — see
+              ProjectileLayer.tsx and settings.combatMode in
+              SettingsContext.tsx. */}
           {!capturing ? <AtmosphericFog /> : null}
+
+          {/* Rain/snow driven by the live weather condition, toggled in
+              Settings → پس‌زمینه. Needs liveWeather on to know the condition. */}
+          {!capturing ? <WeatherEffects weather={weather} /> : null}
 
           {/* Hidden during capture so the lock wallpaper is background-only. */}
           {settings.showClock && !capturing ? <ClockWidget /> : null}
+          {/* [combat mode disabled for now] gate with `&& !settings.combatMode`
+              when re-enabled, so this hides while the projectile layer is on. */}
           {!capturing ? <QuoteWidget /> : null}
         </View>
       </GestureDetector>
@@ -301,7 +375,11 @@ export default function HolographicHome({dream = false}: Props) {
       {/* Top status row: temp stays; battery + gear hidden while dreaming.
           Fully hidden during capture so it isn't baked into the wallpaper. */}
       {!capturing ? (
-        <TopLeftBar dream={dream} onOpenSettings={() => setSettingsOpen(true)} />
+        <TopLeftBar
+          dream={dream}
+          weather={weather}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
       ) : null}
 
       {/* App-drawer handle: a small dedicated hit area at the bottom edge so

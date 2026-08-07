@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Darkens a synced background photo so the clock/quote text stays readable
+     over it. Doesn't need its own rounded corners — the parent FrameLayout's
+     clipToOutline (see widget_quote.xml) already crops it to match. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#66000000" />
+</shape>

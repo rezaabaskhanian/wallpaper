@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -9,6 +9,14 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import AppText from './AppText';
 import {showAlert} from './AppAlert';
 import {setWallpaperFromUrl} from './lockWallpaper';
@@ -23,6 +31,56 @@ type Props = {
 };
 
 /**
+ * Locked-wallpaper thumbnail with a slow Ken Burns zoom + a pulsing lock icon,
+ * meant to tempt the purchase more than a flat static badge would. Toggled by
+ * settings.animatedLockedPreview.
+ */
+function LockedThumb({uri}: {uri: string}) {
+  const zoom = useSharedValue(1);
+  const pulse = useSharedValue(0);
+
+  useEffect(() => {
+    zoom.value = withRepeat(
+      withSequence(
+        withTiming(1.12, {duration: 4200, easing: Easing.inOut(Easing.sin)}),
+        withTiming(1, {duration: 4200, easing: Easing.inOut(Easing.sin)}),
+      ),
+      -1,
+      true,
+    );
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1, {duration: 1100, easing: Easing.inOut(Easing.sin)}),
+        withTiming(0, {duration: 1100, easing: Easing.inOut(Easing.sin)}),
+      ),
+      -1,
+      true,
+    );
+  }, [zoom, pulse]);
+
+  const imageStyle = useAnimatedStyle(() => ({
+    transform: [{scale: zoom.value}],
+  }));
+  const lockStyle = useAnimatedStyle(() => ({
+    transform: [{scale: 1 + pulse.value * 0.18}],
+    opacity: 0.85 + pulse.value * 0.15,
+  }));
+
+  return (
+    <>
+      <Animated.Image
+        source={{uri}}
+        style={[styles.thumb, imageStyle]}
+        resizeMode="cover"
+      />
+      <View style={styles.lockOverlay}>
+        <Animated.Text style={[styles.lockIcon, lockStyle]}>🔒</Animated.Text>
+      </View>
+    </>
+  );
+}
+
+/**
  * Downloadable-wallpaper gallery. Fetches the catalog from the backend, shows a
  * grid of thumbnails (premium items locked behind the "unlock all" purchase),
  * and lets the user apply a wallpaper as the app background or the device
@@ -30,7 +88,7 @@ type Props = {
  */
 export default function WallpaperGallery({visible, onClose}: Props) {
   const {width} = useWindowDimensions();
-  const {update} = useSettings();
+  const {settings, update} = useSettings();
   const {
     catalog,
     loading,
@@ -185,16 +243,22 @@ export default function WallpaperGallery({visible, onClose}: Props) {
                 <Pressable
                   onPress={() => onPressItem(item)}
                   style={[styles.cell, {width: cellWidth}]}>
-                  <Image
-                    source={{uri: item.thumb}}
-                    style={styles.thumb}
-                    resizeMode="cover"
-                  />
-                  {locked ? (
-                    <View style={styles.lockOverlay}>
-                      <AppText style={styles.lockIcon}>🔒</AppText>
-                    </View>
-                  ) : null}
+                  {locked && settings.animatedLockedPreview ? (
+                    <LockedThumb uri={item.thumb} />
+                  ) : (
+                    <>
+                      <Image
+                        source={{uri: item.thumb}}
+                        style={styles.thumb}
+                        resizeMode="cover"
+                      />
+                      {locked ? (
+                        <View style={styles.lockOverlay}>
+                          <AppText style={styles.lockIcon}>🔒</AppText>
+                        </View>
+                      ) : null}
+                    </>
+                  )}
                 </Pressable>
               );
             }}

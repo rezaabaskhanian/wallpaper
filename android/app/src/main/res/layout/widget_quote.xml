@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Home-screen widget: live clock + a quote line (see QuoteWidgetProvider.kt),
+  optionally over the same photo the user picked as the in-app background
+  (widget_bg_image, synced by HomeWidgetModule.setBackgroundImage). The root's
+  own rounded background + clipToOutline crops that photo to match corners
+  without any custom-view drawing code. RemoteViews only supports a limited
+  set of layout/widget classes, so this stays to FrameLayout/LinearLayout +
+  ImageView + TextClock + TextView.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:clipToOutline="true">
+
+    <ImageView
+        android:id="@+id/widget_bg_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/widget_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_scrim"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <TextClock
+            android:id="@+id/widget_clock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format12Hour="h:mm a"
+            android:format24Hour="HH:mm"
+            android:textColor="#F5E6B3"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_quote_line1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="#D6F5EE"
+            android:textSize="12sp"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/widget_quote_line2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="#F5E6B3"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+    </LinearLayout>
+
+</FrameLayout>
