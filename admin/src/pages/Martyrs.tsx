@@ -1,4 +1,5 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {toast} from 'sonner';
 import {Plus} from 'lucide-react';
 import {Button} from '@/components/ui/button';
@@ -56,12 +57,15 @@ function MartyrDialog({
   martyr,
   open,
   onOpenChange,
+  presetCategoryId,
 }: {
   martyr: Martyr | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  presetCategoryId?: string;
 }) {
-  const [form, setForm] = useState<MartyrInput>(martyr ?? EMPTY);
+  const initialForm = () => martyr ?? {...EMPTY, categoryId: presetCategoryId ?? ''};
+  const [form, setForm] = useState<MartyrInput>(initialForm);
   const save = useSaveMartyr();
   const {data: categories} = useMartyrCategories();
 
@@ -80,7 +84,7 @@ function MartyrDialog({
     <Dialog
       open={open}
       onOpenChange={o => {
-        setForm(martyr ?? EMPTY);
+        setForm(initialForm());
         onOpenChange(o);
       }}>
       <DialogContent className="glass-panel max-h-[90vh] max-w-lg overflow-y-auto">
@@ -196,7 +200,22 @@ export default function Martyrs() {
   const delMany = useDeleteManyMartyrs();
   const [editing, setEditing] = useState<Martyr | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const sel = useRowSelection(martyrs);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryFilter = searchParams.get('category') ?? '';
+
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setEditing(null);
+      setDialogOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('new');
+      setSearchParams(next, {replace: true});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const filtered = categoryFilter ? martyrs?.filter(m => m.categoryId === categoryFilter) : martyrs;
+  const sel = useRowSelection(filtered);
 
   const bulkDelete = async () => {
     try {
@@ -215,15 +234,33 @@ export default function Martyrs() {
           <h1 className="text-2xl font-bold tracking-tight">شهدا</h1>
           <p className="text-sm text-muted-foreground">گالری اوربیت شهدا</p>
         </div>
-        <Button
-          className="glow-primary"
-          onClick={() => {
-            setEditing(null);
-            setDialogOpen(true);
-          }}>
-          <Plus className="size-4" />
-          شهید جدید
-        </Button>
+        <div className="flex items-center gap-2">
+          <select
+            className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+            value={categoryFilter}
+            onChange={e => {
+              const next = new URLSearchParams(searchParams);
+              if (e.target.value) next.set('category', e.target.value);
+              else next.delete('category');
+              setSearchParams(next);
+            }}>
+            <option value="">همهٔ دسته‌ها</option>
+            {categories?.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
+            ))}
+          </select>
+          <Button
+            className="glow-primary"
+            onClick={() => {
+              setEditing(null);
+              setDialogOpen(true);
+            }}>
+            <Plus className="size-4" />
+            شهید جدید
+          </Button>
+        </div>
       </div>
 
       <BulkActionsBar
@@ -253,8 +290,14 @@ export default function Martyrs() {
               <TableRow>
                 <TableCell colSpan={7}>در حال بارگذاری…</TableCell>
               </TableRow>
+            ) : !filtered?.length ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
+                  شهیدی در این دسته ثبت نشده است.
+                </TableCell>
+              </TableRow>
             ) : (
-              martyrs?.map(m => (
+              filtered.map(m => (
                 <TableRow key={m.id} data-state={sel.selected.has(m.id) && 'selected'}>
                   <TableCell>
                     <Checkbox
@@ -309,7 +352,13 @@ export default function Martyrs() {
         </Table>
       </SpotlightCard>
 
-      <MartyrDialog martyr={editing} open={dialogOpen} onOpenChange={setDialogOpen} />
+      <MartyrDialog
+        key={editing?.id ?? `new:${categoryFilter}`}
+        martyr={editing}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        presetCategoryId={categoryFilter}
+      />
     </div>
   );
 }

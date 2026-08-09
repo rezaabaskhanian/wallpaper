@@ -1,6 +1,7 @@
 import {useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import {toast} from 'sonner';
-import {Plus} from 'lucide-react';
+import {Plus, UserPlus} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
@@ -31,6 +32,7 @@ import {
   useSaveMartyrCategory,
   type MartyrCategoryInput,
 } from '@/hooks/useMartyrCategories';
+import {useMartyrs} from '@/hooks/useMartyrs';
 import type {MartyrCategory} from '@/lib/types';
 
 const EMPTY: MartyrCategoryInput = {title: '', sortOrder: 0};
@@ -103,10 +105,13 @@ function CategoryDialog({
 
 export default function MartyrCategories() {
   const {data: categories, isLoading} = useMartyrCategories();
+  const {data: martyrs} = useMartyrs();
   const del = useDeleteMartyrCategory();
   const [editing, setEditing] = useState<MartyrCategory | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const sel = useRowSelection(categories);
+  const navigate = useNavigate();
+  const martyrCount = (id: string) => martyrs?.filter(m => m.categoryId === id).length ?? 0;
 
   const bulkDelete = async () => {
     try {
@@ -154,13 +159,14 @@ export default function MartyrCategories() {
               </TableHead>
               <TableHead>عنوان</TableHead>
               <TableHead>ترتیب</TableHead>
-              <TableHead className="w-32" />
+              <TableHead>تعداد شهدا</TableHead>
+              <TableHead className="w-48" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4}>در حال بارگذاری…</TableCell>
+                <TableCell colSpan={5}>در حال بارگذاری…</TableCell>
               </TableRow>
             ) : (
               categories?.map(c => (
@@ -173,7 +179,17 @@ export default function MartyrCategories() {
                   </TableCell>
                   <TableCell className="font-medium">{c.title}</TableCell>
                   <TableCell className="font-mono">{c.sortOrder}</TableCell>
+                  <TableCell className="font-mono text-sm text-muted-foreground">
+                    {martyrCount(c.id)}
+                  </TableCell>
                   <TableCell className="flex justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/martyrs?category=${c.id}&new=1`)}>
+                      <UserPlus className="size-4" />
+                      افزودن شهید
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
