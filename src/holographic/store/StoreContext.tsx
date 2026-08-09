@@ -9,6 +9,7 @@ import React, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fetchCatalog} from './catalog';
 import {fetchMartyrs} from './martyrs';
+import {fetchMartyrCategories} from './martyrCategories';
 import {fetchQuotes} from './quotes';
 import {fetchHero} from './hero';
 import {redeemPromoCode} from './promo';
@@ -18,7 +19,14 @@ import {
   PREMIUM_SKU,
   purchase as billingPurchase,
 } from './billing';
-import type {Catalog, HeroData, MartyrItem, QuoteItem, WallpaperItem} from './types';
+import type {
+  Catalog,
+  HeroData,
+  MartyrCategory,
+  MartyrItem,
+  QuoteItem,
+  WallpaperItem,
+} from './types';
 
 /** Persists across app restarts once a valid discount code unlocks premium. */
 const PROMO_UNLOCKED_STORAGE_KEY = 'promo_unlocked';
@@ -26,6 +34,7 @@ const PROMO_UNLOCKED_STORAGE_KEY = 'promo_unlocked';
 type StoreValue = {
   catalog: Catalog | null;
   martyrs: MartyrItem[];
+  martyrCategories: MartyrCategory[];
   quotes: QuoteItem[];
   hero: HeroData | null;
   loading: boolean;
@@ -53,6 +62,7 @@ const StoreContext = createContext<StoreValue | null>(null);
 export function StoreProvider({children}: {children: React.ReactNode}) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [martyrs, setMartyrs] = useState<MartyrItem[]>([]);
+  const [martyrCategories, setMartyrCategories] = useState<MartyrCategory[]>([]);
   const [quotes, setQuotes] = useState<QuoteItem[]>([]);
   const [hero, setHero] = useState<HeroData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -63,10 +73,17 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   const reload = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([fetchCatalog(), fetchMartyrs(), fetchQuotes(), fetchHero()])
-      .then(([cat, ms, qs, h]) => {
+    Promise.all([
+      fetchCatalog(),
+      fetchMartyrs(),
+      fetchMartyrCategories(),
+      fetchQuotes(),
+      fetchHero(),
+    ])
+      .then(([cat, ms, cats, qs, h]) => {
         setCatalog(cat);
         setMartyrs(ms);
+        setMartyrCategories(cats);
         setQuotes(qs);
         setHero(h);
       })
@@ -114,6 +131,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
     () => ({
       catalog,
       martyrs,
+      martyrCategories,
       quotes,
       hero,
       loading,
@@ -130,6 +148,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
     [
       catalog,
       martyrs,
+      martyrCategories,
       quotes,
       hero,
       loading,

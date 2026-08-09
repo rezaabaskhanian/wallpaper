@@ -22,6 +22,9 @@ export type WallpaperSettings = {
   /** Visual style for each orbiting martyr portrait: plain glowing orb, or a
    * small winged "angel" with the portrait as its face. */
   orbShape: 'orb' | 'angel';
+  /** Which martyr category populates the orbiting "logo" avatars; '' shows
+   * every martyr regardless of category (see MartyrCategory in store/types). */
+  martyrCategoryId: string;
   /** Axis the sphere spins around: 'x', 'y', 'z', or 'mixed' (each orb picks
    * its own axis round-robin, like electrons around an atom). */
   rotationAxis: 'x' | 'y' | 'z' | 'mixed';
@@ -111,6 +114,7 @@ const DEFAULTS: WallpaperSettings = {
   showOrbs: true,
   ballCount: 24,
   orbShape: 'orb',
+  martyrCategoryId: '',
   rotationAxis: 'y',
   dayNightMode: 'auto',
   particleMode: 'auto',

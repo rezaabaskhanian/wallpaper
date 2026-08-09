@@ -7,6 +7,7 @@
 
 import {useMemo} from 'react';
 import type {ImageSourcePropType} from 'react-native';
+import {useSettings} from './SettingsContext';
 import {useStore} from './store/StoreContext';
 
 export type OrbitItem = {
@@ -76,16 +77,23 @@ function fallbackOrbitItems(): OrbitItem[] {
  */
 export function useOrbitItems(): OrbitItem[] {
   const {martyrs} = useStore();
+  const {settings} = useSettings();
   return useMemo(() => {
     if (!martyrs.length) {
       return fallbackOrbitItems();
     }
-    return martyrs.map((m, i) => ({
+    // Empty selection (or a category with no entries yet) shows everyone,
+    // so the orbit never goes blank just because a category is still empty.
+    const filtered = settings.martyrCategoryId
+      ? martyrs.filter(m => m.categoryId === settings.martyrCategoryId)
+      : martyrs;
+    const shown = filtered.length ? filtered : martyrs;
+    return shown.map((m, i) => ({
       id: m.id,
       label: m.name,
       colors: PALETTE[i % PALETTE.length],
       image: m.photo ? {uri: m.photo} : undefined,
       martyrId: m.id,
     }));
-  }, [martyrs]);
+  }, [martyrs, settings.martyrCategoryId]);
 }

@@ -6,9 +6,12 @@ import DraggableWidget from './DraggableWidget';
 import BatteryIcon from './BatteryIcon';
 import BoltIcon from './BoltIcon';
 import GearIcon from './GearIcon';
+import WeatherIcon from './WeatherIcon';
 import {toFa} from './date';
 import {useSettings} from './SettingsContext';
 import {weatherIcon, type Weather} from './useWeather';
+
+const WEATHER_COLOR = '#f5e6b3';
 
 type Props = {
   onOpenSettings: () => void;
@@ -52,9 +55,10 @@ export default function TopLeftBar({
           editing={settings.editLayout}
           onCommit={o => update('weatherOffset', o)}
           label="دما">
-          <AppText style={styles.item}>
-            {icon} {toFa(temp)}°
-          </AppText>
+          <View style={styles.weatherRow}>
+            <WeatherIcon kind={icon} size={18} color={WEATHER_COLOR} />
+            <AppText style={styles.item}>{toFa(temp)}°</AppText>
+          </View>
         </DraggableWidget>
       ) : (
         <View />
@@ -99,6 +103,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   battery: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  weatherRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,

@@ -41,6 +41,15 @@ export type MartyrItem = {
   photo: string;
   sortOrder: number;
   isActive: boolean;
+  /** Id of the MartyrCategory this martyr belongs to; '' when uncategorized. */
+  categoryId: string;
+};
+
+/** One martyr category from `GET /api/v1/martyr-categories` (e.g. "شهدای شاخص"). */
+export type MartyrCategory = {
+  id: string;
+  title: string;
+  sortOrder: number;
 };
 
 /** One quote from `GET /api/v1/quotes`. */

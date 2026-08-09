@@ -22,6 +22,9 @@ func New(svc martyrservice.Service) Handler {
 // SetRoutes مسیر عمومی GET /api/v1/martyrs و مسیرهای ادمین را ثبت می‌کند.
 func (h Handler) SetRoutes(api *echo.Group, admin *echo.Group) {
 	api.GET("/martyrs", h.List)
+	// دسته‌بندی‌ها اطلاعات حساسی ندارند (فقط id/title/sortOrder)، پس اپ برای
+	// نمایش انتخابگر «دسته‌ی لوگوها» به کاربر می‌تواند بدون کلید ادمین بخواندشان.
+	api.GET("/martyr-categories", h.ListCategories)
 
 	admin.GET("/martyrs", h.AdminList)
 	admin.POST("/martyrs", h.Create)
@@ -84,6 +87,15 @@ func (h Handler) Delete(c echo.Context) error {
 		return richerror.New(op).WithErr(err)
 	}
 	return c.NoContent(http.StatusNoContent)
+}
+
+func (h Handler) ListCategories(c echo.Context) error {
+	const op = "martyrhandler.ListCategories"
+	res, err := h.svc.AdminListCategories(context.Background())
+	if err != nil {
+		return richerror.New(op).WithErr(err)
+	}
+	return c.JSON(http.StatusOK, res)
 }
 
 func (h Handler) AdminListCategories(c echo.Context) error {

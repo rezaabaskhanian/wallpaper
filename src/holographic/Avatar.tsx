@@ -2,6 +2,7 @@ import React from 'react';
 import {Image, StyleSheet, View} from 'react-native';
 import type {ImageSourcePropType} from 'react-native';
 import AppText from './AppText';
+import AngelWings from './AngelWings';
 
 type Props = {
   size: number;
@@ -74,40 +75,9 @@ export default function Avatar({
     return face;
   }
 
-  const wingWidth = size * 0.85;
-  const wingHeight = size * 0.5;
   return (
     <View style={{width: size, height: size}}>
-      <View
-        pointerEvents="none"
-        style={[
-          styles.wing,
-          {
-            width: wingWidth,
-            height: wingHeight,
-            borderRadius: wingHeight / 2,
-            borderColor: glow,
-            left: -wingWidth * 0.42,
-            top: size * 0.18,
-            transform: [{rotate: '-30deg'}],
-          },
-        ]}
-      />
-      <View
-        pointerEvents="none"
-        style={[
-          styles.wing,
-          {
-            width: wingWidth,
-            height: wingHeight,
-            borderRadius: wingHeight / 2,
-            borderColor: glow,
-            right: -wingWidth * 0.42,
-            top: size * 0.18,
-            transform: [{rotate: '30deg'}],
-          },
-        ]}
-      />
+      <AngelWings size={size} glow={glow} />
       {face}
     </View>
   );
@@ -137,11 +107,5 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.92)',
     fontWeight: '600',
     textAlign: 'center',
-  },
-  wing: {
-    position: 'absolute',
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderWidth: 1,
-    opacity: 0.9,
   },
 });

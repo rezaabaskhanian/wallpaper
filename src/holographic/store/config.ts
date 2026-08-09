@@ -10,6 +10,7 @@ const API_BASE_URL = 'https://api.wallpaperapp.ir/api/v1';
 
 export const CATALOG_URL = `${API_BASE_URL}/catalog`;
 export const MARTYRS_URL = `${API_BASE_URL}/martyrs`;
+export const MARTYR_CATEGORIES_URL = `${API_BASE_URL}/martyr-categories`;
 export const QUOTES_URL = `${API_BASE_URL}/quotes`;
 export const HERO_URL = `${API_BASE_URL}/hero`;
 export const PROMO_REDEEM_URL = `${API_BASE_URL}/promo-codes/redeem`;

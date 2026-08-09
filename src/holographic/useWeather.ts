@@ -17,17 +17,21 @@ export type Weather = {
   isNight: boolean;
 };
 
-/** Map an Open-Meteo WMO code (+ day/night) to a simple emoji icon. */
-export function weatherIcon(code: number, isNight: boolean): string {
-  if (code === 0) return isNight ? '🌙' : '☀️';
-  if (code <= 2) return isNight ? '🌙' : '🌤️';
-  if (code === 3) return '☁️';
-  if (code >= 45 && code <= 48) return '🌫️';
-  if (code >= 51 && code <= 67) return '🌧️';
-  if (code >= 71 && code <= 77) return '🌨️';
-  if (code >= 80 && code <= 82) return '🌦️';
-  if (code >= 95) return '⛈️';
-  return isNight ? '🌙' : '☀️';
+import type {WeatherKind} from './WeatherIcon';
+
+/** Map an Open-Meteo WMO code (+ day/night) to a drawn icon kind (see
+ * WeatherIcon — emoji glyphs don't reliably render on this launcher, see its
+ * doc comment for why). */
+export function weatherIcon(code: number, isNight: boolean): WeatherKind {
+  if (code === 0) return isNight ? 'moon' : 'sun';
+  if (code <= 2) return isNight ? 'partly-night' : 'partly-day';
+  if (code === 3) return 'cloud';
+  if (code >= 45 && code <= 48) return 'fog';
+  if (code >= 51 && code <= 67) return 'rain';
+  if (code >= 71 && code <= 77) return 'snow';
+  if (code >= 80 && code <= 82) return 'rain';
+  if (code >= 95) return 'storm';
+  return isNight ? 'moon' : 'sun';
 }
 
 export async function getGeolocation(): Promise<{

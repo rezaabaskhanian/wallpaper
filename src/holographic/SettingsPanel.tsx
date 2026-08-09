@@ -61,7 +61,7 @@ export default function SettingsPanel({
   onOpenGallery,
 }: Props) {
   const {settings, update, applyTheme} = useSettings();
-  const {premiumUnlocked, redeemCode} = useStore();
+  const {premiumUnlocked, redeemCode, martyrCategories} = useStore();
   // Persists across opens/closes (the panel stays mounted, only `visible`
   // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('general');
@@ -285,6 +285,16 @@ export default function SettingsPanel({
                 onInc={() =>
                   update('ballCount', Math.min(40, settings.ballCount + 2))
                 }
+              />
+
+              <RowChoices
+                label="دسته‌ی شهدای لوگوها"
+                options={[
+                  {id: '', label: 'همه'},
+                  ...martyrCategories.map(c => ({id: c.id, label: c.title})),
+                ]}
+                selected={settings.martyrCategoryId}
+                onSelect={id => update('martyrCategoryId', id)}
               />
 
               <RowChoices
