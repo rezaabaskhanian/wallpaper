@@ -1,4 +1,4 @@
-package com.wallpaper
+package com.wallpaperNaghsh
 
 import androidx.appcompat.app.AppCompatActivity
 import com.facebook.react.bridge.Arguments
@@ -26,15 +26,16 @@ import ir.cafebazaar.poolakey.request.PurchaseRequest
  * `MainActivity` (a ReactActivity → AppCompatActivity) is used directly — no
  * manual onActivityResult wiring is needed.
  *
- * SET RSA_PUBLIC_KEY below (from the Bazaar developer panel → In-App Billing)
- * before shipping. Empty = local security checks disabled (rely on Bazaar's
- * server-side validation instead).
+ * RSA_PUBLIC_KEY below is set from the Bazaar developer panel → In-App Billing.
+ * Empty would disable local security checks (rely on Bazaar's server-side
+ * validation instead), but this app has it enabled.
  */
 class BazaarBillingModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
   companion object {
-    private const val RSA_PUBLIC_KEY = ""
+    private const val RSA_PUBLIC_KEY =
+        "MIHNMA0GCSqGSIb3DQEBAQUAA4G7ADCBtwKBrwCN9iof6MW0lGtj4oHBSfDbURiwn0VvutrHnvb+1leFZ2HNgJmVwXogC3vpCE/QtPhuE8H2Ddvviv4XP/reyutDls8KvArih/bkGQKXLyUloKZ4OhirNtj3NpCzK6TRXfNC8U8ZiGvy94yODRDSYQDCgzW2RjRtFCnoHSKtxiSuuG4lQdjxW+TvHkGT1uUczdBx9diY1aQr+zoZpUNdbzcGIZNUvP1bpUWeYSDFGL8CAwEAAQ=="
   }
 
   private val paymentConfiguration =

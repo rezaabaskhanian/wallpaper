@@ -1,4 +1,4 @@
-package com.wallpaper
+package com.wallpaperNaghsh
 
 import android.content.Intent
 import android.content.pm.PackageManager

@@ -4,4 +4,4 @@
   (where all the wallpaper settings live) from the system screen-saver screen.
 -->
 <dream xmlns:android="http://schemas.android.com/apk/res/android"
-    android:settingsActivity="com.wallpaper/com.wallpaper.MainActivity" />
+    android:settingsActivity="com.wallpaperNaghsh/com.wallpaperNaghsh.MainActivity" />

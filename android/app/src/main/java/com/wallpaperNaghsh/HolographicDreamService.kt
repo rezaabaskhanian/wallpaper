@@ -1,4 +1,4 @@
-package com.wallpaper
+package com.wallpaperNaghsh
 
 import android.os.Bundle
 import android.service.dreams.DreamService

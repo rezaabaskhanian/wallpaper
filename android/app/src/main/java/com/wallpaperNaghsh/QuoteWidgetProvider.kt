@@ -1,4 +1,4 @@
-package com.wallpaper
+package com.wallpaperNaghsh
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager

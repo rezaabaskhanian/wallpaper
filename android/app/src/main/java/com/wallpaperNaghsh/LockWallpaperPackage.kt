@@ -1,4 +1,4 @@
-package com.wallpaper
+package com.wallpaperNaghsh
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

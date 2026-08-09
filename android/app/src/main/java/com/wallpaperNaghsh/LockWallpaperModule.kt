@@ -1,4 +1,4 @@
-package com.wallpaper
+package com.wallpaperNaghsh
 
 import android.app.WallpaperManager
 import android.graphics.Bitmap
