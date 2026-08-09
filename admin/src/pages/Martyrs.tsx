@@ -36,6 +36,7 @@ import {
   useSaveMartyr,
   type MartyrInput,
 } from '@/hooks/useMartyrs';
+import {useMartyrCategories} from '@/hooks/useMartyrCategories';
 import type {Martyr} from '@/lib/types';
 
 const EMPTY: MartyrInput = {
@@ -48,6 +49,7 @@ const EMPTY: MartyrInput = {
   photo: '',
   sortOrder: 0,
   isActive: true,
+  categoryId: '',
 };
 
 function MartyrDialog({
@@ -61,6 +63,7 @@ function MartyrDialog({
 }) {
   const [form, setForm] = useState<MartyrInput>(martyr ?? EMPTY);
   const save = useSaveMartyr();
+  const {data: categories} = useMartyrCategories();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +132,22 @@ function MartyrDialog({
           </div>
 
           <div className="flex flex-col gap-2">
+            <Label htmlFor="m-category">دسته‌بندی (اختیاری)</Label>
+            <select
+              id="m-category"
+              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+              value={form.categoryId}
+              onChange={e => setForm({...form, categoryId: e.target.value})}>
+              <option value="">بدون دسته</option>
+              {categories?.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
             <Label htmlFor="m-will">از وصیت‌نامه (اختیاری)</Label>
             <Textarea
               id="m-will"
@@ -171,6 +190,8 @@ function MartyrDialog({
 
 export default function Martyrs() {
   const {data: martyrs, isLoading} = useMartyrs();
+  const {data: categories} = useMartyrCategories();
+  const categoryTitle = (id: string) => categories?.find(c => c.id === id)?.title ?? '';
   const del = useDeleteMartyr();
   const delMany = useDeleteManyMartyrs();
   const [editing, setEditing] = useState<Martyr | null>(null);
@@ -221,6 +242,7 @@ export default function Martyrs() {
               </TableHead>
               <TableHead>عکس</TableHead>
               <TableHead>نام</TableHead>
+              <TableHead>دسته</TableHead>
               <TableHead>تاریخ شهادت</TableHead>
               <TableHead>وضعیت</TableHead>
               <TableHead className="w-32" />
@@ -229,7 +251,7 @@ export default function Martyrs() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6}>در حال بارگذاری…</TableCell>
+                <TableCell colSpan={7}>در حال بارگذاری…</TableCell>
               </TableRow>
             ) : (
               martyrs?.map(m => (
@@ -246,6 +268,9 @@ export default function Martyrs() {
                     ) : null}
                   </TableCell>
                   <TableCell className="font-medium">{m.name}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {categoryTitle(m.categoryId) || '—'}
+                  </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {m.martyredOn}
                   </TableCell>

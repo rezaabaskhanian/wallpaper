@@ -1,10 +1,12 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
+  Linking,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
+  TextInput,
   View,
 } from 'react-native';
 import AppText from './AppText';
@@ -16,7 +18,11 @@ import {setWidgetAutoRotateQuote} from './homeWidget';
 import type {WallpaperTarget} from './lockWallpaper';
 import {openLauncherSettings, openScreenSaverSettings} from './systemScreens';
 import {useSettings} from './SettingsContext';
+import {useStore} from './store/StoreContext';
 import {THEMES} from './themes';
+
+/** Telegram handle of the app's developer, shown in Settings ▸ عمومی. */
+const DEVELOPER_TELEGRAM_USERNAME = 'RezaAbaskhanian';
 
 type Props = {
   visible: boolean;
@@ -55,10 +61,35 @@ export default function SettingsPanel({
   onOpenGallery,
 }: Props) {
   const {settings, update, applyTheme} = useSettings();
+  const {premiumUnlocked, redeemCode} = useStore();
   // Persists across opens/closes (the panel stays mounted, only `visible`
   // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('general');
   const scrollRef = useRef<ScrollView>(null);
+  const [promoInput, setPromoInput] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
+
+  const submitPromoCode = async () => {
+    if (!promoInput.trim() || redeeming) {
+      return;
+    }
+    setRedeeming(true);
+    const result = await redeemCode(promoInput.trim());
+    setRedeeming(false);
+    if (result.success) {
+      setPromoInput('');
+    }
+    showAlert(result.success ? 'کد تخفیف' : 'خطا', result.message);
+  };
+
+  const openDeveloperTelegram = () => {
+    const username = DEVELOPER_TELEGRAM_USERNAME;
+    Linking.openURL(`tg://resolve?domain=${username}`).catch(() =>
+      Linking.openURL(`https://t.me/${username}`).catch(() =>
+        showAlert('خطا', 'باز کردن تلگرام ممکن نشد.'),
+      ),
+    );
+  };
 
   const selectTab = (id: TabId) => {
     setTab(id);
@@ -133,6 +164,35 @@ export default function SettingsPanel({
           contentContainerStyle={styles.content}>
           {tab === 'general' ? (
             <>
+              {!premiumUnlocked ? (
+                <>
+                  <AppText style={styles.sectionTitle}>کد تخفیف</AppText>
+                  <View style={styles.promoRow}>
+                    <TextInput
+                      style={styles.promoInput}
+                      value={promoInput}
+                      onChangeText={setPromoInput}
+                      placeholder="کد تخفیف را وارد کن"
+                      placeholderTextColor="rgba(255,255,255,0.35)"
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                    />
+                    <Pressable
+                      style={[styles.promoBtn, redeeming && styles.promoBtnDisabled]}
+                      disabled={redeeming}
+                      onPress={submitPromoCode}>
+                      <AppText style={styles.promoBtnText}>
+                        {redeeming ? '...' : 'فعال‌سازی'}
+                      </AppText>
+                    </Pressable>
+                  </View>
+                  <AppText style={styles.hint}>
+                    با وارد کردن کد معتبر، همهٔ والپیپرهای پرمیوم باز می‌شوند.
+                  </AppText>
+                  <View style={styles.divider} />
+                </>
+              ) : null}
+
               <AppText style={styles.sectionTitle}>تم آماده</AppText>
               <View style={styles.chips}>
                 {THEMES.map(t => {
@@ -206,6 +266,16 @@ export default function SettingsPanel({
                 onChange={v => update('showOrbs', v)}
               />
 
+              <RowChoices
+                label="شکل مدار (گوی / فرشته)"
+                options={[
+                  {id: 'orb', label: '⚪ گوی'},
+                  {id: 'angel', label: '👼 فرشته'},
+                ]}
+                selected={settings.orbShape}
+                onSelect={id => update('orbShape', id as 'orb' | 'angel')}
+              />
+
               <RowStepper
                 label="تعداد گوی‌ها"
                 value={`${settings.ballCount}`}
@@ -248,6 +318,14 @@ export default function SettingsPanel({
                 value={settings.animatedLockedPreview}
                 onChange={v => update('animatedLockedPreview', v)}
               />
+
+              <View style={styles.divider} />
+              <AppText style={styles.sectionTitle}>ارتباط با سازنده</AppText>
+              <Pressable style={styles.galleryBtn} onPress={openDeveloperTelegram}>
+                <AppText style={styles.galleryBtnText}>
+                  💬 تلگرام: @{DEVELOPER_TELEGRAM_USERNAME}
+                </AppText>
+              </Pressable>
             </>
           ) : null}
 
@@ -884,6 +962,41 @@ const styles = StyleSheet.create({
   galleryEntryText: {
     color: '#f5e6b3',
     fontSize: 16,
+    fontWeight: '700',
+    writingDirection: 'rtl',
+  },
+  promoRow: {
+    flexDirection: 'row-reverse',
+    gap: 8,
+    marginTop: 4,
+  },
+  promoInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#eafffb',
+    fontSize: 15,
+    textAlign: 'right',
+    borderWidth: 1,
+    borderColor: 'rgba(64,224,208,0.2)',
+  },
+  promoBtn: {
+    backgroundColor: 'rgba(245,196,81,0.22)',
+    borderRadius: 10,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(245,196,81,0.5)',
+  },
+  promoBtnDisabled: {
+    opacity: 0.5,
+  },
+  promoBtnText: {
+    color: '#f5e6b3',
+    fontSize: 14,
     fontWeight: '700',
     writingDirection: 'rtl',
   },

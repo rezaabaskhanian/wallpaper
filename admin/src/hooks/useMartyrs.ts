@@ -21,6 +21,7 @@ export type MartyrInput = {
   photo: string;
   sortOrder: number;
   isActive: boolean;
+  categoryId: string;
 };
 
 export function useSaveMartyr() {

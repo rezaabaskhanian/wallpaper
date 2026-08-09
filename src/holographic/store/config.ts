@@ -12,6 +12,7 @@ export const CATALOG_URL = `${API_BASE_URL}/catalog`;
 export const MARTYRS_URL = `${API_BASE_URL}/martyrs`;
 export const QUOTES_URL = `${API_BASE_URL}/quotes`;
 export const HERO_URL = `${API_BASE_URL}/hero`;
+export const PROMO_REDEEM_URL = `${API_BASE_URL}/promo-codes/redeem`;
 
 /**
  * The single non-consumable in-app product (defined in the Cafe Bazaar panel)

@@ -13,6 +13,9 @@ type Repository interface {
 	SaveMartyr(ctx context.Context, m domain.Martyr) (domain.Martyr, error)
 	UpdateMartyr(ctx context.Context, m domain.Martyr) (domain.Martyr, error)
 	DeleteMartyr(ctx context.Context, id string) error
+	GetCategories(ctx context.Context) ([]domain.MartyrCategory, error)
+	SaveCategory(ctx context.Context, c domain.MartyrCategory) (domain.MartyrCategory, error)
+	DeleteCategory(ctx context.Context, id string) error
 }
 
 type Service struct {
@@ -35,5 +38,10 @@ func toDTO(m domain.Martyr) dto.MartyrDTO {
 		Photo:      m.Photo,
 		SortOrder:  m.SortOrder,
 		IsActive:   m.IsActive,
+		CategoryID: m.CategoryID,
 	}
+}
+
+func toCategoryDTO(c domain.MartyrCategory) dto.MartyrCategoryDTO {
+	return dto.MartyrCategoryDTO{ID: c.ID, Title: c.Title, SortOrder: c.SortOrder}
 }

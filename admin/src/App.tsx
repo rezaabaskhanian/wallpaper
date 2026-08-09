@@ -7,8 +7,10 @@ import Dashboard from '@/pages/Dashboard';
 import Wallpapers from '@/pages/Wallpapers';
 import Categories from '@/pages/Categories';
 import Martyrs from '@/pages/Martyrs';
+import MartyrCategories from '@/pages/MartyrCategories';
 import Quotes from '@/pages/Quotes';
 import Hero from '@/pages/Hero';
+import PromoCodes from '@/pages/PromoCodes';
 
 function RequireAuth({children}: {children: React.ReactNode}) {
   const {isAuthed} = useAuth();
@@ -34,8 +36,10 @@ export default function App() {
           <Route path="/wallpapers" element={<Wallpapers />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/martyrs" element={<Martyrs />} />
+          <Route path="/martyr-categories" element={<MartyrCategories />} />
           <Route path="/quotes" element={<Quotes />} />
           <Route path="/hero" element={<Hero />} />
+          <Route path="/promo-codes" element={<PromoCodes />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

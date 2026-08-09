@@ -72,6 +72,8 @@ type OrbitAvatarProps = {
   axis: number;
   /** Glow/accent colour for the avatar ring. */
   glow: string;
+  /** 'orb' or 'angel' — see Avatar's `shape` prop. */
+  shape: 'orb' | 'angel';
   minSide: number;
   centerX: number;
   centerY: number;
@@ -90,6 +92,7 @@ function OrbitAvatar({
   sphereRadius,
   axis,
   glow,
+  shape,
   minSide,
   centerX,
   centerY,
@@ -165,6 +168,7 @@ function OrbitAvatar({
           image={item.image}
           glow={glow}
           ringWidth={0}
+          shape={shape}
         />
       </Pressable>
     </Animated.View>
@@ -216,6 +220,7 @@ export default function OrbitLayer({
           sphereRadius={sphereRadius}
           axis={mixedAxis ? point.itemIndex % 3 : globalAxis}
           glow={settings.glowColor}
+          shape={settings.orbShape}
           minSide={minSide}
           centerX={centerX}
           centerY={centerY}

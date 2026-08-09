@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">نقش</string>
+    <string name="app_name">ریحان</string>
 
     <!-- Fallback quotes bundled for the home-screen widget (QuoteWidgetProvider),
          since a widget can update while the RN app/JS isn't running and can't

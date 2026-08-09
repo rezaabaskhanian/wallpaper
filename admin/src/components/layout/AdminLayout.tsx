@@ -1,5 +1,6 @@
 import {NavLink, Outlet} from 'react-router-dom';
 import {
+  FolderTree,
   Image,
   LayoutDashboard,
   LogOut,
@@ -7,6 +8,7 @@ import {
   Quote,
   Sun,
   Tags,
+  Ticket,
   User,
   Users,
 } from 'lucide-react';
@@ -21,8 +23,10 @@ const NAV_ITEMS = [
   {to: '/wallpapers', label: 'والپیپرها', icon: Image},
   {to: '/categories', label: 'دسته‌ها', icon: Tags},
   {to: '/martyrs', label: 'شهدا', icon: Users},
+  {to: '/martyr-categories', label: 'دسته‌بندی شهدا', icon: FolderTree},
   {to: '/quotes', label: 'نقل‌قول‌ها', icon: Quote},
   {to: '/hero', label: 'رهبر / لوگو', icon: User},
+  {to: '/promo-codes', label: 'کدهای تخفیف', icon: Ticket},
 ];
 
 export default function AdminLayout() {

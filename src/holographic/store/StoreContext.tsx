@@ -6,10 +6,12 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fetchCatalog} from './catalog';
 import {fetchMartyrs} from './martyrs';
 import {fetchQuotes} from './quotes';
 import {fetchHero} from './hero';
+import {redeemPromoCode} from './promo';
 import {
   getOwnedSkus,
   isBillingAvailable,
@@ -17,6 +19,9 @@ import {
   purchase as billingPurchase,
 } from './billing';
 import type {Catalog, HeroData, MartyrItem, QuoteItem, WallpaperItem} from './types';
+
+/** Persists across app restarts once a valid discount code unlocks premium. */
+const PROMO_UNLOCKED_STORAGE_KEY = 'promo_unlocked';
 
 type StoreValue = {
   catalog: Catalog | null;
@@ -39,6 +44,8 @@ type StoreValue = {
   buyUnlock: () => Promise<boolean>;
   /** Whether a given wallpaper is accessible to the user. */
   isUnlocked: (item: WallpaperItem) => boolean;
+  /** Redeems a discount code with the backend; unlocks premium locally on success. */
+  redeemCode: (code: string) => Promise<{success: boolean; message: string}>;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -51,6 +58,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [owned, setOwned] = useState<string[]>([]);
+  const [codeUnlocked, setCodeUnlocked] = useState(false);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -73,9 +81,12 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   useEffect(() => {
     reload();
     refreshEntitlements();
+    AsyncStorage.getItem(PROMO_UNLOCKED_STORAGE_KEY)
+      .then(v => setCodeUnlocked(v === '1'))
+      .catch(() => {});
   }, [reload, refreshEntitlements]);
 
-  const premiumUnlocked = owned.includes(PREMIUM_SKU);
+  const premiumUnlocked = owned.includes(PREMIUM_SKU) || codeUnlocked;
 
   const isUnlocked = useCallback(
     (item: WallpaperItem) => !item.premium || premiumUnlocked,
@@ -89,6 +100,15 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
     }
     return ok;
   }, [refreshEntitlements]);
+
+  const redeemCode = useCallback(async (code: string) => {
+    const result = await redeemPromoCode(code);
+    if (result.success) {
+      setCodeUnlocked(true);
+      AsyncStorage.setItem(PROMO_UNLOCKED_STORAGE_KEY, '1').catch(() => {});
+    }
+    return result;
+  }, []);
 
   const value = useMemo<StoreValue>(
     () => ({
@@ -105,6 +125,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       refreshEntitlements,
       buyUnlock,
       isUnlocked,
+      redeemCode,
     }),
     [
       catalog,
@@ -119,6 +140,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       refreshEntitlements,
       buyUnlock,
       isUnlocked,
+      redeemCode,
     ],
   );
 

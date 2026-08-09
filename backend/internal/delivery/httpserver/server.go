@@ -10,12 +10,14 @@ import (
 
 	herohandler "wallpaperstore/internal/delivery/httpserver/hero"
 	martyrhandler "wallpaperstore/internal/delivery/httpserver/martyr"
+	promocodehandler "wallpaperstore/internal/delivery/httpserver/promocode"
 	quotehandler "wallpaperstore/internal/delivery/httpserver/quote"
 	uploadhandler "wallpaperstore/internal/delivery/httpserver/upload"
 	wallpaperhandler "wallpaperstore/internal/delivery/httpserver/wallpaper"
 
 	heroservice "wallpaperstore/internal/service/hero"
 	martyrservice "wallpaperstore/internal/service/martyr"
+	promocodeservice "wallpaperstore/internal/service/promocode"
 	quoteservice "wallpaperstore/internal/service/quote"
 	wallpaperservice "wallpaperstore/internal/service/wallpaper"
 
@@ -31,6 +33,7 @@ type Service struct {
 	quoteHandler     quotehandler.Handler
 	heroHandler      herohandler.Handler
 	uploadHandler    uploadhandler.Handler
+	promoCodeHandler promocodehandler.Handler
 }
 
 func New(
@@ -39,6 +42,7 @@ func New(
 	martyrSvc martyrservice.Service,
 	quoteSvc quoteservice.Service,
 	heroSvc heroservice.Service,
+	promoCodeSvc promocodeservice.Service,
 	storage *objectstorage.Client,
 ) Service {
 	return Service{
@@ -48,6 +52,7 @@ func New(
 		quoteHandler:     quotehandler.New(quoteSvc),
 		heroHandler:      herohandler.New(heroSvc),
 		uploadHandler:    uploadhandler.New(storage),
+		promoCodeHandler: promocodehandler.New(promoCodeSvc),
 	}
 }
 
@@ -105,6 +110,7 @@ func (s Service) Server() {
 	s.quoteHandler.SetRoutes(api, admin)
 	s.heroHandler.SetRoutes(api, admin)
 	s.uploadHandler.SetRoutes(admin)
+	s.promoCodeHandler.SetRoutes(api, admin)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", s.cfg.HttpServer.Port)))
 }

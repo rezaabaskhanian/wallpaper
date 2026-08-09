@@ -19,18 +19,27 @@ type Martyr struct {
 	Photo      string // آدرس عکس
 	SortOrder  int
 	IsActive   bool
+	CategoryID string // اختیاری؛ خالی یعنی بدون دسته (شناسه MartyrCategory)
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
 
+// MartyrCategory یک دسته‌بندی برای گروه‌بندی شهدا در پنل ادمین (مثل «شهدای هسته‌ای»).
+type MartyrCategory struct {
+	ID        string
+	Title     string
+	SortOrder int
+}
+
 var (
-	ErrEmptyName      = errors.New("نام شهید نمی‌تواند خالی باشد")
-	ErrEmptyMartyrdom = errors.New("شرح نحوه‌ی شهادت الزامی است")
+	ErrEmptyName          = errors.New("نام شهید نمی‌تواند خالی باشد")
+	ErrEmptyMartyrdom     = errors.New("شرح نحوه‌ی شهادت الزامی است")
+	ErrEmptyCategoryTitle = errors.New("عنوان دسته نمی‌تواند خالی باشد")
 )
 
 // New ساخت یک شهید جدید. اگر id خالی باشد، یک UUID ساخته می‌شود.
 func New(
-	id, name, martyrdom, born, martyredOn, place, will, photo string,
+	id, name, martyrdom, born, martyredOn, place, will, photo, categoryID string,
 	sortOrder int,
 	isActive bool,
 ) (Martyr, error) {
@@ -57,7 +66,19 @@ func New(
 		Photo:      photo,
 		SortOrder:  sortOrder,
 		IsActive:   isActive,
+		CategoryID: categoryID,
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}, nil
+}
+
+// NewCategory ساخت یک دسته‌بندی شهدا. اگر id خالی باشد، یک UUID ساخته می‌شود.
+func NewCategory(id, title string, sortOrder int) (MartyrCategory, error) {
+	if title == "" {
+		return MartyrCategory{}, ErrEmptyCategoryTitle
+	}
+	if id == "" {
+		id = uuid.NewString()
+	}
+	return MartyrCategory{ID: id, Title: title, SortOrder: sortOrder}, nil
 }

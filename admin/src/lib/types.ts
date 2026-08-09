@@ -28,6 +28,13 @@ export type Martyr = {
   photo: string;
   sortOrder: number;
   isActive: boolean;
+  categoryId: string;
+};
+
+export type MartyrCategory = {
+  id: string;
+  title: string;
+  sortOrder: number;
 };
 
 export type Quote = {
@@ -43,4 +50,11 @@ export type Hero = {
   title: string;
   slogan: string;
   image: string;
+};
+
+export type PromoCode = {
+  id: string;
+  code: string;
+  isActive: boolean;
+  usedCount: number;
 };

@@ -19,6 +19,9 @@ export type WallpaperSettings = {
   showOrbs: boolean;
   /** How many rotating orbs sit on the sphere. */
   ballCount: number;
+  /** Visual style for each orbiting martyr portrait: plain glowing orb, or a
+   * small winged "angel" with the portrait as its face. */
+  orbShape: 'orb' | 'angel';
   /** Axis the sphere spins around: 'x', 'y', 'z', or 'mixed' (each orb picks
    * its own axis round-robin, like electrons around an atom). */
   rotationAxis: 'x' | 'y' | 'z' | 'mixed';
@@ -107,6 +110,7 @@ const DEFAULTS: WallpaperSettings = {
   ringCount: RINGS.length,
   showOrbs: true,
   ballCount: 24,
+  orbShape: 'orb',
   rotationAxis: 'y',
   dayNightMode: 'auto',
   particleMode: 'auto',

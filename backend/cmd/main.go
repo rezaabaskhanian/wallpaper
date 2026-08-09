@@ -9,10 +9,12 @@ import (
 	"wallpaperstore/internal/repository/postgres"
 	postgreshero "wallpaperstore/internal/repository/postgres/hero"
 	postgresmartyr "wallpaperstore/internal/repository/postgres/martyr"
+	postgrespromocode "wallpaperstore/internal/repository/postgres/promocode"
 	postgresquote "wallpaperstore/internal/repository/postgres/quote"
 	postgreswallpaper "wallpaperstore/internal/repository/postgres/wallpaper"
 	heroservice "wallpaperstore/internal/service/hero"
 	martyrservice "wallpaperstore/internal/service/martyr"
+	promocodeservice "wallpaperstore/internal/service/promocode"
 	quoteservice "wallpaperstore/internal/service/quote"
 	wallpaperservice "wallpaperstore/internal/service/wallpaper"
 )
@@ -37,6 +39,7 @@ func main() {
 	martyrSvc := martyrservice.New(postgresmartyr.New(db.DB))
 	quoteSvc := quoteservice.New(postgresquote.New(db.DB))
 	heroSvc := heroservice.New(postgreshero.New(db.DB))
+	promoCodeSvc := promocodeservice.New(postgrespromocode.New(db.DB))
 
 	storage := objectstorage.New(objectstorage.Config{
 		Endpoint:      cfg.ObjectStorage.Endpoint,
@@ -48,6 +51,6 @@ func main() {
 		PublicBaseURL: cfg.ObjectStorage.PublicBaseURL,
 	})
 
-	server := httpserver.New(cfg, wallpaperSvc, martyrSvc, quoteSvc, heroSvc, storage)
+	server := httpserver.New(cfg, wallpaperSvc, martyrSvc, quoteSvc, heroSvc, promoCodeSvc, storage)
 	server.Server()
 }

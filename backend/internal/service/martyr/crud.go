@@ -44,7 +44,7 @@ func (s Service) AdminListMartyrs(ctx context.Context) (dto.ListMartyrsResponse,
 func (s Service) CreateMartyr(ctx context.Context, req dto.UpsertMartyrRequest) (dto.MartyrResponse, error) {
 	const op = "martyrservice.CreateMartyr"
 
-	m, err := domain.New(req.ID, req.Name, req.Martyrdom, req.Born, req.MartyredOn, req.Place, req.Will, req.Photo, req.SortOrder, true)
+	m, err := domain.New(req.ID, req.Name, req.Martyrdom, req.Born, req.MartyredOn, req.Place, req.Will, req.Photo, req.CategoryID, req.SortOrder, true)
 	if err != nil {
 		return dto.MartyrResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ساخت شهید")
 	}
@@ -60,7 +60,7 @@ func (s Service) CreateMartyr(ctx context.Context, req dto.UpsertMartyrRequest) 
 func (s Service) UpdateMartyr(ctx context.Context, id string, req dto.UpsertMartyrRequest) (dto.MartyrResponse, error) {
 	const op = "martyrservice.UpdateMartyr"
 
-	m, err := domain.New(id, req.Name, req.Martyrdom, req.Born, req.MartyredOn, req.Place, req.Will, req.Photo, req.SortOrder, req.IsActive)
+	m, err := domain.New(id, req.Name, req.Martyrdom, req.Born, req.MartyredOn, req.Place, req.Will, req.Photo, req.CategoryID, req.SortOrder, req.IsActive)
 	if err != nil {
 		return dto.MartyrResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ویرایش شهید")
 	}
@@ -77,6 +77,64 @@ func (s Service) DeleteMartyr(ctx context.Context, id string) error {
 	const op = "martyrservice.DeleteMartyr"
 
 	if err := s.repo.DeleteMartyr(ctx, id); err != nil {
+		return richerror.New(op).WithErr(err)
+	}
+	return nil
+}
+
+// AdminListCategories لیست کامل دسته‌بندی‌های شهدا برای پنل ادمین.
+func (s Service) AdminListCategories(ctx context.Context) (dto.ListMartyrCategoriesResponse, error) {
+	const op = "martyrservice.AdminListCategories"
+
+	cats, err := s.repo.GetCategories(ctx)
+	if err != nil {
+		return dto.ListMartyrCategoriesResponse{}, richerror.New(op).WithErr(err)
+	}
+
+	out := make([]dto.MartyrCategoryDTO, 0, len(cats))
+	for _, c := range cats {
+		out = append(out, toCategoryDTO(c))
+	}
+	return dto.ListMartyrCategoriesResponse{Categories: out}, nil
+}
+
+// CreateCategory افزودن دسته‌بندی جدید.
+func (s Service) CreateCategory(ctx context.Context, req dto.UpsertMartyrCategoryRequest) (dto.MartyrCategoryResponse, error) {
+	const op = "martyrservice.CreateCategory"
+
+	c, err := domain.NewCategory(req.ID, req.Title, req.SortOrder)
+	if err != nil {
+		return dto.MartyrCategoryResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ساخت دسته")
+	}
+
+	created, err := s.repo.SaveCategory(ctx, c)
+	if err != nil {
+		return dto.MartyrCategoryResponse{}, richerror.New(op).WithErr(err)
+	}
+	return dto.MartyrCategoryResponse{Category: toCategoryDTO(created)}, nil
+}
+
+// UpdateCategory ویرایش یک دسته‌بندی موجود.
+func (s Service) UpdateCategory(ctx context.Context, id string, req dto.UpsertMartyrCategoryRequest) (dto.MartyrCategoryResponse, error) {
+	const op = "martyrservice.UpdateCategory"
+
+	c, err := domain.NewCategory(id, req.Title, req.SortOrder)
+	if err != nil {
+		return dto.MartyrCategoryResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ویرایش دسته")
+	}
+
+	updated, err := s.repo.SaveCategory(ctx, c)
+	if err != nil {
+		return dto.MartyrCategoryResponse{}, richerror.New(op).WithErr(err)
+	}
+	return dto.MartyrCategoryResponse{Category: toCategoryDTO(updated)}, nil
+}
+
+// DeleteCategory حذف یک دسته‌بندی. شهدای متعلق به آن، بدون دسته (NULL) باقی می‌مانند.
+func (s Service) DeleteCategory(ctx context.Context, id string) error {
+	const op = "martyrservice.DeleteCategory"
+
+	if err := s.repo.DeleteCategory(ctx, id); err != nil {
 		return richerror.New(op).WithErr(err)
 	}
 	return nil
