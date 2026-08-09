@@ -7,6 +7,7 @@
 
 import {useMemo} from 'react';
 import type {ImageSourcePropType} from 'react-native';
+import {MAX_ORBS} from './config';
 import {useSettings} from './SettingsContext';
 import {useStore} from './store/StoreContext';
 
@@ -70,30 +71,58 @@ function fallbackOrbitItems(): OrbitItem[] {
   }));
 }
 
+/** Picks `count` random, non-repeating entries out of `items` (or all of them
+ * if there aren't enough to fill `count`). */
+function sampleItems<T>(items: T[], count: number): T[] {
+  if (items.length <= count) {
+    return items;
+  }
+  const pool = [...items];
+  const picked: T[] = [];
+  for (let i = 0; i < count; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    picked.push(pool[idx]);
+    pool.splice(idx, 1);
+  }
+  return picked;
+}
+
 /**
  * Orbiting icons, built from the fetched martyrs list (each icon carries its
  * `martyrId` so a tap opens that martyr's modal). Falls back to placeholder
  * tiles while loading or when the backend has no entries yet.
+ *
+ * The result is capped at `min(settings.ballCount, MAX_ORBS)`: a category
+ * with more martyrs than that gets a random subset (re-rolled whenever the
+ * category or count changes, so a large category isn't always showing the
+ * same faces), while a category with fewer martyrs than the cap just shows
+ * all of them instead of repeating anyone to pad the orbit out. The settings
+ * panel only lets `ballCount` go down from `MAX_ORBS`, never above it — see
+ * its ballCount stepper — so the screen is never more crowded than
+ * `MAX_ORBS` regardless of category size.
  */
 export function useOrbitItems(): OrbitItem[] {
   const {martyrs} = useStore();
   const {settings} = useSettings();
   return useMemo(() => {
+    let all: OrbitItem[];
     if (!martyrs.length) {
-      return fallbackOrbitItems();
+      all = fallbackOrbitItems();
+    } else {
+      // Empty selection (or a category with no entries yet) shows everyone,
+      // so the orbit never goes blank just because a category is still empty.
+      const filtered = settings.martyrCategoryId
+        ? martyrs.filter(m => m.categoryId === settings.martyrCategoryId)
+        : martyrs;
+      const shown = filtered.length ? filtered : martyrs;
+      all = shown.map((m, i) => ({
+        id: m.id,
+        label: m.name,
+        colors: PALETTE[i % PALETTE.length],
+        image: m.photo ? {uri: m.photo} : undefined,
+        martyrId: m.id,
+      }));
     }
-    // Empty selection (or a category with no entries yet) shows everyone,
-    // so the orbit never goes blank just because a category is still empty.
-    const filtered = settings.martyrCategoryId
-      ? martyrs.filter(m => m.categoryId === settings.martyrCategoryId)
-      : martyrs;
-    const shown = filtered.length ? filtered : martyrs;
-    return shown.map((m, i) => ({
-      id: m.id,
-      label: m.name,
-      colors: PALETTE[i % PALETTE.length],
-      image: m.photo ? {uri: m.photo} : undefined,
-      martyrId: m.id,
-    }));
-  }, [martyrs, settings.martyrCategoryId]);
+    return sampleItems(all, Math.min(settings.ballCount, MAX_ORBS));
+  }, [martyrs, settings.martyrCategoryId, settings.ballCount]);
 }

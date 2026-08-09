@@ -191,8 +191,10 @@ export default function OrbitLayer({
   const items = useOrbitItems();
   const rings = RINGS.slice(0, Math.max(1, settings.ringCount));
 
-  // Orb count is set directly by the user; density no longer tied to rings.
-  const totalCount = Math.max(1, settings.ballCount);
+  // Orb count follows the (already ballCount-capped, possibly
+  // random-sampled) item list from useOrbitItems — see its docs for why this
+  // can be smaller than settings.ballCount for small categories.
+  const totalCount = Math.max(1, items.length);
   // Sphere radius follows the outermost active ring; avatar size averages them.
   const sphereRadiusFactor = Math.max(...rings.map(r => r.radiusFactor));
   const sizeFactor =

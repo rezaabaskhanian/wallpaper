@@ -12,7 +12,7 @@ import {
 import AppText from './AppText';
 import {showAlert} from './AppAlert';
 import {launchImageLibrary} from 'react-native-image-picker';
-import {BACKGROUNDS, RINGS} from './config';
+import {BACKGROUNDS, MAX_ORBS, RINGS} from './config';
 import {FONTS} from './fonts';
 import {setWidgetAutoRotateQuote} from './homeWidget';
 import type {WallpaperTarget} from './lockWallpaper';
@@ -61,7 +61,24 @@ export default function SettingsPanel({
   onOpenGallery,
 }: Props) {
   const {settings, update, applyTheme} = useSettings();
-  const {premiumUnlocked, redeemCode, martyrCategories} = useStore();
+  const {premiumUnlocked, redeemCode, martyrCategories, martyrs} = useStore();
+  // Upper bound for the ballCount stepper: never more than MAX_ORBS, and
+  // never more than the selected category actually has (so the user can only
+  // dial the count *down* from a category's natural size, not pad it out).
+  const categoryMartyrCount = settings.martyrCategoryId
+    ? martyrs.filter(m => m.categoryId === settings.martyrCategoryId).length
+    : martyrs.length;
+  const maxBallCount = Math.max(
+    1,
+    Math.min(MAX_ORBS, categoryMartyrCount || MAX_ORBS),
+  );
+  // Clamp down whenever switching to a smaller category so the stored value
+  // never sits above what's currently selectable.
+  useEffect(() => {
+    if (settings.ballCount > maxBallCount) {
+      update('ballCount', maxBallCount);
+    }
+  }, [maxBallCount, settings.ballCount, update]);
   // Persists across opens/closes (the panel stays mounted, only `visible`
   // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('general');
@@ -280,19 +297,22 @@ export default function SettingsPanel({
                 label="تعداد گوی‌ها"
                 value={`${settings.ballCount}`}
                 onDec={() =>
-                  update('ballCount', Math.max(4, settings.ballCount - 2))
+                  update('ballCount', Math.max(1, settings.ballCount - 2))
                 }
                 onInc={() =>
-                  update('ballCount', Math.min(40, settings.ballCount + 2))
+                  update(
+                    'ballCount',
+                    Math.min(maxBallCount, settings.ballCount + 2),
+                  )
                 }
               />
 
               <RowChoices
                 label="دسته‌ی شهدای لوگوها"
-                options={[
-                  {id: '', label: 'همه'},
-                  ...martyrCategories.map(c => ({id: c.id, label: c.title})),
-                ]}
+                options={martyrCategories.map(c => ({
+                  id: c.id,
+                  label: c.title,
+                }))}
                 selected={settings.martyrCategoryId}
                 onSelect={id => update('martyrCategoryId', id)}
               />

@@ -33,6 +33,14 @@ export const RINGS: RingConfig[] = [
 export const BASE_TURN_SECONDS = 70;
 
 /**
+ * Hard ceiling on how many orbiting avatars ever appear at once. The actual
+ * count is `min(MAX_ORBS, martyrs in the selected category)` — never
+ * user-adjustable, so the screen never gets more crowded than this no matter
+ * how many martyrs a category ends up with.
+ */
+export const MAX_ORBS = 24;
+
+/**
  * One selectable full-screen background.
  * `source` omitted → the pure topographic Skia background (no photo).
  */

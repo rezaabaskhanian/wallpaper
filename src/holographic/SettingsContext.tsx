@@ -17,7 +17,9 @@ export type WallpaperSettings = {
   ringCount: number;
   /** Show the rotating orbs at all. */
   showOrbs: boolean;
-  /** How many rotating orbs sit on the sphere. */
+  /** How many rotating orbs sit on the sphere. User-adjustable downward only —
+   * the settings panel caps the upper bound at `min(MAX_ORBS, martyrs in the
+   * selected category)`, see SettingsPanel's ballCount stepper. */
   ballCount: number;
   /** Visual style for each orbiting martyr portrait: plain glowing orb, or a
    * small winged "angel" with the portrait as its face. */
