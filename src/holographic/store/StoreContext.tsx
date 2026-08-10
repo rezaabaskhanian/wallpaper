@@ -14,10 +14,10 @@ import {fetchQuotes} from './quotes';
 import {fetchHero} from './hero';
 import {redeemPromoCode} from './promo';
 import {
-  getOwnedSkus,
+  BAZAAR_RSA_PUBLIC_KEY,
   isBillingAvailable,
   PREMIUM_SKU,
-  purchase as billingPurchase,
+  useBazaar,
 } from './billing';
 import type {
   Catalog,
@@ -69,6 +69,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   const [error, setError] = useState<string | null>(null);
   const [owned, setOwned] = useState<string[]>([]);
   const [codeUnlocked, setCodeUnlocked] = useState(false);
+  const bazaar = useBazaar(BAZAAR_RSA_PUBLIC_KEY);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -92,8 +93,13 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   }, []);
 
   const refreshEntitlements = useCallback(async () => {
-    setOwned(await getOwnedSkus());
-  }, []);
+    try {
+      const purchases = await bazaar.getPurchasedProducts();
+      setOwned(purchases.map(p => p.productId));
+    } catch {
+      setOwned([]);
+    }
+  }, [bazaar]);
 
   useEffect(() => {
     reload();
@@ -111,12 +117,20 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   );
 
   const buyUnlock = useCallback(async () => {
-    const ok = await billingPurchase(PREMIUM_SKU);
-    if (ok) {
-      await refreshEntitlements();
+    if (!isBillingAvailable()) {
+      throw new Error('BILLING_UNAVAILABLE');
     }
-    return ok;
-  }, [refreshEntitlements]);
+    try {
+      await bazaar.purchaseProduct(PREMIUM_SKU);
+    } catch (e: any) {
+      if (e?.message === 'purchase canceled') {
+        return false;
+      }
+      throw e;
+    }
+    await refreshEntitlements();
+    return true;
+  }, [bazaar, refreshEntitlements]);
 
   const redeemCode = useCallback(async (code: string) => {
     const result = await redeemPromoCode(code);

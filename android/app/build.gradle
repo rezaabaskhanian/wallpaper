@@ -140,11 +140,6 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 
-    // Cafe Bazaar in-app billing (Poolakey). Needs the JitPack repo (see root build.gradle).
-    implementation("com.github.cafebazaar.Poolakey:poolakey:2.2.0")
-    // Poolakey launches its purchase flow via the Activity's ActivityResultRegistry.
-    implementation("androidx.appcompat:appcompat:1.7.0")
-
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

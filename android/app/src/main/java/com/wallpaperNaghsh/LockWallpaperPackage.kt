@@ -12,7 +12,6 @@ class LockWallpaperPackage : ReactPackage {
   ): List<NativeModule> =
       listOf(
           LockWallpaperModule(reactContext),
-          BazaarBillingModule(reactContext),
           InstalledAppsModule(reactContext),
           HomeWidgetModule(reactContext),
       )
