@@ -72,13 +72,21 @@ export default function SettingsPanel({
     1,
     Math.min(MAX_ORBS, categoryMartyrCount || MAX_ORBS),
   );
-  // Clamp down whenever switching to a smaller category so the stored value
-  // never sits above what's currently selectable.
+  // Switching categories resets ballCount to the new category's natural size
+  // (capped at MAX_ORBS) — e.g. going from a 5-martyr category to a 20-martyr
+  // one should show 20, not stay stuck at 5. Manual decreases via the stepper
+  // still work afterward; they just get reset again on the next switch. If
+  // the martyr list itself changes (e.g. loads in later) without a category
+  // switch, only clamp down so an in-progress manual choice isn't overridden.
+  const prevCategoryRef = useRef(settings.martyrCategoryId);
   useEffect(() => {
-    if (settings.ballCount > maxBallCount) {
+    if (prevCategoryRef.current !== settings.martyrCategoryId) {
+      prevCategoryRef.current = settings.martyrCategoryId;
+      update('ballCount', maxBallCount);
+    } else if (settings.ballCount > maxBallCount) {
       update('ballCount', maxBallCount);
     }
-  }, [maxBallCount, settings.ballCount, update]);
+  }, [settings.martyrCategoryId, maxBallCount, settings.ballCount, update]);
   // Persists across opens/closes (the panel stays mounted, only `visible`
   // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('general');
