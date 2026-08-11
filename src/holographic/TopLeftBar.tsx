@@ -35,10 +35,8 @@ export default function TopLeftBar({
   const batteryLevel = useBatteryLevel(); // 0..1 (null/-1 when unavailable)
   const {batteryState} = usePowerState();
 
-  const hours24 = new Date().getHours();
-  const isNight = weather ? weather.isNight : hours24 < 6 || hours24 >= 19;
-  const temp = weather ? weather.temp : settings.manualTemp;
-  const icon = weatherIcon(weather ? weather.code : 0, isNight);
+  const showWeather = settings.showWeather && !!weather;
+  const icon = weather ? weatherIcon(weather.code, weather.isNight) : 'sun';
 
   const batteryPct =
     batteryLevel != null && batteryLevel >= 0
@@ -48,8 +46,10 @@ export default function TopLeftBar({
 
   return (
     <View style={styles.bar}>
-      {/* Left: weather / temperature (draggable in layout-edit mode) */}
-      {settings.showWeather ? (
+      {/* Left: weather / temperature (draggable in layout-edit mode).
+          Only rendered once a real API fetch has resolved — no manual or
+          guessed fallback. */}
+      {showWeather ? (
         <DraggableWidget
           offset={settings.weatherOffset}
           editing={settings.editLayout}
@@ -57,7 +57,7 @@ export default function TopLeftBar({
           label="دما">
           <View style={styles.weatherRow}>
             <WeatherIcon kind={icon} size={18} color={WEATHER_COLOR} />
-            <AppText style={styles.item}>{toFa(temp)}°</AppText>
+            <AppText style={styles.item}>{toFa(weather!.temp)}°</AppText>
           </View>
         </DraggableWidget>
       ) : (

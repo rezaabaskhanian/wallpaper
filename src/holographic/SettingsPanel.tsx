@@ -301,6 +301,18 @@ export default function SettingsPanel({
                 onSelect={id => update('orbShape', id as 'orb' | 'angel')}
               />
 
+              <RowChoices
+                label="نمایش گوی‌ها (ثابت / پیدا و پنهان)"
+                options={[
+                  {id: 'steady', label: 'ثابت'},
+                  {id: 'flicker', label: '✨ پیدا و پنهان'},
+                ]}
+                selected={settings.orbVisibility}
+                onSelect={id =>
+                  update('orbVisibility', id as 'steady' | 'flicker')
+                }
+              />
+
               <RowStepper
                 label="تعداد گوی‌ها"
                 value={`${settings.ballCount}`}
@@ -452,10 +464,10 @@ export default function SettingsPanel({
                 value={settings.weatherEffects}
                 onChange={v => update('weatherEffects', v)}
               />
-              {settings.weatherEffects && !settings.liveWeather ? (
+              {settings.weatherEffects ? (
                 <AppText style={styles.hint}>
-                  برای این جلوه، «دمای زنده» باید روشن باشد تا وضعیت هوا
-                  مشخص شود.
+                  این جلوه به گرفتن موفق وضعیت هوا از GPS و API نیاز دارد؛ اگر
+                  دسترسی موقعیت مکانی داده نشود یا اینترنت نباشد، فعال نمی‌شود.
                 </AppText>
               ) : null}
 
@@ -538,19 +550,10 @@ export default function SettingsPanel({
                 value={settings.showWeather}
                 onChange={v => update('showWeather', v)}
               />
-
-              <RowSwitch
-                label="هوای زنده (GPS)"
-                value={settings.liveWeather}
-                onChange={v => update('liveWeather', v)}
-              />
-
-              <RowStepper
-                label="دمای دستی"
-                value={`${settings.manualTemp}°`}
-                onDec={() => update('manualTemp', settings.manualTemp - 1)}
-                onInc={() => update('manualTemp', settings.manualTemp + 1)}
-              />
+              <AppText style={styles.hint}>
+                دما همیشه زنده از طریق GPS و API آب‌وهوا گرفته می‌شود؛ تا وقتی
+                گرفتن آن موفق نشود چیزی نمایش داده نمی‌شود.
+              </AppText>
 
               <View style={styles.divider} />
               <AppText style={styles.sectionTitle}>چیدمان صفحه</AppText>

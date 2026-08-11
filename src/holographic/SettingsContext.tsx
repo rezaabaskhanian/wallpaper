@@ -24,6 +24,10 @@ export type WallpaperSettings = {
   /** Visual style for each orbiting martyr portrait: plain glowing orb, or a
    * small winged "angel" with the portrait as its face. */
   orbShape: 'orb' | 'angel';
+  /** How orbs stay visible: 'steady' (always shown once loaded), or
+   * 'flicker' — each orb independently fades in/out on its own randomized
+   * animated cycle. */
+  orbVisibility: 'steady' | 'flicker';
   /** Which martyr category populates the orbiting "logo" avatars; '' shows
    * every martyr regardless of category (see MartyrCategory in store/types). */
   martyrCategoryId: string;
@@ -53,12 +57,10 @@ export type WallpaperSettings = {
   themeId: string;
   /** Show the clock widget. */
   showClock: boolean;
-  /** Show the weather line (icon + temperature). */
+  /** Show the weather line (icon + temperature). Always sourced live from the
+   * weather API (GPS + Open-Meteo) — shows nothing when that fetch hasn't
+   * succeeded yet, never a manual/guessed value. */
   showWeather: boolean;
-  /** Try to fetch live weather from GPS; else use manualTemp. */
-  liveWeather: boolean;
-  /** Fallback temperature (°C) when live weather is off/unavailable. */
-  manualTemp: number;
   /** Show the date under the clock. */
   showDate: boolean;
   /** Clock format: 12-hour (with AM/PM) or 24-hour (no AM/PM). */
@@ -116,6 +118,7 @@ const DEFAULTS: WallpaperSettings = {
   showOrbs: true,
   ballCount: 24,
   orbShape: 'orb',
+  orbVisibility: 'steady',
   martyrCategoryId: '',
   rotationAxis: 'y',
   dayNightMode: 'auto',
@@ -129,8 +132,6 @@ const DEFAULTS: WallpaperSettings = {
   backgroundId: DEFAULT_BACKGROUND_ID,
   showClock: true,
   showWeather: true,
-  liveWeather: true,
-  manualTemp: 24,
   showDate: true,
   hourFormat: '12',
   fontId: DEFAULT_FONT_ID,

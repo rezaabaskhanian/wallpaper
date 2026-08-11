@@ -73,9 +73,7 @@ export default function HolographicHome({dream = false}: Props) {
 
   // Fetched once here and shared by the temperature readout (TopLeftBar) and
   // the rain/snow effect (WeatherEffects) so they don't each poll GPS/network.
-  const weather = useWeather(
-    settings.liveWeather && (settings.showWeather || settings.weatherEffects),
-  );
+  const weather = useWeather(settings.showWeather || settings.weatherEffects);
 
   // Mirrors the chosen background photo onto the home-screen widget (see
   // QuoteWidgetProvider.kt). Only 'custom' has a real file/URL to sync — the
@@ -347,7 +345,8 @@ export default function HolographicHome({dream = false}: Props) {
           {!capturing ? <AtmosphericFog /> : null}
 
           {/* Rain/snow driven by the live weather condition, toggled in
-              Settings → پس‌زمینه. Needs liveWeather on to know the condition. */}
+              Settings → پس‌زمینه. Needs a resolved API weather fetch to know
+              the condition — nothing renders until one succeeds. */}
           {!capturing ? <WeatherEffects weather={weather} /> : null}
 
           {/* Hidden during capture so the lock wallpaper is background-only. */}

@@ -1,9 +1,9 @@
 /**
  * Live weather via the device GPS + the free Open-Meteo API (no API key).
- *
- * Degrades gracefully: if the geolocation native module isn't linked yet
- * (before a rebuild) or permission is denied, it simply returns null and the
- * widget falls back to the manual temperature from settings.
+ * There is no manual/guessed fallback: if the geolocation native module
+ * isn't linked yet (before a rebuild), permission is denied, or the API
+ * fetch fails, this simply returns null — callers must show nothing rather
+ * than a stale or made-up value.
  */
 import {useEffect, useState} from 'react';
 import {PermissionsAndroid, Platform} from 'react-native';
@@ -98,7 +98,7 @@ export function useWeather(enabled: boolean): Weather | null {
           });
         }
       } catch {
-        // Keep whatever we had; the widget falls back to the manual temp.
+        // Leave weather as-is (likely still null) — no fallback value.
       }
     };
 

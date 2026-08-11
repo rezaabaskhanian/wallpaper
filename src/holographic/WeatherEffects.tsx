@@ -105,8 +105,8 @@ function Snow({
 
 /**
  * Rain or snow, driven by the live weather condition. Off unless
- * settings.weatherEffects is on AND live weather resolved a code — with
- * manual temperature (liveWeather off) there's no condition to react to.
+ * settings.weatherEffects is on AND a live API fetch has resolved a code —
+ * no manual/guessed condition to fall back to.
  */
 export default function WeatherEffects({weather}: {weather: Weather | null}) {
   const {settings} = useSettings();

@@ -2,6 +2,12 @@ import React from 'react';
 import {ImageBackground, StyleSheet} from 'react-native';
 import {BACKGROUNDS} from './config';
 import {useSettings} from './SettingsContext';
+import {useCachedImage} from './imageCache';
+
+/** True for a remote http(s) URL (a wallpaper picked from the app's own
+ * gallery); false for a local device photo (content://, file://, ph://…)
+ * picked straight from the phone's gallery, which needs no caching. */
+const isRemoteUrl = (uri: string) => /^https?:\/\//i.test(uri);
 
 /**
  * The full-screen background photo behind the orbiting avatars.
@@ -10,14 +16,28 @@ import {useSettings} from './SettingsContext';
  * ('custom' + customBackgroundUri), or the bundled image of the selected
  * background. IDs with no photo of their own (e.g. 'black') render nothing
  * here on purpose, falling through to the root view's solid black fill.
+ *
+ * A custom background from the app's own wallpaper gallery is a remote URL,
+ * so it's routed through the same download+cache used for orbit avatar
+ * photos (see imageCache.ts) — otherwise it'd vanish the moment the device
+ * goes offline. A photo picked straight from the phone's gallery is already
+ * a local file and is used as-is.
  */
 export default function MainBackground() {
   const {settings} = useSettings();
 
+  const customUri = settings.customBackgroundUri;
+  const customIsRemote = !!customUri && isRemoteUrl(customUri);
+  const cachedCustom = useCachedImage(customIsRemote ? customUri : undefined);
+
   const source =
     settings.backgroundId === 'custom'
-      ? settings.customBackgroundUri
-        ? {uri: settings.customBackgroundUri}
+      ? customUri
+        ? customIsRemote
+          ? cachedCustom.uri
+            ? {uri: cachedCustom.uri}
+            : undefined
+          : {uri: customUri}
         : undefined
       : BACKGROUNDS.find(b => b.id === settings.backgroundId)?.source;
 
