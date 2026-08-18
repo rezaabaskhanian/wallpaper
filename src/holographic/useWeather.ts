@@ -42,19 +42,30 @@ export async function getGeolocation(): Promise<{
   try {
     // Loaded lazily so a missing native module (pre-rebuild) doesn't crash.
     Geolocation = require('@react-native-community/geolocation').default;
-  } catch {
+  } catch (e) {
+    console.warn('[weather] geolocation module not linked', e);
     return null;
   }
 
   if (Platform.OS === 'android') {
+    // Default engine (legacy Android LocationManager) has no active
+    // provider on many devices/emulators. Play Services' fused provider
+    // is far more reliable and works fine with just coarse permission.
+    Geolocation.setRNConfiguration({
+      skipPermissionRequests: false,
+      locationProvider: 'playServices',
+    });
+
     try {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
       );
       if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        console.warn('[weather] location permission not granted:', granted);
         return null;
       }
-    } catch {
+    } catch (e) {
+      console.warn('[weather] permission request threw', e);
       return null;
     }
   }
@@ -63,7 +74,10 @@ export async function getGeolocation(): Promise<{
     Geolocation.getCurrentPosition(
       (pos: any) =>
         resolve({lat: pos.coords.latitude, lon: pos.coords.longitude}),
-      () => resolve(null),
+      (err: any) => {
+        console.warn('[weather] getCurrentPosition failed', err);
+        resolve(null);
+      },
       {enableHighAccuracy: false, timeout: 15000, maximumAge: 600000},
     );
   });
@@ -82,7 +96,11 @@ export function useWeather(enabled: boolean): Weather | null {
 
     const load = async () => {
       const coords = await getGeolocation();
-      if (!coords || cancelled) return;
+      if (!coords) {
+        console.warn('[weather] no coords, skipping fetch');
+        return;
+      }
+      if (cancelled) return;
       try {
         const url =
           `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}` +
@@ -96,8 +114,11 @@ export function useWeather(enabled: boolean): Weather | null {
             code: cur.weather_code,
             isNight: cur.is_day === 0,
           });
+        } else {
+          console.warn('[weather] response missing current field', json);
         }
-      } catch {
+      } catch (e) {
+        console.warn('[weather] fetch failed', e);
         // Leave weather as-is (likely still null) — no fallback value.
       }
     };
