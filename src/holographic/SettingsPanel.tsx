@@ -376,6 +376,14 @@ export default function SettingsPanel({
                   💬 تلگرام: @{DEVELOPER_TELEGRAM_USERNAME}
                 </AppText>
               </Pressable>
+
+              <View style={styles.divider} />
+              <AppText style={styles.sectionTitle}>منبع محتوا</AppText>
+              <AppText style={styles.hint}>
+                جملات نمایش داده‌شده در برنامه برگرفته و خلاصه‌شده از پایگاه
+                اطلاع‌رسانی دفتر حفظ و نشر آثار حضرت آیت‌الله العظمی
+                خامنه‌ای (khamenei.ir) است.
+              </AppText>
             </>
           ) : null}
 
