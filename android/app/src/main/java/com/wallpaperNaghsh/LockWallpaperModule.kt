@@ -28,7 +28,23 @@ import java.net.URL
 class LockWallpaperModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
+  companion object {
+    /** Wallpapers may only be fetched from this host or a subdomain of it. */
+    private const val ASSET_HOST = "wallpaperapp.ir"
+  }
+
   override fun getName(): String = "LockWallpaper"
+
+  /**
+   * Only the app's own backend/CDN may be fetched. Without this the module is a
+   * general-purpose "download anything the JS side names" primitive, which is
+   * both a real SSRF-ish footgun and the pattern malware scanners flag.
+   */
+  private fun isAllowedWallpaperUrl(url: URL): Boolean {
+    if (!url.protocol.equals("https", ignoreCase = true)) return false
+    val host = url.host.lowercase()
+    return host == ASSET_HOST || host.endsWith(".$ASSET_HOST")
+  }
 
   private fun flagsFor(which: String): Int =
       when (which) {
@@ -46,12 +62,29 @@ class LockWallpaperModule(reactContext: ReactApplicationContext) :
     Thread {
       var conn: HttpURLConnection? = null
       try {
-        conn = (URL(url).openConnection() as HttpURLConnection).apply {
+        val parsed =
+            try {
+              URL(url)
+            } catch (e: Exception) {
+              promise.reject("bad_url", "Malformed wallpaper URL", e)
+              return@Thread
+            }
+        if (!isAllowedWallpaperUrl(parsed)) {
+          promise.reject("url_not_allowed", "Wallpaper URL must be https on $ASSET_HOST")
+          return@Thread
+        }
+        conn = (parsed.openConnection() as HttpURLConnection).apply {
           connectTimeout = 15000
           readTimeout = 20000
-          instanceFollowRedirects = true
+          // Redirects are not followed: a 302 off to an arbitrary host would
+          // route straight around the allowlist above.
+          instanceFollowRedirects = false
           doInput = true
           connect()
+        }
+        if (conn.responseCode != HttpURLConnection.HTTP_OK) {
+          promise.reject("http_error", "Wallpaper fetch returned HTTP ${conn.responseCode}")
+          return@Thread
         }
         val bitmap = conn.inputStream.use { BitmapFactory.decodeStream(it) }
         if (bitmap == null) {

@@ -1,7 +1,6 @@
 package com.wallpaperNaghsh
 
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
@@ -41,7 +40,12 @@ class InstalledAppsModule(reactContext: ReactApplicationContext) :
       try {
         val pm = reactApplicationContext.packageManager
         val intent = Intent(Intent.ACTION_MAIN, null).addCategory(Intent.CATEGORY_LAUNCHER)
-        val resolved = pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+        // Plain resolve (no MATCH_ALL): the default flags already return every
+        // enabled launcher activity visible through the <queries> declaration,
+        // which is all the drawer needs. MATCH_ALL additionally pulls in
+        // disabled/hidden entries and reads to malware scanners as full package
+        // enumeration.
+        val resolved = pm.queryIntentActivities(intent, 0)
 
         val result = Arguments.createArray()
         val seen = HashSet<String>()
