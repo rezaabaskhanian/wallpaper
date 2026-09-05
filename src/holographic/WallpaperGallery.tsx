@@ -108,12 +108,35 @@ export default function WallpaperGallery({visible, onClose}: Props) {
   const gap = 10;
   const cellWidth = (width - gap * (columns + 1)) / columns;
 
+  // دسته‌های اصلی (بدون والد) برای ردیف اول تب‌ها.
+  const topCategories = useMemo(
+    () => (catalog?.categories ?? []).filter(c => !c.parentId),
+    [catalog],
+  );
+
+  // زیردسته‌های دستهٔ اصلیِ فعال (اگر انتخاب‌شده دستهٔ اصلی باشد)، برای ردیف دوم تب‌ها.
+  const subCategories = useMemo(
+    () => (catalog?.categories ?? []).filter(c => c.parentId === activeCat),
+    [catalog, activeCat],
+  );
+
+  const [activeSubCat, setActiveSubCat] = useState<string>('all');
+
   const items = useMemo(() => {
     const all = catalog?.wallpapers ?? [];
-    return activeCat === 'all'
-      ? all
-      : all.filter(w => w.category === activeCat);
-  }, [catalog, activeCat]);
+    if (activeCat === 'all') {
+      return all;
+    }
+    if (activeSubCat !== 'all') {
+      return all.filter(w => w.category === activeSubCat);
+    }
+    // شامل والپیپرهای خودِ دستهٔ اصلی + همهٔ زیردسته‌هایش می‌شود.
+    const idsInGroup = new Set([
+      activeCat,
+      ...subCategories.map(c => c.id),
+    ]);
+    return all.filter(w => idsInGroup.has(w.category));
+  }, [catalog, activeCat, activeSubCat, subCategories]);
 
   const startPurchase = async () => {
     try {
@@ -166,10 +189,12 @@ export default function WallpaperGallery({visible, onClose}: Props) {
     }
   };
 
-  const categories = [
-    {id: 'all', title: 'همه'},
-    ...(catalog?.categories ?? []),
-  ];
+  const categories = [{id: 'all', title: 'همه'}, ...topCategories];
+
+  const selectCat = (id: string) => {
+    setActiveCat(id);
+    setActiveSubCat('all');
+  };
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -205,7 +230,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
             return (
               <Pressable
                 key={c.id}
-                onPress={() => setActiveCat(c.id)}
+                onPress={() => selectCat(c.id)}
                 style={[styles.cat, active && styles.catActive]}>
                 <AppText style={[styles.catText, active && styles.catTextActive]}>
                   {c.title}
@@ -214,6 +239,25 @@ export default function WallpaperGallery({visible, onClose}: Props) {
             );
           })}
         </View>
+
+        {/* Subcategories (only when the active top category has children) */}
+        {subCategories.length > 0 ? (
+          <View style={[styles.cats, styles.subCats]}>
+            {[{id: 'all', title: 'همه'}, ...subCategories].map(c => {
+              const active = c.id === activeSubCat;
+              return (
+                <Pressable
+                  key={c.id}
+                  onPress={() => setActiveSubCat(c.id)}
+                  style={[styles.subCat, active && styles.subCatActive]}>
+                  <AppText style={[styles.subCatText, active && styles.subCatTextActive]}>
+                    {c.title}
+                  </AppText>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
 
         {loading ? (
           <View style={styles.center}>
@@ -369,6 +413,18 @@ const styles = StyleSheet.create({
   catActive: {backgroundColor: 'rgba(64,224,208,0.22)', borderColor: '#2dd4bf'},
   catText: {color: 'rgba(255,255,255,0.7)', fontSize: 13, writingDirection: 'rtl'},
   catTextActive: {color: '#eafffb', fontWeight: '700'},
+  subCats: {paddingTop: 6},
+  subCat: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(64,224,208,0.12)',
+  },
+  subCatActive: {backgroundColor: 'rgba(64,224,208,0.16)', borderColor: '#2dd4bf'},
+  subCatText: {color: 'rgba(255,255,255,0.55)', fontSize: 12, writingDirection: 'rtl'},
+  subCatTextActive: {color: '#eafffb', fontWeight: '700'},
   center: {flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12},
   muted: {color: 'rgba(255,255,255,0.6)', fontSize: 15, writingDirection: 'rtl'},
   retry: {

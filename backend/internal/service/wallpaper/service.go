@@ -49,5 +49,5 @@ func toWallpaperDTO(w domain.Wallpaper) dto.WallpaperDTO {
 }
 
 func toCategoryDTO(c domain.Category) dto.CategoryDTO {
-	return dto.CategoryDTO{ID: c.ID, Title: c.Title, Sort: c.Sort}
+	return dto.CategoryDTO{ID: c.ID, Title: c.Title, Sort: c.Sort, ParentID: c.ParentID}
 }

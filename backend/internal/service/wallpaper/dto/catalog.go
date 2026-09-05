@@ -2,9 +2,10 @@ package dto
 
 // CategoryDTO خروجی یک دسته در کاتالوگ.
 type CategoryDTO struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
-	Sort  int    `json:"sort"`
+	ID       string  `json:"id"`
+	Title    string  `json:"title"`
+	Sort     int     `json:"sort"`
+	ParentID *string `json:"parentId,omitempty"`
 }
 
 // WallpaperDTO خروجی یک والپیپر در کاتالوگ (دقیقاً مطابق چیزی که کلاینت انتظار دارد).

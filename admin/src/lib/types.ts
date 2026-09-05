@@ -2,6 +2,7 @@ export type Category = {
   id: string;
   title: string;
   sort: number;
+  parentId?: string | null;
 };
 
 export type Wallpaper = {

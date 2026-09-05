@@ -19,9 +19,10 @@ type CreateWallpaperResponse struct {
 
 // CreateCategoryRequest ورودی افزودن دسته (ادمین).
 type CreateCategoryRequest struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
-	Sort  int    `json:"sort"`
+	ID       string  `json:"id"`
+	Title    string  `json:"title"`
+	Sort     int     `json:"sort"`
+	ParentID *string `json:"parentId"`
 }
 
 type CreateCategoryResponse struct {

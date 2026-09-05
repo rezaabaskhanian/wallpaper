@@ -25,16 +25,18 @@ type Wallpaper struct {
 
 // Category دسته‌بندی والپیپرها (برای فیلتر در گالری).
 type Category struct {
-	ID    string // slug مثل "shohada"
-	Title string
-	Sort  int
+	ID       string // slug مثل "shohada"
+	Title    string
+	Sort     int
+	ParentID *string // شناسه‌ی دسته‌ی والد؛ nil یعنی دسته‌ی اصلی (سطح اول)
 }
 
 // خطاهای دامنه‌ی والپیپر
 var (
-	ErrEmptyTitle    = errors.New("عنوان والپیپر نمی‌تواند خالی باشد")
-	ErrEmptyCategory = errors.New("دسته‌بندی والپیپر الزامی است")
-	ErrEmptyImage    = errors.New("آدرس تصویر (thumb/full) الزامی است")
+	ErrEmptyTitle      = errors.New("عنوان والپیپر نمی‌تواند خالی باشد")
+	ErrEmptyCategory   = errors.New("دسته‌بندی والپیپر الزامی است")
+	ErrEmptyImage      = errors.New("آدرس تصویر (thumb/full) الزامی است")
+	ErrCategorySelfRef = errors.New("یک دسته نمی‌تواند زیردستهٔ خودش باشد")
 )
 
 // NewWallpaper ساخت والپیپر جدید (برای ادمین). اگر id خالی باشد، یک UUID ساخته می‌شود.
@@ -81,13 +83,16 @@ func NewWallpaper(
 	}, nil
 }
 
-// NewCategory ساخت دسته‌بندی جدید.
-func NewCategory(id string, title string, sort int) (Category, error) {
+// NewCategory ساخت دسته‌بندی جدید. parentID برای دستهٔ اصلی nil است.
+func NewCategory(id string, title string, sort int, parentID *string) (Category, error) {
 	if id == "" {
 		return Category{}, ErrEmptyCategory
 	}
 	if title == "" {
 		return Category{}, ErrEmptyTitle
 	}
-	return Category{ID: id, Title: title, Sort: sort}, nil
+	if parentID != nil && *parentID == id {
+		return Category{}, ErrCategorySelfRef
+	}
+	return Category{ID: id, Title: title, Sort: sort, ParentID: parentID}, nil
 }

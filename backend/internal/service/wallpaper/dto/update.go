@@ -19,8 +19,9 @@ type UpdateWallpaperResponse struct {
 
 // UpdateCategoryRequest ورودی ویرایش دسته (ادمین). id از مسیر URL می‌آید.
 type UpdateCategoryRequest struct {
-	Title string `json:"title"`
-	Sort  int    `json:"sort"`
+	Title    string  `json:"title"`
+	Sort     int     `json:"sort"`
+	ParentID *string `json:"parentId"`
 }
 
 type UpdateCategoryResponse struct {

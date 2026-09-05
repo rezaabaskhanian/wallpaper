@@ -11,7 +11,7 @@ import (
 func (d DB) GetCategories(ctx context.Context) ([]domain.Category, error) {
 	const op = "postgreswallpaper.GetCategories"
 
-	query := `SELECT id, title, sort_order FROM categories ORDER BY sort_order, id`
+	query := `SELECT id, title, sort_order, parent_id FROM categories ORDER BY sort_order, id`
 
 	rows, err := d.conn.Query(ctx, query)
 	if err != nil {
@@ -22,7 +22,7 @@ func (d DB) GetCategories(ctx context.Context) ([]domain.Category, error) {
 	categories := make([]domain.Category, 0)
 	for rows.Next() {
 		var c domain.Category
-		if err := rows.Scan(&c.ID, &c.Title, &c.Sort); err != nil {
+		if err := rows.Scan(&c.ID, &c.Title, &c.Sort, &c.ParentID); err != nil {
 			return nil, richerror.New(op).WithErr(err)
 		}
 		categories = append(categories, c)
@@ -137,12 +137,12 @@ func (d DB) SaveCategory(ctx context.Context, c domain.Category) (domain.Categor
 	const op = "postgreswallpaper.SaveCategory"
 
 	query := `
-	INSERT INTO categories (id, title, sort_order)
-	VALUES ($1, $2, $3)
-	ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, sort_order = EXCLUDED.sort_order
+	INSERT INTO categories (id, title, sort_order, parent_id)
+	VALUES ($1, $2, $3, $4)
+	ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, sort_order = EXCLUDED.sort_order, parent_id = EXCLUDED.parent_id
 `
 
-	_, err := d.conn.Exec(ctx, query, c.ID, c.Title, c.Sort)
+	_, err := d.conn.Exec(ctx, query, c.ID, c.Title, c.Sort, c.ParentID)
 	if err != nil {
 		return domain.Category{}, richerror.New(op).WithErr(err).WithMessage("failed to upsert category")
 	}

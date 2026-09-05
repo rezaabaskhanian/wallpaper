@@ -34,19 +34,33 @@ import {
 } from '@/hooks/useWallpapers';
 import type {Category} from '@/lib/types';
 
-const EMPTY: CategoryInput = {id: '', title: '', sort: 0};
+const EMPTY: CategoryInput = {id: '', title: '', sort: 0, parentId: null};
+
+function toInput(category: Category | null): CategoryInput {
+  return category
+    ? {id: category.id, title: category.title, sort: category.sort, parentId: category.parentId ?? null}
+    : EMPTY;
+}
 
 function CategoryDialog({
   category,
+  categories,
   open,
   onOpenChange,
 }: {
   category: Category | null;
+  categories: Category[] | undefined;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [form, setForm] = useState<CategoryInput>(category ?? EMPTY);
+  const [form, setForm] = useState<CategoryInput>(toInput(category));
   const save = useSaveCategory(!category);
+
+  // فقط دسته‌های اصلی (بدون والد) و غیر از خودِ دسته می‌توانند والد باشند
+  // تا سلسله‌مراتب در همان دو سطح (دسته > زیردسته) بماند.
+  const parentOptions = (categories ?? []).filter(
+    c => !c.parentId && c.id !== category?.id,
+  );
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +77,7 @@ function CategoryDialog({
     <Dialog
       open={open}
       onOpenChange={o => {
-        setForm(category ?? EMPTY);
+        setForm(toInput(category));
         onOpenChange(o);
       }}>
       <DialogContent className="glass-panel">
@@ -93,6 +107,21 @@ function CategoryDialog({
             />
           </div>
           <div className="flex flex-col gap-2">
+            <Label htmlFor="cat-parent">دستهٔ والد</Label>
+            <select
+              id="cat-parent"
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+              value={form.parentId ?? ''}
+              onChange={e => setForm({...form, parentId: e.target.value || null})}>
+              <option value="">بدون والد (دستهٔ اصلی)</option>
+              {parentOptions.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-2">
             <Label htmlFor="cat-sort">ترتیب</Label>
             <Input
               id="cat-sort"
@@ -120,6 +149,26 @@ export default function Categories() {
   const [editing, setEditing] = useState<Category | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const sel = useRowSelection(categories);
+
+  // دسته‌های اصلی به همراه زیردسته‌هایشان بلافاصله بعدشان، برای نمایش سلسله‌مراتبی.
+  const orderedCategories = (() => {
+    const list = categories ?? [];
+    const byParent = new Map<string, Category[]>();
+    for (const c of list) {
+      if (c.parentId) {
+        byParent.set(c.parentId, [...(byParent.get(c.parentId) ?? []), c]);
+      }
+    }
+    const roots = list.filter(c => !c.parentId);
+    const result: {category: Category; isChild: boolean}[] = [];
+    for (const root of roots) {
+      result.push({category: root, isChild: false});
+      for (const child of byParent.get(root.id) ?? []) {
+        result.push({category: child, isChild: true});
+      }
+    }
+    return result;
+  })();
 
   const bulkDelete = async () => {
     try {
@@ -175,7 +224,7 @@ export default function Categories() {
                 <TableCell colSpan={5}>در حال بارگذاری…</TableCell>
               </TableRow>
             ) : (
-              categories?.map(c => (
+              orderedCategories.map(({category: c, isChild}) => (
                 <TableRow key={c.id} data-state={sel.selected.has(c.id) && 'selected'}>
                   <TableCell>
                     <Checkbox
@@ -186,7 +235,10 @@ export default function Categories() {
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {c.id}
                   </TableCell>
-                  <TableCell className="font-medium">{c.title}</TableCell>
+                  <TableCell className="font-medium">
+                    {isChild ? <span className="text-muted-foreground">└ </span> : null}
+                    {c.title}
+                  </TableCell>
                   <TableCell className="font-mono">{c.sort}</TableCell>
                   <TableCell className="flex justify-end gap-1">
                     <Button
@@ -217,7 +269,12 @@ export default function Categories() {
         </Table>
       </SpotlightCard>
 
-      <CategoryDialog category={editing} open={dialogOpen} onOpenChange={setDialogOpen} />
+      <CategoryDialog
+        category={editing}
+        categories={categories}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }

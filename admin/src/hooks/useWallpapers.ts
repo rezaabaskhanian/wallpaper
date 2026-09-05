@@ -63,6 +63,7 @@ export type CategoryInput = {
   id: string;
   title: string;
   sort: number;
+  parentId: string | null;
 };
 
 export function useSaveCategory(isNew: boolean) {

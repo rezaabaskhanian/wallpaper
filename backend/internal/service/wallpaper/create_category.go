@@ -12,7 +12,7 @@ import (
 func (s Service) CreateCategory(ctx context.Context, req dto.CreateCategoryRequest) (dto.CreateCategoryResponse, error) {
 	const op = "wallpaperservice.CreateCategory"
 
-	c, err := domain.NewCategory(req.ID, req.Title, req.Sort)
+	c, err := domain.NewCategory(req.ID, req.Title, req.Sort, req.ParentID)
 	if err != nil {
 		return dto.CreateCategoryResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ساخت دسته")
 	}

@@ -2,6 +2,8 @@
 export type WallpaperCategory = {
   id: string;
   title: string;
+  /** Id of the parent category; undefined/null for a top-level category. */
+  parentId?: string | null;
 };
 
 /** One downloadable wallpaper from the catalog server. */

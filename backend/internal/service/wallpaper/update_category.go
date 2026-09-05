@@ -12,7 +12,7 @@ import (
 func (s Service) UpdateCategory(ctx context.Context, id string, req dto.UpdateCategoryRequest) (dto.UpdateCategoryResponse, error) {
 	const op = "wallpaperservice.UpdateCategory"
 
-	c, err := domain.NewCategory(id, req.Title, req.Sort)
+	c, err := domain.NewCategory(id, req.Title, req.Sort, req.ParentID)
 	if err != nil {
 		return dto.UpdateCategoryResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ویرایش دسته")
 	}
