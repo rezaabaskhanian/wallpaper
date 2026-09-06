@@ -38,8 +38,33 @@ export type MartyrCategory = {
   sortOrder: number;
 };
 
+export type OrbitCategory = {
+  id: string;
+  title: string;
+  sort: number;
+  centerImage?: string;
+  centerTitle?: string;
+  centerSlogan?: string;
+};
+
+export type OrbitItem = {
+  id: string;
+  categoryId: string;
+  label: string;
+  image: string;
+  sort: number;
+  isActive: boolean;
+};
+
+export type QuoteCategory = {
+  id: string;
+  title: string;
+  sort: number;
+};
+
 export type Quote = {
   id: string;
+  categoryId: string;
   line1: string;
   line2: string;
   source: string;

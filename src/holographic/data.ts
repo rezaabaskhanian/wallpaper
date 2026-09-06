@@ -34,18 +34,61 @@ export type HeroConfig = {
 const FALLBACK_HERO_IMAGE = require('./assets/leader.png');
 const HERO_COLORS: [string, string] = ['#1f6f6f', '#0a2a2a'];
 
-/** Central hero: the leader portrait shown in the middle of the sphere. */
+/** The orbit category currently selected (settings.orbitCategoryId), falling
+ * back to the first category the backend returns (normally "شهدا") so the
+ * screen has a sensible default before the user ever opens the switcher. */
+export function useActiveOrbitCategory() {
+  const {orbitCategories} = useStore();
+  const {settings} = useSettings();
+  return useMemo(() => {
+    if (!orbitCategories.length) {
+      return null;
+    }
+    return (
+      orbitCategories.find(c => c.id === settings.orbitCategoryId) ??
+      orbitCategories[0]
+    );
+  }, [orbitCategories, settings.orbitCategoryId]);
+}
+
+/** The quote category currently selected (settings.quoteCategoryId), falling
+ * back to the first category the backend returns (normally "بیانات رهبر") so
+ * the widget has a sensible default before the user ever opens the switcher. */
+export function useActiveQuoteCategoryId(): string {
+  const {quoteCategories} = useStore();
+  const {settings} = useSettings();
+  return useMemo(() => {
+    if (!quoteCategories.length) {
+      return settings.quoteCategoryId;
+    }
+    return quoteCategories.some(c => c.id === settings.quoteCategoryId)
+      ? settings.quoteCategoryId
+      : quoteCategories[0].id;
+  }, [quoteCategories, settings.quoteCategoryId]);
+}
+
+/** Central hero: the leader portrait, or the active orbit category's own
+ * center image/title/slogan when it defines one (e.g. a "طبیعت" theme with
+ * a sun/earth photo instead of the leader). */
 export function useHero(): HeroConfig {
   const {hero} = useStore();
-  return useMemo(
-    () => ({
+  const activeCategory = useActiveOrbitCategory();
+  return useMemo(() => {
+    if (activeCategory?.centerImage) {
+      return {
+        title: activeCategory.centerTitle ?? '',
+        slogan: activeCategory.centerSlogan ?? '',
+        colors: HERO_COLORS,
+        image: {uri: activeCategory.centerImage},
+      };
+    }
+    return {
       title: hero?.title ?? '',
       slogan: hero?.slogan ?? '',
       colors: HERO_COLORS,
       image: hero?.image ? {uri: hero.image} : FALLBACK_HERO_IMAGE,
-    }),
-    [hero],
-  );
+    };
+  }, [hero, activeCategory]);
 }
 
 const PALETTE: [string, string][] = [
@@ -88,41 +131,53 @@ function sampleItems<T>(items: T[], count: number): T[] {
 }
 
 /**
- * Orbiting icons, built from the fetched martyrs list (each icon carries its
- * `martyrId` so a tap opens that martyr's modal). Falls back to placeholder
- * tiles while loading or when the backend has no entries yet.
+ * Orbiting icons for the active orbit category/theme (see
+ * `useActiveOrbitCategory`, switched from the home screen's own tab row —
+ * not the settings panel). Items whose id also matches a martyr get a
+ * `martyrId`, so a tap still opens that martyr's bio modal for the "شهدا"
+ * theme; other themes (e.g. "طبیعت") just aren't tappable. Falls back to
+ * placeholder tiles while loading or when the backend has no entries yet.
  *
  * The result is capped at `min(settings.ballCount, MAX_ORBS)`: a category
- * with more martyrs than that gets a random subset (re-rolled whenever the
+ * with more items than that gets a random subset (re-rolled whenever the
  * category or count changes, so a large category isn't always showing the
- * same faces), while a category with fewer martyrs than the cap just shows
+ * same faces), while a category with fewer items than the cap just shows
  * all of them instead of repeating anyone to pad the orbit out. The settings
  * panel only lets `ballCount` go down from `MAX_ORBS`, never above it — see
  * its ballCount stepper — so the screen is never more crowded than
  * `MAX_ORBS` regardless of category size.
  */
 export function useOrbitItems(): OrbitItem[] {
-  const {martyrs} = useStore();
+  const {orbitItems, martyrs} = useStore();
   const {settings} = useSettings();
+  const activeCategory = useActiveOrbitCategory();
   return useMemo(() => {
+    const inCategory = activeCategory
+      ? orbitItems.filter(it => it.categoryId === activeCategory.id)
+      : orbitItems;
+
     let all: OrbitItem[];
-    if (!martyrs.length) {
+    if (!inCategory.length) {
       all = fallbackOrbitItems();
     } else {
-      // Empty selection (or a category with no entries yet) shows everyone,
-      // so the orbit never goes blank just because a category is still empty.
+      const martyrIds = new Set(martyrs.map(m => m.id));
+      // Within the active theme, "دسته‌بندی شهدا" (settings.martyrCategoryId)
+      // still narrows further by the item's underlying martyr, when it has one.
       const filtered = settings.martyrCategoryId
-        ? martyrs.filter(m => m.categoryId === settings.martyrCategoryId)
-        : martyrs;
-      const shown = filtered.length ? filtered : martyrs;
-      all = shown.map((m, i) => ({
-        id: m.id,
-        label: m.name,
+        ? inCategory.filter(it => {
+            const m = martyrs.find(mm => mm.id === it.id);
+            return m ? m.categoryId === settings.martyrCategoryId : false;
+          })
+        : inCategory;
+      const shown = filtered.length ? filtered : inCategory;
+      all = shown.map((it, i) => ({
+        id: it.id,
+        label: it.label,
         colors: PALETTE[i % PALETTE.length],
-        image: m.photo ? {uri: m.photo} : undefined,
-        martyrId: m.id,
+        image: it.image ? {uri: it.image} : undefined,
+        martyrId: martyrIds.has(it.id) ? it.id : undefined,
       }));
     }
     return sampleItems(all, Math.min(settings.ballCount, MAX_ORBS));
-  }, [martyrs, settings.martyrCategoryId, settings.ballCount]);
+  }, [orbitItems, martyrs, activeCategory, settings.martyrCategoryId, settings.ballCount]);
 }

@@ -54,14 +54,52 @@ export type MartyrCategory = {
   sortOrder: number;
 };
 
+/** A theme/category for the orbiting home-screen logos (e.g. "شهدا" or "طبیعت"),
+ * from `GET /api/v1/orbit-catalog`. When centerImage is set, selecting this
+ * category also swaps the central portrait instead of showing the leader. */
+export type OrbitCategory = {
+  id: string;
+  title: string;
+  sort: number;
+  centerImage?: string;
+  centerTitle?: string;
+  centerSlogan?: string;
+};
+
+/** One orbiting logo/avatar from `GET /api/v1/orbit-catalog`. */
+export type OrbitCatalogItem = {
+  id: string;
+  categoryId: string;
+  label: string;
+  image: string;
+  sort: number;
+  isActive: boolean;
+};
+
+/** The whole orbit catalog as returned by `GET /api/v1/orbit-catalog`. */
+export type OrbitCatalog = {
+  categories: OrbitCategory[];
+  items: OrbitCatalogItem[];
+};
+
 /** One quote from `GET /api/v1/quotes`. */
 export type QuoteItem = {
   id: string;
+  categoryId: string;
   line1: string;
   line2: string;
   source: string;
   sortOrder: number;
   isActive: boolean;
+};
+
+/** A quote category (e.g. "احادیث", "بیانات رهبر", "جملات انگیزشی"), from
+ * `GET /api/v1/quote-categories`. The user picks one in settings to decide
+ * which quotes populate the bottom-of-screen widget. */
+export type QuoteCategory = {
+  id: string;
+  title: string;
+  sort: number;
 };
 
 /** The hero/leader config from `GET /api/v1/hero`. */

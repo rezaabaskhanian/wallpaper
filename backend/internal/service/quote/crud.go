@@ -36,7 +36,7 @@ func (s Service) AdminListQuotes(ctx context.Context) (dto.ListQuotesResponse, e
 
 func (s Service) CreateQuote(ctx context.Context, req dto.UpsertQuoteRequest) (dto.QuoteResponse, error) {
 	const op = "quoteservice.CreateQuote"
-	q, err := domain.New(req.ID, req.Line1, req.Line2, req.Source, req.SortOrder, true)
+	q, err := domain.New(req.ID, req.CategoryID, req.Line1, req.Line2, req.Source, req.SortOrder, true)
 	if err != nil {
 		return dto.QuoteResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ساخت نقل‌قول")
 	}
@@ -49,7 +49,7 @@ func (s Service) CreateQuote(ctx context.Context, req dto.UpsertQuoteRequest) (d
 
 func (s Service) UpdateQuote(ctx context.Context, id string, req dto.UpsertQuoteRequest) (dto.QuoteResponse, error) {
 	const op = "quoteservice.UpdateQuote"
-	q, err := domain.New(id, req.Line1, req.Line2, req.Source, req.SortOrder, req.IsActive)
+	q, err := domain.New(id, req.CategoryID, req.Line1, req.Line2, req.Source, req.SortOrder, req.IsActive)
 	if err != nil {
 		return dto.QuoteResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ویرایش نقل‌قول")
 	}
@@ -63,6 +63,57 @@ func (s Service) UpdateQuote(ctx context.Context, id string, req dto.UpsertQuote
 func (s Service) DeleteQuote(ctx context.Context, id string) error {
 	const op = "quoteservice.DeleteQuote"
 	if err := s.repo.DeleteQuote(ctx, id); err != nil {
+		return richerror.New(op).WithErr(err)
+	}
+	return nil
+}
+
+// ListCategories لیست دسته‌های نقل‌قول (هم برای اپ عمومی و هم پنل ادمین).
+func (s Service) ListCategories(ctx context.Context) (dto.ListCategoriesResponse, error) {
+	const op = "quoteservice.ListCategories"
+	cats, err := s.repo.GetCategories(ctx)
+	if err != nil {
+		return dto.ListCategoriesResponse{}, richerror.New(op).WithErr(err)
+	}
+	out := make([]dto.CategoryDTO, 0, len(cats))
+	for _, c := range cats {
+		out = append(out, toCategoryDTO(c))
+	}
+	return dto.ListCategoriesResponse{Categories: out}, nil
+}
+
+// CreateCategory افزودن یک دسته‌ی نقل‌قول جدید.
+func (s Service) CreateCategory(ctx context.Context, req dto.UpsertCategoryRequest) (dto.CategoryResponse, error) {
+	const op = "quoteservice.CreateCategory"
+	c, err := domain.NewCategory(req.ID, req.Title, req.Sort)
+	if err != nil {
+		return dto.CategoryResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ساخت دسته")
+	}
+	created, err := s.repo.SaveCategory(ctx, c)
+	if err != nil {
+		return dto.CategoryResponse{}, richerror.New(op).WithErr(err)
+	}
+	return dto.CategoryResponse{Category: toCategoryDTO(created)}, nil
+}
+
+// UpdateCategory ویرایش یک دسته‌ی نقل‌قول موجود.
+func (s Service) UpdateCategory(ctx context.Context, id string, req dto.UpsertCategoryRequest) (dto.CategoryResponse, error) {
+	const op = "quoteservice.UpdateCategory"
+	c, err := domain.NewCategory(id, req.Title, req.Sort)
+	if err != nil {
+		return dto.CategoryResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ویرایش دسته")
+	}
+	updated, err := s.repo.SaveCategory(ctx, c)
+	if err != nil {
+		return dto.CategoryResponse{}, richerror.New(op).WithErr(err)
+	}
+	return dto.CategoryResponse{Category: toCategoryDTO(updated)}, nil
+}
+
+// DeleteCategory حذف یک دسته‌ی نقل‌قول.
+func (s Service) DeleteCategory(ctx context.Context, id string) error {
+	const op = "quoteservice.DeleteCategory"
+	if err := s.repo.DeleteCategory(ctx, id); err != nil {
 		return richerror.New(op).WithErr(err)
 	}
 	return nil

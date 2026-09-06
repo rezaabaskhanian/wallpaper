@@ -32,6 +32,7 @@ import AtmosphericFog from './AtmosphericFog';
 // import ProjectileLayer from './ProjectileLayer'; // [combat mode disabled for now]
 import MainBackground from './MainBackground';
 import OrbitLayer from './OrbitLayer';
+import OrbitThemeSwitcher from './OrbitThemeSwitcher';
 import ClockWidget from './ClockWidget';
 import QuoteWidget from './QuoteWidget';
 import SettingsPanel from './SettingsPanel';
@@ -380,6 +381,11 @@ export default function HolographicHome({dream = false}: Props) {
           onOpenSettings={() => setSettingsOpen(true)}
         />
       ) : null}
+
+      {/* Lets the user switch which theme (شهدا/طبیعت/...) populates the
+          orbit + center portrait. Hidden while dreaming or mid-capture, same
+          as the rest of the interactive chrome. */}
+      {!dream && !capturing ? <OrbitThemeSwitcher /> : null}
 
       {/* App-drawer handle: a small dedicated hit area at the bottom edge so
           its swipe-up gesture never competes with the orbit-rotation pan.

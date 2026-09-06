@@ -61,7 +61,7 @@ export default function SettingsPanel({
   onOpenGallery,
 }: Props) {
   const {settings, update, applyTheme} = useSettings();
-  const {premiumUnlocked, redeemCode, martyrCategories, martyrs} = useStore();
+  const {premiumUnlocked, redeemCode, martyrCategories, martyrs, quoteCategories} = useStore();
   // Upper bound for the ballCount stepper: never more than MAX_ORBS, and
   // never more than the selected category actually has (so the user can only
   // dial the count *down* from a category's natural size, not pad it out).
@@ -600,6 +600,15 @@ export default function SettingsPanel({
                 value={settings.showQuote}
                 onChange={v => update('showQuote', v)}
               />
+
+              {quoteCategories.length > 1 ? (
+                <RowChoices
+                  label="دسته‌ی نقل‌قول‌ها"
+                  options={quoteCategories.map(c => ({id: c.id, label: c.title}))}
+                  selected={settings.quoteCategoryId || quoteCategories[0].id}
+                  onSelect={id => update('quoteCategoryId', id)}
+                />
+              ) : null}
 
               {/* <AppText style={styles.fieldLabel}>خط اول (کوچک)</AppText>
               <TextInput

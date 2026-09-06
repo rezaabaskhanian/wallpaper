@@ -10,6 +10,7 @@ import (
 
 	herohandler "wallpaperstore/internal/delivery/httpserver/hero"
 	martyrhandler "wallpaperstore/internal/delivery/httpserver/martyr"
+	orbithandler "wallpaperstore/internal/delivery/httpserver/orbit"
 	promocodehandler "wallpaperstore/internal/delivery/httpserver/promocode"
 	quotehandler "wallpaperstore/internal/delivery/httpserver/quote"
 	uploadhandler "wallpaperstore/internal/delivery/httpserver/upload"
@@ -17,6 +18,7 @@ import (
 
 	heroservice "wallpaperstore/internal/service/hero"
 	martyrservice "wallpaperstore/internal/service/martyr"
+	orbitservice "wallpaperstore/internal/service/orbit"
 	promocodeservice "wallpaperstore/internal/service/promocode"
 	quoteservice "wallpaperstore/internal/service/quote"
 	wallpaperservice "wallpaperstore/internal/service/wallpaper"
@@ -30,6 +32,7 @@ type Service struct {
 	cfg              config.Config
 	wallpaperHandler wallpaperhandler.Handler
 	martyrHandler    martyrhandler.Handler
+	orbitHandler     orbithandler.Handler
 	quoteHandler     quotehandler.Handler
 	heroHandler      herohandler.Handler
 	uploadHandler    uploadhandler.Handler
@@ -40,6 +43,7 @@ func New(
 	cfg config.Config,
 	wallpaperSvc wallpaperservice.Service,
 	martyrSvc martyrservice.Service,
+	orbitSvc orbitservice.Service,
 	quoteSvc quoteservice.Service,
 	heroSvc heroservice.Service,
 	promoCodeSvc promocodeservice.Service,
@@ -49,6 +53,7 @@ func New(
 		cfg:              cfg,
 		wallpaperHandler: wallpaperhandler.New(wallpaperSvc),
 		martyrHandler:    martyrhandler.New(martyrSvc),
+		orbitHandler:     orbithandler.New(orbitSvc),
 		quoteHandler:     quotehandler.New(quoteSvc),
 		heroHandler:      herohandler.New(heroSvc),
 		uploadHandler:    uploadhandler.New(storage),
@@ -107,6 +112,7 @@ func (s Service) Server() {
 
 	s.wallpaperHandler.SetWallpaperRoutes(api, admin)
 	s.martyrHandler.SetRoutes(api, admin)
+	s.orbitHandler.SetRoutes(api, admin)
 	s.quoteHandler.SetRoutes(api, admin)
 	s.heroHandler.SetRoutes(api, admin)
 	s.uploadHandler.SetRoutes(admin)

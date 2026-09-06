@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import ImageUploadField from '@/components/ImageUploadField';
 import DeleteConfirmButton from '@/components/DeleteConfirmButton';
 import SpotlightCard from '@/components/SpotlightCard';
 import BulkActionsBar from '@/components/BulkActionsBar';
@@ -29,39 +30,38 @@ import StatusBadge from '@/components/StatusBadge';
 import {useRowSelection} from '@/hooks/useRowSelection';
 import {ApiError} from '@/lib/api';
 import {
-  useDeleteManyQuotes,
-  useDeleteQuote,
-  useQuotes,
-  useSaveQuote,
-  type QuoteInput,
-} from '@/hooks/useQuotes';
-import {useQuoteCategories} from '@/hooks/useQuoteCategories';
-import type {Quote} from '@/lib/types';
+  useDeleteManyOrbitItems,
+  useDeleteOrbitItem,
+  useOrbitItems,
+  useSaveOrbitItem,
+  type OrbitItemInput,
+} from '@/hooks/useOrbitItems';
+import {useOrbitCategories} from '@/hooks/useOrbitCategories';
+import type {OrbitItem} from '@/lib/types';
 
-const EMPTY: QuoteInput = {
+const EMPTY: OrbitItemInput = {
   categoryId: '',
-  line1: '',
-  line2: '',
-  source: '',
-  sortOrder: 0,
+  label: '',
+  image: '',
+  sort: 0,
   isActive: true,
 };
 
-function QuoteDialog({
-  quote,
+function OrbitItemDialog({
+  item,
   open,
   onOpenChange,
   presetCategoryId,
 }: {
-  quote: Quote | null;
+  item: OrbitItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   presetCategoryId?: string;
 }) {
-  const {data: categories} = useQuoteCategories();
-  const initialForm = () => quote ?? {...EMPTY, categoryId: presetCategoryId ?? categories?.[0]?.id ?? ''};
-  const [form, setForm] = useState<QuoteInput>(initialForm);
-  const save = useSaveQuote();
+  const initialForm = () => item ?? {...EMPTY, categoryId: presetCategoryId ?? ''};
+  const [form, setForm] = useState<OrbitItemInput>(initialForm);
+  const save = useSaveOrbitItem();
+  const {data: categories} = useOrbitCategories();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,21 +81,21 @@ function QuoteDialog({
         setForm(initialForm());
         onOpenChange(o);
       }}>
-      <DialogContent className="glass-panel">
+      <DialogContent className="glass-panel max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{quote ? 'ویرایش نقل‌قول' : 'نقل‌قول جدید'}</DialogTitle>
+          <DialogTitle>{item ? 'ویرایش آیتم اوربیت' : 'آیتم اوربیت جدید'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="q-category">دسته</Label>
+            <Label htmlFor="oi-category">تم اوربیت</Label>
             <select
-              id="q-category"
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+              id="oi-category"
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
               value={form.categoryId}
               onChange={e => setForm({...form, categoryId: e.target.value})}
               required>
               <option value="" disabled>
-                انتخاب دسته…
+                انتخاب کن…
               </option>
               {categories?.map(c => (
                 <option key={c.id} value={c.id}>
@@ -104,41 +104,43 @@ function QuoteDialog({
               ))}
             </select>
           </div>
+
           <div className="flex flex-col gap-2">
-            <Label htmlFor="q-line1">خط بالا (اختیاری)</Label>
-            <Input id="q-line1" value={form.line1} onChange={e => setForm({...form, line1: e.target.value})} />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="q-line2">خط اصلی</Label>
+            <Label htmlFor="oi-label">برچسب (زیر عکس نشون داده می‌شه)</Label>
             <Input
-              id="q-line2"
-              value={form.line2}
-              onChange={e => setForm({...form, line2: e.target.value})}
+              id="oi-label"
+              value={form.label}
+              onChange={e => setForm({...form, label: e.target.value})}
               required
             />
           </div>
+
+          <ImageUploadField
+            label="عکس"
+            value={form.image}
+            onChange={url => setForm({...form, image: url})}
+          />
+
           <div className="flex flex-col gap-2">
-            <Label htmlFor="q-source">منبع (اختیاری، نمایش داده نمی‌شود)</Label>
-            <Input id="q-source" value={form.source} onChange={e => setForm({...form, source: e.target.value})} />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="q-sort">ترتیب</Label>
+            <Label htmlFor="oi-sort">ترتیب</Label>
             <Input
-              id="q-sort"
+              id="oi-sort"
               type="number"
               className="font-mono"
-              value={form.sortOrder}
-              onChange={e => setForm({...form, sortOrder: Number(e.target.value)})}
+              value={form.sort}
+              onChange={e => setForm({...form, sort: Number(e.target.value)})}
             />
           </div>
+
           <div className="flex items-center justify-between rounded-md border p-3">
-            <Label htmlFor="q-active">فعال</Label>
+            <Label htmlFor="oi-active">فعال (در مدار نمایش داده شود)</Label>
             <Switch
-              id="q-active"
+              id="oi-active"
               checked={form.isActive}
               onCheckedChange={v => setForm({...form, isActive: v})}
             />
           </div>
+
           <DialogFooter>
             <Button type="submit" disabled={save.isPending} className="glow-primary">
               ذخیره
@@ -150,13 +152,13 @@ function QuoteDialog({
   );
 }
 
-export default function Quotes() {
-  const {data: quotes, isLoading} = useQuotes();
-  const {data: categories} = useQuoteCategories();
+export default function OrbitItems() {
+  const {data: items, isLoading} = useOrbitItems();
+  const {data: categories} = useOrbitCategories();
   const categoryTitle = (id: string) => categories?.find(c => c.id === id)?.title ?? '';
-  const del = useDeleteQuote();
-  const delMany = useDeleteManyQuotes();
-  const [editing, setEditing] = useState<Quote | null>(null);
+  const del = useDeleteOrbitItem();
+  const delMany = useDeleteManyOrbitItems();
+  const [editing, setEditing] = useState<OrbitItem | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryFilter = searchParams.get('category') ?? '';
@@ -172,7 +174,7 @@ export default function Quotes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const filtered = categoryFilter ? quotes?.filter(q => q.categoryId === categoryFilter) : quotes;
+  const filtered = categoryFilter ? items?.filter(it => it.categoryId === categoryFilter) : items;
   const sel = useRowSelection(filtered);
 
   const bulkDelete = async () => {
@@ -189,8 +191,10 @@ export default function Quotes() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">نقل‌قول‌ها</h1>
-          <p className="text-sm text-muted-foreground">متن پایین صفحه‌ی والپیپر</p>
+          <h1 className="text-2xl font-bold tracking-tight">آیتم‌های اوربیت</h1>
+          <p className="text-sm text-muted-foreground">
+            لوگوها/عکس‌هایی که دور عکس مرکزی صفحهٔ اصلی می‌چرخند
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select
@@ -202,7 +206,7 @@ export default function Quotes() {
               else next.delete('category');
               setSearchParams(next);
             }}>
-            <option value="">همهٔ دسته‌ها</option>
+            <option value="">همهٔ تم‌ها</option>
             {categories?.map(c => (
               <option key={c.id} value={c.id}>
                 {c.title}
@@ -216,7 +220,7 @@ export default function Quotes() {
               setDialogOpen(true);
             }}>
             <Plus className="size-4" />
-            نقل‌قول جدید
+            آیتم جدید
           </Button>
         </div>
       </div>
@@ -235,8 +239,10 @@ export default function Quotes() {
               <TableHead className="w-10">
                 <Checkbox checked={sel.allSelected} onCheckedChange={sel.toggleAll} />
               </TableHead>
-              <TableHead>متن</TableHead>
-              <TableHead>دسته</TableHead>
+              <TableHead>عکس</TableHead>
+              <TableHead>برچسب</TableHead>
+              <TableHead>تم</TableHead>
+              <TableHead>ترتیب</TableHead>
               <TableHead>وضعیت</TableHead>
               <TableHead className="w-32" />
             </TableRow>
@@ -244,28 +250,37 @@ export default function Quotes() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5}>در حال بارگذاری…</TableCell>
+                <TableCell colSpan={7}>در حال بارگذاری…</TableCell>
+              </TableRow>
+            ) : !filtered?.length ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
+                  آیتمی در این تم ثبت نشده است.
+                </TableCell>
               </TableRow>
             ) : (
-              filtered?.map(q => (
-                <TableRow key={q.id} data-state={sel.selected.has(q.id) && 'selected'}>
+              filtered.map(it => (
+                <TableRow key={it.id} data-state={sel.selected.has(it.id) && 'selected'}>
                   <TableCell>
                     <Checkbox
-                      checked={sel.selected.has(q.id)}
-                      onCheckedChange={() => sel.toggle(q.id)}
+                      checked={sel.selected.has(it.id)}
+                      onCheckedChange={() => sel.toggle(it.id)}
                     />
                   </TableCell>
                   <TableCell>
-                    {q.line1 ? <div className="text-xs text-muted-foreground">{q.line1}</div> : null}
-                    <div className="font-medium">{q.line2}</div>
+                    {it.image ? (
+                      <img src={it.image} alt="" className="size-10 rounded-full object-cover" />
+                    ) : null}
                   </TableCell>
+                  <TableCell className="font-medium">{it.label}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {categoryTitle(q.categoryId) || '—'}
+                    {categoryTitle(it.categoryId) || '—'}
                   </TableCell>
+                  <TableCell className="font-mono">{it.sort}</TableCell>
                   <TableCell>
                     <StatusBadge
-                      label={q.isActive ? 'فعال' : 'غیرفعال'}
-                      tone={q.isActive ? 'success' : 'neutral'}
+                      label={it.isActive ? 'فعال' : 'غیرفعال'}
+                      tone={it.isActive ? 'success' : 'neutral'}
                     />
                   </TableCell>
                   <TableCell className="flex justify-end gap-1">
@@ -273,16 +288,16 @@ export default function Quotes() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setEditing(q);
+                        setEditing(it);
                         setDialogOpen(true);
                       }}>
                       ویرایش
                     </Button>
                     <DeleteConfirmButton
-                      itemLabel={q.line2}
+                      itemLabel={it.label}
                       onConfirm={async () => {
                         try {
-                          await del.mutateAsync(q.id);
+                          await del.mutateAsync(it.id);
                           toast.success('حذف شد');
                         } catch (err) {
                           toast.error(err instanceof ApiError ? err.message : 'حذف ناموفق بود');
@@ -297,11 +312,12 @@ export default function Quotes() {
         </Table>
       </SpotlightCard>
 
-      <QuoteDialog
-        quote={editing}
+      <OrbitItemDialog
+        key={editing?.id ?? `new:${categoryFilter}`}
+        item={editing}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        presetCategoryId={categoryFilter || undefined}
+        presetCategoryId={categoryFilter}
       />
     </div>
   );

@@ -10,7 +10,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fetchCatalog} from './catalog';
 import {fetchMartyrs} from './martyrs';
 import {fetchMartyrCategories} from './martyrCategories';
-import {fetchQuotes} from './quotes';
+import {fetchOrbitCatalog} from './orbitCatalog';
+import {fetchQuoteCategories, fetchQuotes} from './quotes';
 import {fetchHero} from './hero';
 import {redeemPromoCode} from './promo';
 import {
@@ -24,6 +25,9 @@ import type {
   HeroData,
   MartyrCategory,
   MartyrItem,
+  OrbitCatalogItem,
+  OrbitCategory,
+  QuoteCategory,
   QuoteItem,
   WallpaperItem,
 } from './types';
@@ -35,7 +39,10 @@ type StoreValue = {
   catalog: Catalog | null;
   martyrs: MartyrItem[];
   martyrCategories: MartyrCategory[];
+  orbitCategories: OrbitCategory[];
+  orbitItems: OrbitCatalogItem[];
   quotes: QuoteItem[];
+  quoteCategories: QuoteCategory[];
   hero: HeroData | null;
   loading: boolean;
   error: string | null;
@@ -63,7 +70,10 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [martyrs, setMartyrs] = useState<MartyrItem[]>([]);
   const [martyrCategories, setMartyrCategories] = useState<MartyrCategory[]>([]);
+  const [orbitCategories, setOrbitCategories] = useState<OrbitCategory[]>([]);
+  const [orbitItems, setOrbitItems] = useState<OrbitCatalogItem[]>([]);
   const [quotes, setQuotes] = useState<QuoteItem[]>([]);
+  const [quoteCategories, setQuoteCategories] = useState<QuoteCategory[]>([]);
   const [hero, setHero] = useState<HeroData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,14 +88,19 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       fetchCatalog(),
       fetchMartyrs(),
       fetchMartyrCategories(),
+      fetchOrbitCatalog(),
       fetchQuotes(),
+      fetchQuoteCategories(),
       fetchHero(),
     ])
-      .then(([cat, ms, cats, qs, h]) => {
+      .then(([cat, ms, cats, orbit, qs, qcats, h]) => {
         setCatalog(cat);
         setMartyrs(ms);
         setMartyrCategories(cats);
+        setOrbitCategories(orbit.categories);
+        setOrbitItems(orbit.items);
         setQuotes(qs);
+        setQuoteCategories(qcats);
         setHero(h);
       })
       .catch(e => setError(e?.message ?? 'خطا در دریافت اطلاعات'))
@@ -146,7 +161,10 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       catalog,
       martyrs,
       martyrCategories,
+      orbitCategories,
+      orbitItems,
       quotes,
+      quoteCategories,
       hero,
       loading,
       error,
@@ -163,7 +181,10 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       catalog,
       martyrs,
       martyrCategories,
+      orbitCategories,
+      orbitItems,
       quotes,
+      quoteCategories,
       hero,
       loading,
       error,

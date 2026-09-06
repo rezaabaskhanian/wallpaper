@@ -12,6 +12,7 @@ export function useQuotes() {
 
 export type QuoteInput = {
   id?: string;
+  categoryId: string;
   line1: string;
   line2: string;
   source: string;

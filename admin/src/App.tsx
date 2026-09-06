@@ -8,7 +8,10 @@ import Wallpapers from '@/pages/Wallpapers';
 import Categories from '@/pages/Categories';
 import Martyrs from '@/pages/Martyrs';
 import MartyrCategories from '@/pages/MartyrCategories';
+import OrbitCategories from '@/pages/OrbitCategories';
+import OrbitItems from '@/pages/OrbitItems';
 import Quotes from '@/pages/Quotes';
+import QuoteCategories from '@/pages/QuoteCategories';
 import Hero from '@/pages/Hero';
 import PromoCodes from '@/pages/PromoCodes';
 
@@ -37,6 +40,9 @@ export default function App() {
           <Route path="/categories" element={<Categories />} />
           <Route path="/martyrs" element={<Martyrs />} />
           <Route path="/martyr-categories" element={<MartyrCategories />} />
+          <Route path="/orbit-categories" element={<OrbitCategories />} />
+          <Route path="/orbit-items" element={<OrbitItems />} />
+          <Route path="/quote-categories" element={<QuoteCategories />} />
           <Route path="/quotes" element={<Quotes />} />
           <Route path="/hero" element={<Hero />} />
           <Route path="/promo-codes" element={<PromoCodes />} />

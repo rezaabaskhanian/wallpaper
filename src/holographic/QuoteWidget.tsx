@@ -1,6 +1,7 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {AppState, StyleSheet} from 'react-native';
 import AppText from './AppText';
+import {useActiveQuoteCategoryId} from './data';
 import DraggableWidget from './DraggableWidget';
 import {useSettings} from './SettingsContext';
 import {useStore} from './store/StoreContext';
@@ -31,16 +32,21 @@ function pickRandom(quotes: QuoteItem[], excludeId?: string): QuoteItem | null {
 export default function QuoteWidget() {
   const {settings, update} = useSettings();
   const {quotes} = useStore();
-  const [quote, setQuote] = useState<QuoteItem | null>(() => pickRandom(quotes));
+  const activeCategoryId = useActiveQuoteCategoryId();
+  const categoryQuotes = useMemo(
+    () => quotes.filter(q => q.categoryId === activeCategoryId),
+    [quotes, activeCategoryId],
+  );
+  const [quote, setQuote] = useState<QuoteItem | null>(() => pickRandom(categoryQuotes));
 
   useEffect(() => {
-    setQuote(prev => pickRandom(quotes, prev?.id) ?? prev);
+    setQuote(prev => pickRandom(categoryQuotes, prev?.id) ?? prev);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quotes]);
+  }, [categoryQuotes]);
 
   const onForeground = useCallback(() => {
-    setQuote(prev => pickRandom(quotes, prev?.id) ?? prev);
-  }, [quotes]);
+    setQuote(prev => pickRandom(categoryQuotes, prev?.id) ?? prev);
+  }, [categoryQuotes]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => {
@@ -55,7 +61,7 @@ export default function QuoteWidget() {
     return null;
   }
 
-  const hasDb = quotes.length > 0;
+  const hasDb = categoryQuotes.length > 0;
   const line1 = hasDb ? quote?.line1 : settings.quoteLine1;
   const line2 = hasDb ? quote?.line2 : settings.quoteLine2;
 

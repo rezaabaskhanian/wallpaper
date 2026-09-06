@@ -13,6 +13,10 @@ type Repository interface {
 	SaveQuote(ctx context.Context, q domain.Quote) (domain.Quote, error)
 	UpdateQuote(ctx context.Context, q domain.Quote) (domain.Quote, error)
 	DeleteQuote(ctx context.Context, id string) error
+
+	GetCategories(ctx context.Context) ([]domain.Category, error)
+	SaveCategory(ctx context.Context, c domain.Category) (domain.Category, error)
+	DeleteCategory(ctx context.Context, id string) error
 }
 
 type Service struct {
@@ -25,11 +29,16 @@ func New(repo Repository) Service {
 
 func toDTO(q domain.Quote) dto.QuoteDTO {
 	return dto.QuoteDTO{
-		ID:        q.ID,
-		Line1:     q.Line1,
-		Line2:     q.Line2,
-		Source:    q.Source,
-		SortOrder: q.SortOrder,
-		IsActive:  q.IsActive,
+		ID:         q.ID,
+		CategoryID: q.CategoryID,
+		Line1:      q.Line1,
+		Line2:      q.Line2,
+		Source:     q.Source,
+		SortOrder:  q.SortOrder,
+		IsActive:   q.IsActive,
 	}
+}
+
+func toCategoryDTO(c domain.Category) dto.CategoryDTO {
+	return dto.CategoryDTO{ID: c.ID, Title: c.Title, Sort: c.Sort}
 }

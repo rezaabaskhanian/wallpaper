@@ -29,8 +29,13 @@ export type WallpaperSettings = {
    * animated cycle. */
   orbVisibility: 'steady' | 'flicker';
   /** Which martyr category populates the orbiting "logo" avatars; '' shows
-   * every martyr regardless of category (see MartyrCategory in store/types). */
+   * every martyr regardless of category (see MartyrCategory in store/types).
+   * Only applies within the active orbitCategoryId's items (usually "shohada"). */
   martyrCategoryId: string;
+  /** Which orbit theme (see OrbitCategory in store/types) populates the
+   * home-screen orbit and its central portrait; '' picks the first category
+   * returned by the backend (normally "شهدا", preserving the original look). */
+  orbitCategoryId: string;
   /** Axis the sphere spins around: 'x', 'y', 'z', or 'mixed' (each orb picks
    * its own axis round-robin, like electrons around an atom). */
   rotationAxis: 'x' | 'y' | 'z' | 'mixed';
@@ -81,6 +86,10 @@ export type WallpaperSettings = {
   quoteLine1: string;
   /** Second (large, gold) line of the bottom quote. */
   quoteLine2: string;
+  /** Which quote category (see QuoteCategory in store/types) populates the
+   * bottom-of-screen quote widget; '' picks the first category returned by
+   * the backend (normally "بیانات رهبر", preserving the original content). */
+  quoteCategoryId: string;
   /** Countdown target date-time (ISO string). [countdown feature disabled] */
   countdownTargetISO: string;
   /** Countdown label. [countdown feature disabled] */
@@ -120,6 +129,7 @@ const DEFAULTS: WallpaperSettings = {
   orbShape: 'orb',
   orbVisibility: 'steady',
   martyrCategoryId: '',
+  orbitCategoryId: '',
   rotationAxis: 'y',
   dayNightMode: 'auto',
   particleMode: 'auto',
@@ -142,6 +152,7 @@ const DEFAULTS: WallpaperSettings = {
   showQuote: true,
   quoteLine1: 'ما با این جوان‌ها',
   quoteLine2: 'به جایی خواهیم رسید',
+  quoteCategoryId: '',
   countdownTargetISO: COUNTDOWN.targetISO,
   countdownLabel: COUNTDOWN.label,
   // combatMode: false, // [combat mode disabled for now]
