@@ -1,13 +1,16 @@
-import React, {createContext, useContext, useMemo, useState} from 'react';
+import React, {createContext, useContext, useEffect, useMemo, useRef, useState} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {COUNTDOWN, DEFAULT_BACKGROUND_ID, RINGS} from './config';
 import {DEFAULT_FONT_ID} from './fonts';
 import {setAppFont} from './setupFonts';
 import {THEMES} from './themes';
 
+const SETTINGS_STORAGE_KEY = 'wallpaperSettings:v1';
+
 /** A draggable widget's position offset (px) from its default anchor. */
 export type LayoutOffset = {x: number; y: number};
 
-/** Live, user-adjustable wallpaper settings (kept in memory for now). */
+/** Live, user-adjustable wallpaper settings, persisted to AsyncStorage. */
 export type WallpaperSettings = {
   /** Auto-spin the rings. */
   autoRotate: boolean;
@@ -166,6 +169,30 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 export function SettingsProvider({children}: {children: React.ReactNode}) {
   const [settings, setSettings] = useState<WallpaperSettings>(DEFAULTS);
+  // True once the persisted settings have been loaded (or found absent) —
+  // guards the save effect below so it doesn't overwrite storage with
+  // DEFAULTS before the real, previously-saved values have been read.
+  const loadedRef = useRef(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(SETTINGS_STORAGE_KEY)
+      .then(raw => {
+        if (!raw) return;
+        const saved = JSON.parse(raw) as Partial<WallpaperSettings>;
+        setSettings(prev => ({...prev, ...saved}));
+      })
+      .catch(() => {
+        // No persisted settings yet, or corrupted — fall back to DEFAULTS.
+      })
+      .finally(() => {
+        loadedRef.current = true;
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)).catch(() => {});
+  }, [settings]);
 
   // Keep the global font patch (setupFonts) in sync with the selection so every
   // re-rendered piece of text uses the chosen font. Done during render so the

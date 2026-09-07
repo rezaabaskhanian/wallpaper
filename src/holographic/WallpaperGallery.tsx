@@ -182,8 +182,9 @@ export default function WallpaperGallery({visible, onClose}: Props) {
         target === 'home' ? 'صفحهٔ اصلی' : target === 'both' ? 'اصلی و قفل' : 'صفحهٔ قفل';
       showAlert('انجام شد', `والپیپر ${where} تنظیم شد.`);
       setSelected(null);
-    } catch {
-      showAlert('خطا', 'تنظیم والپیپر ممکن نشد. (اپ را rebuild کرده‌ای؟)');
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      showAlert('خطا', `تنظیم والپیپر ممکن نشد: ${detail}`);
     } finally {
       setBusy(false);
     }

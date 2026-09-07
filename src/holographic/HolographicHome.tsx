@@ -108,8 +108,9 @@ export default function HolographicHome({dream = false}: Props) {
           ? 'صفحهٔ اصلی و قفل'
           : 'صفحهٔ قفل';
       showAlert('انجام شد', `والپیپر ${where} تنظیم شد.`);
-    } catch {
-      showAlert('خطا', 'تنظیم والپیپر ممکن نشد. (اپ را rebuild کرده‌ای؟)');
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      showAlert('خطا', `تنظیم والپیپر ممکن نشد: ${detail}`);
     } finally {
       setCapturing(false);
     }
