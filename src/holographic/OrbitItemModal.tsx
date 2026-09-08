@@ -8,59 +8,47 @@ import {
   View,
 } from 'react-native';
 import AppText from './AppText';
-import {useStore} from './store/StoreContext';
+import type {OrbitItem} from './data';
 
 type Props = {
-  /** id of the martyr to show, or null when the modal is closed. */
-  martyrId: string | null;
+  /** The tapped orbit item, or null when the modal is closed. */
+  item: OrbitItem | null;
   onClose: () => void;
 };
 
 /**
- * Full-info modal that opens when an orbiting martyr icon is tapped: portrait,
- * name and the story of the martyrdom.
+ * Info modal that opens when an orbiting avatar with a `description` (set in
+ * the admin panel's orbit item form) is tapped: portrait, label, and that
+ * description.
  */
-export default function MartyrModal({martyrId, onClose}: Props) {
-  const {martyrs} = useStore();
-  const martyr = martyrId ? martyrs.find(m => m.id === martyrId) : undefined;
-  const meta = martyr
-    ? [martyr.place, martyr.martyredOn].filter(Boolean).join(' — ')
-    : '';
+export default function OrbitItemModal({item, onClose}: Props) {
+  const image =
+    item?.image && typeof item.image === 'object' && 'uri' in item.image
+      ? item.image
+      : undefined;
 
   return (
     <Modal
-      visible={martyrId != null}
+      visible={item != null}
       transparent
       animationType="fade"
       onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={styles.centering} pointerEvents="box-none">
         <View style={styles.card}>
-          {martyr ? (
+          {item ? (
             <ScrollView contentContainerStyle={styles.content}>
-              {martyr.photo ? (
-                <Image source={{uri: martyr.photo}} style={styles.photo} />
+              {image ? (
+                <Image source={image} style={styles.photo} />
               ) : (
                 <View style={[styles.photo, styles.photoPlaceholder]} />
               )}
-              <AppText style={styles.name}>{martyr.name}</AppText>
-              {meta ? <AppText style={styles.meta}>{meta}</AppText> : null}
-
-              <AppText style={styles.section}>نحوهٔ شهادت</AppText>
-              <AppText style={styles.body}>{martyr.martyrdom}</AppText>
-
-              {martyr.will ? (
-                <>
-                  <AppText style={styles.section}>از وصیت‌نامه</AppText>
-                  <AppText style={styles.body}>{martyr.will}</AppText>
-                </>
+              <AppText style={styles.name}>{item.label}</AppText>
+              {item.description ? (
+                <AppText style={styles.body}>{item.description}</AppText>
               ) : null}
             </ScrollView>
-          ) : (
-            <AppText style={styles.body}>
-              اطلاعاتی برای این شهید ثبت نشده.
-            </AppText>
-          )}
+          ) : null}
 
           <Pressable style={styles.closeBtn} onPress={onClose}>
             <AppText style={styles.closeText}>بستن</AppText>
@@ -117,29 +105,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     writingDirection: 'rtl',
   },
-  meta: {
-    color: 'rgba(234,255,251,0.6)',
-    fontSize: 13,
-    marginTop: 4,
-    textAlign: 'center',
-    writingDirection: 'rtl',
-  },
-  section: {
-    color: '#9be7d8',
-    fontSize: 14,
-    fontWeight: '700',
-    alignSelf: 'stretch',
-    textAlign: 'right',
-    marginTop: 16,
-    marginBottom: 6,
-    writingDirection: 'rtl',
-  },
   body: {
     color: '#d6f5ee',
     fontSize: 15,
     lineHeight: 26,
     alignSelf: 'stretch',
     textAlign: 'right',
+    marginTop: 16,
     writingDirection: 'rtl',
   },
   closeBtn: {

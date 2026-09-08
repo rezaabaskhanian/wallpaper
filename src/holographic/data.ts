@@ -19,8 +19,9 @@ export type OrbitItem = {
   colors: [string, string];
   /** Real portrait, fetched from the backend. */
   image?: number | {uri: string} | ImageSourcePropType;
-  /** Links this icon to a martyr entry so a tap can open its modal. */
-  martyrId?: string;
+  /** Shown in a popup when the avatar is tapped, if set (see the admin
+   * panel's orbit item form). */
+  description?: string;
 };
 
 export type HeroConfig = {
@@ -133,10 +134,11 @@ function sampleItems<T>(items: T[], count: number): T[] {
 /**
  * Orbiting icons for the active orbit category/theme (see
  * `useActiveOrbitCategory`, switched from the home screen's own tab row —
- * not the settings panel). Items whose id also matches a martyr get a
- * `martyrId`, so a tap still opens that martyr's bio modal for the "شهدا"
- * theme; other themes (e.g. "طبیعت") just aren't tappable. Falls back to
- * placeholder tiles while loading or when the backend has no entries yet.
+ * not the settings panel). Each item carries its own `description` straight
+ * from the admin panel (see the orbit item form), shown in a popup on tap —
+ * no more matching against the martyrs list to decide what's tappable.
+ * Falls back to placeholder tiles while loading or when the backend has no
+ * entries yet.
  *
  * The result is capped at `min(settings.ballCount, MAX_ORBS)`: a category
  * with more items than that gets a random subset (re-rolled whenever the
@@ -148,7 +150,7 @@ function sampleItems<T>(items: T[], count: number): T[] {
  * `MAX_ORBS` regardless of category size.
  */
 export function useOrbitItems(): OrbitItem[] {
-  const {orbitItems, martyrs} = useStore();
+  const {orbitItems} = useStore();
   const {settings} = useSettings();
   const activeCategory = useActiveOrbitCategory();
   return useMemo(() => {
@@ -156,28 +158,16 @@ export function useOrbitItems(): OrbitItem[] {
       ? orbitItems.filter(it => it.categoryId === activeCategory.id)
       : orbitItems;
 
-    let all: OrbitItem[];
-    if (!inCategory.length) {
-      all = fallbackOrbitItems();
-    } else {
-      const martyrIds = new Set(martyrs.map(m => m.id));
-      // Within the active theme, "دسته‌بندی شهدا" (settings.martyrCategoryId)
-      // still narrows further by the item's underlying martyr, when it has one.
-      const filtered = settings.martyrCategoryId
-        ? inCategory.filter(it => {
-            const m = martyrs.find(mm => mm.id === it.id);
-            return m ? m.categoryId === settings.martyrCategoryId : false;
-          })
-        : inCategory;
-      const shown = filtered.length ? filtered : inCategory;
-      all = shown.map((it, i) => ({
-        id: it.id,
-        label: it.label,
-        colors: PALETTE[i % PALETTE.length],
-        image: it.image ? {uri: it.image} : undefined,
-        martyrId: martyrIds.has(it.id) ? it.id : undefined,
-      }));
-    }
+    const all: OrbitItem[] = inCategory.length
+      ? inCategory.map((it, i) => ({
+          id: it.id,
+          label: it.label,
+          colors: PALETTE[i % PALETTE.length],
+          image: it.image ? {uri: it.image} : undefined,
+          description: it.description || undefined,
+        }))
+      : fallbackOrbitItems();
+
     return sampleItems(all, Math.min(settings.ballCount, MAX_ORBS));
-  }, [orbitItems, martyrs, activeCategory, settings.martyrCategoryId, settings.ballCount]);
+  }, [orbitItems, activeCategory, settings.ballCount]);
 }

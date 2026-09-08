@@ -289,3 +289,39 @@
 3. **تست پرداخت:** فقط روی گوشی واقعی با اپ کافه‌بازار نصب‌شده ممکن است (امولاتور بدون بازار → خرید غیرفعال، ولی آیتم‌های رایگان کار می‌کنند).
 
 > بخش کاتالوگ/دانلود همین حالا با یک `CATALOG_URL` معتبر قابل‌تست است؛ بخش پرداخت به rebuild + گوشی با بازار نیاز دارد.
+
+---
+
+## رفع باگ — تنظیم والپیپر (قفل/اصلی/هردو) fail می‌شد + دو باگ کناری
+
+### علامت اولیه
+با زدن «قفل»، «اصلی» یا «هردو» در گالری/تنظیمات، پس‌زمینه اعمال نمی‌شد و پیام «اپ را rebuild کن» نشان داده می‌شد.
+
+### ریشه‌ی واقعی (نه چیزی که پیام می‌گفت)
+پیام «rebuild کن» گمراه‌کننده بود: catch blockهای [HolographicHome.tsx](../src/holographic/HolographicHome.tsx) و [WallpaperGallery.tsx](../src/holographic/WallpaperGallery.tsx) خطای واقعی native را کامل قورت می‌دادند و برای **هر نوع خطایی** همین یک پیام ثابت را نشان می‌دادند. بعد از اصلاح این دو catch (نمایش `e.message`)، خطای واقعی مشخص شد: `Wallpaper URL must be https on wallpaperapp.ir` — یعنی [LockWallpaperModule.kt](../android/app/src/main/java/com/wallpaperNaghsh/LockWallpaperModule.kt) دانلود URL را رد می‌کرد چون هاست عکس‌های کاتالوگ روی دامنه‌ی مستقیم ArvanCloud (`wallpaper-app.s3.ir-thr-at1.arvanstorage.ir`) بود، نه `wallpaperapp.ir` که در allowlist مجاز است.
+
+### راه‌حل نهایی — وصل‌کردن دامنه‌ی اختصاصی به‌جای شل‌کردن allowlist
+- توی پنل ArvanCloud → Object Storage → باکت `wallpaper-app` → دامنه‌های اختصاصی: `cdn.wallpaperapp.ir` باید به **«آدرس استاتیک وبسایت»** باکت وصل شود، نه «آدرس پیش‌فرض» (API). آدرس پیش‌فرض اسم باکت را از هدر `Host` می‌خواند (virtual-hosted-style S3) و چون هاست دامنه‌ی سفارشی است نه `<bucket>.s3...`، خطای `NoSuchBucket` می‌داد.
+- `ARVAN_S3_PUBLIC_BASE_URL` در `.env` پروداکشن به `https://cdn.wallpaperapp.ir` تغییر کرد.
+- migration جدید [014_migrate_to_cdn_domain.sql](../backend/internal/repository/postgres/migrations/014_migrate_to_cdn_domain.sql) اضافه شد تا URLهای قدیمی ذخیره‌شده در `wallpapers` / `hero_config` / `martyrs` / `orbit_categories` / `orbit_items` (که موقع آپلود ثابت در دیتابیس نوشته می‌شوند، نه هر بار از `PublicBaseURL` فعلی ساخته می‌شوند) به دامنه‌ی جدید منتقل شوند.
+- allowlist در `LockWallpaperModule.kt` روی همون حالت اولیه (فقط `wallpaperapp.ir` و زیردامنه‌هایش) ماند؛ نیازی به اضافه‌کردن دامنه‌ی ArvanCloud نبود.
+
+### دو باگ دیگر که ضمن بررسی پیدا و رفع شد
+1. **پس‌زمینه‌ی سفارشی با ری‌استارت اپ به دیفالت برمی‌گشت:** [SettingsContext.tsx](../src/holographic/SettingsContext.tsx) تمام تنظیمات (`backgroundId`, `customBackgroundUri`, ...) را فقط در `useState` نگه می‌داشت («kept in memory for now» طبق کامنت خودش) — هیچ‌جا persist نمی‌شد. الان با `AsyncStorage` (کلید `wallpaperSettings:v1`) موقع باز شدن اپ لود و با هر تغییر ذخیره می‌شود.
+2. **پیام خطای گمراه‌کننده:** همون‌طور که بالا اومد، catch blockهای مسیر تنظیم والپیپر خطای واقعی را نشان نمی‌دادند؛ الان `e.message` را نمایش می‌دهند.
+
+### فایل‌های تغییر/اضافه‌شده
+| فایل | تغییر |
+|------|-------|
+| `src/holographic/SettingsContext.tsx` | persist شدن تنظیمات با AsyncStorage |
+| `src/holographic/HolographicHome.tsx` | نمایش خطای واقعی به‌جای پیام ثابت |
+| `src/holographic/WallpaperGallery.tsx` | نمایش خطای واقعی به‌جای پیام ثابت |
+| `android/.../LockWallpaperModule.kt` | (بدون تغییر نهایی — allowlist سر جای اولش برگشت) |
+| `backend/internal/repository/postgres/migrations/014_migrate_to_cdn_domain.sql` | **جدید** — مهاجرت URLهای قدیمی به `cdn.wallpaperapp.ir` |
+
+> نکته‌ی دیپلوی: چون یک migration جدید اضافه شد، دفعه‌ی بعد deploy باید با `docker compose -f docker-compose.prod.yml up -d --build` باشد (نه `up -d` ساده)، چون migrations داخل ایمیج کپی می‌شوند.
+
+### یادداشت جانبی — تست بار (سؤال «۱۰۰۰ نفر هم‌زمان دانلود کنن سرور می‌افته؟»)
+- فایل‌های واقعی والپیپر مستقیم از CDN/Object Storage سرو می‌شوند، نه از بک‌اند Go — پس دانلود واقعی عکس‌ها اصلاً به بک‌اند فشار نمی‌آورد.
+- بک‌اند فقط API سبک کاتالوگ (`/api/v1/catalog`) را جواب می‌دهد؛ روی همون یک rate limiter دارد (۲۰ req/s به‌ازای هر IP، [server.go:100](../backend/internal/delivery/httpserver/server.go#L100)).
+- تست با k6 (۱۰۰۰ VU، از یک مک با VPN روشن) اول عدد بی‌معنی داد (VPN گلوگاه کلاینت بود، تأخیر تا ۵۵ ثانیه). با VPN خاموش: توان واقعی به ۳۰۵ req/s رسید؛ هر وقت درخواست واقعاً جواب ۲۰۰ گرفت، حداکثر ۳.۴ ثانیه و معمولاً زیر ۱.۷ ثانیه طول کشید — یعنی بک‌اند زیر بار سالم و سریع جواب داد. نرخ خطای بالا (٪۸۸) عمداً از rate limiter بود چون همه‌ی ۱۰۰۰ VU از یک IP واحد می‌آمدند؛ برای تست ظرفیت واقعی زیر ۱۰۰۰ IP متفاوت باید یا موقتاً لیمیت بالا برود یا تست از چند منبع پخش شود (هنوز انجام نشده).

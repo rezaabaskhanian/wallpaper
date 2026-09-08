@@ -19,12 +19,13 @@ type Category struct {
 
 // Item یک آیتمِ در حال چرخش (عکس + برچسب) متعلق به یک Category.
 type Item struct {
-	ID         string
-	CategoryID string
-	Label      string
-	Image      string
-	Sort       int
-	IsActive   bool
+	ID          string
+	CategoryID  string
+	Label       string
+	Image       string
+	Description string
+	Sort        int
+	IsActive    bool
 }
 
 var (
@@ -54,7 +55,7 @@ func NewCategory(id, title string, sort int, centerImage, centerTitle, centerSlo
 }
 
 // NewItem ساخت/ویرایش یک آیتم اوربیت. اگر id خالی باشد، یک UUID ساخته می‌شود.
-func NewItem(id, categoryID, label, image string, sort int, isActive bool) (Item, error) {
+func NewItem(id, categoryID, label, image, description string, sort int, isActive bool) (Item, error) {
 	if categoryID == "" {
 		return Item{}, ErrEmptyItemCategory
 	}
@@ -67,5 +68,5 @@ func NewItem(id, categoryID, label, image string, sort int, isActive bool) (Item
 	if id == "" {
 		id = uuid.NewString()
 	}
-	return Item{ID: id, CategoryID: categoryID, Label: label, Image: image, Sort: sort, IsActive: isActive}, nil
+	return Item{ID: id, CategoryID: categoryID, Label: label, Image: image, Description: description, Sort: sort, IsActive: isActive}, nil
 }

@@ -4,6 +4,7 @@ import {toast} from 'sonner';
 import {Plus} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
+import {Textarea} from '@/components/ui/textarea';
 import {Label} from '@/components/ui/label';
 import {Switch} from '@/components/ui/switch';
 import {Checkbox} from '@/components/ui/checkbox';
@@ -43,6 +44,7 @@ const EMPTY: OrbitItemInput = {
   categoryId: '',
   label: '',
   image: '',
+  description: '',
   sort: 0,
   isActive: true,
 };
@@ -58,7 +60,10 @@ function OrbitItemDialog({
   onOpenChange: (open: boolean) => void;
   presetCategoryId?: string;
 }) {
-  const initialForm = () => item ?? {...EMPTY, categoryId: presetCategoryId ?? ''};
+  const initialForm = () =>
+    item
+      ? {...item, description: item.description ?? ''}
+      : {...EMPTY, categoryId: presetCategoryId ?? ''};
   const [form, setForm] = useState<OrbitItemInput>(initialForm);
   const save = useSaveOrbitItem();
   const {data: categories} = useOrbitCategories();
@@ -120,6 +125,16 @@ function OrbitItemDialog({
             value={form.image}
             onChange={url => setForm({...form, image: url})}
           />
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="oi-description">توضیح (وقتی روی آیتم زده می‌شود نشان داده می‌شود)</Label>
+            <Textarea
+              id="oi-description"
+              rows={4}
+              value={form.description}
+              onChange={e => setForm({...form, description: e.target.value})}
+            />
+          </div>
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="oi-sort">ترتیب</Label>

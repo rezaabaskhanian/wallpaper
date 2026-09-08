@@ -30,29 +30,22 @@ class LockWallpaperModule(reactContext: ReactApplicationContext) :
 
   companion object {
     /** Wallpapers may only be fetched from this host or a subdomain of it —
-     * the app's own domain, once cdn.wallpaperapp.ir is wired up in front of
-     * the bucket (see backend/.env.example ARVAN_S3_PUBLIC_BASE_URL). */
+     * catalog image URLs are served through cdn.wallpaperapp.ir, which fronts
+     * the ArvanCloud bucket (see backend/.env.example ARVAN_S3_PUBLIC_BASE_URL). */
     private const val ASSET_HOST = "wallpaperapp.ir"
-    /** Until that CDN move happens, catalog image URLs point directly at the
-     * ArvanCloud object storage bucket (e.g. wallpaper-app.s3.ir-thr-at1.arvanstorage.ir) —
-     * allow that provider's domain too so downloads don't break in the meantime. */
-    private const val OBJECT_STORAGE_HOST_SUFFIX = "arvanstorage.ir"
   }
 
   override fun getName(): String = "LockWallpaper"
 
   /**
-   * Only the app's own backend/CDN or its ArvanCloud bucket may be fetched.
-   * Without this the module is a general-purpose "download anything the JS
-   * side names" primitive, which is both a real SSRF-ish footgun and the
-   * pattern malware scanners flag.
+   * Only the app's own backend/CDN may be fetched. Without this the module is a
+   * general-purpose "download anything the JS side names" primitive, which is
+   * both a real SSRF-ish footgun and the pattern malware scanners flag.
    */
   private fun isAllowedWallpaperUrl(url: URL): Boolean {
     if (!url.protocol.equals("https", ignoreCase = true)) return false
     val host = url.host.lowercase()
-    return host == ASSET_HOST ||
-        host.endsWith(".$ASSET_HOST") ||
-        host.endsWith(".$OBJECT_STORAGE_HOST_SUFFIX")
+    return host == ASSET_HOST || host.endsWith(".$ASSET_HOST")
   }
 
   private fun flagsFor(which: String): Int =

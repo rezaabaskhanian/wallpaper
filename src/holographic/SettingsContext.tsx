@@ -21,20 +21,13 @@ export type WallpaperSettings = {
   /** Show the rotating orbs at all. */
   showOrbs: boolean;
   /** How many rotating orbs sit on the sphere. User-adjustable downward only —
-   * the settings panel caps the upper bound at `min(MAX_ORBS, martyrs in the
-   * selected category)`, see SettingsPanel's ballCount stepper. */
+   * the settings panel caps the upper bound at `min(MAX_ORBS, items in the
+   * active orbit theme)`, see SettingsPanel's ballCount stepper. */
   ballCount: number;
-  /** Visual style for each orbiting martyr portrait: plain glowing orb, or a
-   * small winged "angel" with the portrait as its face. */
-  orbShape: 'orb' | 'angel';
   /** How orbs stay visible: 'steady' (always shown once loaded), or
    * 'flicker' — each orb independently fades in/out on its own randomized
    * animated cycle. */
   orbVisibility: 'steady' | 'flicker';
-  /** Which martyr category populates the orbiting "logo" avatars; '' shows
-   * every martyr regardless of category (see MartyrCategory in store/types).
-   * Only applies within the active orbitCategoryId's items (usually "shohada"). */
-  martyrCategoryId: string;
   /** Which orbit theme (see OrbitCategory in store/types) populates the
    * home-screen orbit and its central portrait; '' picks the first category
    * returned by the backend (normally "شهدا", preserving the original look). */
@@ -104,8 +97,9 @@ export type WallpaperSettings = {
   // combatMode: boolean;
   /** Tilt the scene with the device's gyroscope, on top of the drag parallax. */
   gyroParallax: boolean;
-  /** Rain/snow particles driven by the live weather condition. */
-  weatherEffects: boolean;
+  /** Rain/snow particle effect: off, user-picked rain/snow, or 'auto'
+   * (driven by the live weather condition instead of a manual pick). */
+  weatherEffects: 'off' | 'rain' | 'snow' | 'auto';
   /** Animate (Ken Burns zoom) the locked-wallpaper thumbnails in the gallery. */
   animatedLockedPreview: boolean;
   /** Home-screen widget: pick a new quote each time it refreshes, instead of
@@ -127,11 +121,9 @@ const DEFAULTS: WallpaperSettings = {
   autoRotate: true,
   speed: 1,
   ringCount: RINGS.length,
-  showOrbs: true,
+  showOrbs: false,
   ballCount: 24,
-  orbShape: 'orb',
   orbVisibility: 'steady',
-  martyrCategoryId: '',
   orbitCategoryId: '',
   rotationAxis: 'y',
   dayNightMode: 'auto',
@@ -152,7 +144,7 @@ const DEFAULTS: WallpaperSettings = {
   clockOffset: {x: 0, y: 0},
   weatherOffset: {x: 0, y: 0},
   quoteOffset: {x: 0, y: 0},
-  showQuote: true,
+  showQuote: false,
   quoteLine1: 'ما با این جوان‌ها',
   quoteLine2: 'به جایی خواهیم رسید',
   quoteCategoryId: '',
@@ -160,7 +152,7 @@ const DEFAULTS: WallpaperSettings = {
   countdownLabel: COUNTDOWN.label,
   // combatMode: false, // [combat mode disabled for now]
   gyroParallax: false,
-  weatherEffects: false,
+  weatherEffects: 'off',
   animatedLockedPreview: true,
   widgetAutoRotateQuote: true,
 };

@@ -111,7 +111,7 @@ func (s Service) AdminListItems(ctx context.Context) (dto.AdminListItemsResponse
 func (s Service) CreateItem(ctx context.Context, req dto.UpsertItemRequest) (dto.ItemResponse, error) {
 	const op = "orbitservice.CreateItem"
 
-	it, err := domain.NewItem(req.ID, req.CategoryID, req.Label, req.Image, req.Sort, true)
+	it, err := domain.NewItem(req.ID, req.CategoryID, req.Label, req.Image, req.Description, req.Sort, true)
 	if err != nil {
 		return dto.ItemResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ساخت آیتم")
 	}
@@ -127,7 +127,7 @@ func (s Service) CreateItem(ctx context.Context, req dto.UpsertItemRequest) (dto
 func (s Service) UpdateItem(ctx context.Context, id string, req dto.UpsertItemRequest) (dto.ItemResponse, error) {
 	const op = "orbitservice.UpdateItem"
 
-	it, err := domain.NewItem(id, req.CategoryID, req.Label, req.Image, req.Sort, req.IsActive)
+	it, err := domain.NewItem(id, req.CategoryID, req.Label, req.Image, req.Description, req.Sort, req.IsActive)
 	if err != nil {
 		return dto.ItemResponse{}, richerror.New(op).WithErr(err).WithMessage("مشکل در ویرایش آیتم")
 	}

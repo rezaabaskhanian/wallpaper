@@ -44,11 +44,12 @@ func toCategoryDTO(c domain.Category) dto.CategoryDTO {
 
 func toItemDTO(it domain.Item) dto.ItemDTO {
 	return dto.ItemDTO{
-		ID:         it.ID,
-		CategoryID: it.CategoryID,
-		Label:      it.Label,
-		Image:      it.Image,
-		Sort:       it.Sort,
-		IsActive:   it.IsActive,
+		ID:          it.ID,
+		CategoryID:  it.CategoryID,
+		Label:       it.Label,
+		Image:       it.Image,
+		Description: it.Description,
+		Sort:        it.Sort,
+		IsActive:    it.IsActive,
 	}
 }

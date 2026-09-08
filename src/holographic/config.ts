@@ -34,9 +34,9 @@ export const BASE_TURN_SECONDS = 70;
 
 /**
  * Hard ceiling on how many orbiting avatars ever appear at once. The actual
- * count is `min(MAX_ORBS, martyrs in the selected category)` — never
+ * count is `min(MAX_ORBS, items in the active orbit theme)` — never
  * user-adjustable, so the screen never gets more crowded than this no matter
- * how many martyrs a category ends up with.
+ * how many items a theme ends up with.
  */
 export const MAX_ORBS = 24;
 
@@ -50,6 +50,15 @@ export type BackgroundOption = {
   label: string;
   /** Bundled image source; leave out for the topographic-only option. */
   source?: number;
+  /** How the photo fills the screen: 'cover' (default) crops to fill the
+   * screen edge-to-edge — fine for tall photos already close to a phone's
+   * aspect ratio. 'contain' shows the whole photo letterboxed instead —
+   * use it for square/graphic images (like a country map) where 'cover'
+   * would crop off most of the width. */
+  fit?: 'cover' | 'contain';
+  /** Letterbox fill colour behind a 'contain' photo, so the padding blends
+   * with the image instead of showing bare black. */
+  letterboxColor?: string;
 };
 
 /**
@@ -59,14 +68,25 @@ export type BackgroundOption = {
  * with `source: require('./assets/your-photo.jpg')`.
  */
 export const BACKGROUNDS: BackgroundOption[] = [
-  {id: 'main', label: 'اصلی', source: require('./assets/main.png')},
-  // {id: 'black', label: 'مشکی'},
+  // 'main' pulled out for now — a new photo is coming to replace main.png;
+  // re-add as {id: 'main', label: 'اصلی', source: require('./assets/main.png')}
+  // once it's dropped in.
+  {
+    id: 'iran_gol',
+    label: 'نقشه گل ایران',
+    source: require('./assets/iran_gol.jpeg'),
+    // Square graphic — 'cover' would crop off most of its width on a tall
+    // phone screen and make the map look stretched/cut off.
+    fit: 'contain',
+    letterboxColor: '#efe3d3',
+  },
   // {id: 'hero', label: 'پرتره', source: require('./assets/hero.jpg')},
+  // {id: 'black', label: 'مشکی'},
   // {id: 'topographic', label: 'توپوگرافی'},
 ];
 
 /** Which background is selected by default. */
-export const DEFAULT_BACKGROUND_ID = 'main';
+export const DEFAULT_BACKGROUND_ID = 'iran_gol';
 
 /**
  * Countdown widget defaults. This is a GENERIC countdown to a configurable

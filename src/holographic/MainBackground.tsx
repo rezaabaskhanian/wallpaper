@@ -30,6 +30,8 @@ export default function MainBackground() {
   const customIsRemote = !!customUri && isRemoteUrl(customUri);
   const cachedCustom = useCachedImage(customIsRemote ? customUri : undefined);
 
+  const bundled = BACKGROUNDS.find(b => b.id === settings.backgroundId);
+
   const source =
     settings.backgroundId === 'custom'
       ? customUri
@@ -39,11 +41,15 @@ export default function MainBackground() {
             : undefined
           : {uri: customUri}
         : undefined
-      : BACKGROUNDS.find(b => b.id === settings.backgroundId)?.source;
+      : bundled?.source;
 
   if (!source) {
     return null;
   }
+
+  // A custom photo picked by the user always fills edge-to-edge like a
+  // normal wallpaper; only a bundled entry can opt into 'contain'.
+  const fit = settings.backgroundId === 'custom' ? 'cover' : bundled?.fit ?? 'cover';
 
   // ImageBackground (not a bare Image) because it sizes the inner image to
   // 100% × 100%; absolute insets alone leave it at its intrinsic pixel size.
@@ -53,8 +59,13 @@ export default function MainBackground() {
       // instead of being served from the previous decode.
       key={typeof source === 'number' ? `bundled-${source}` : source.uri}
       source={source}
-      style={StyleSheet.absoluteFill}
-      resizeMode="cover"
+      style={[
+        StyleSheet.absoluteFill,
+        fit === 'contain' && bundled?.letterboxColor
+          ? {backgroundColor: bundled.letterboxColor}
+          : null,
+      ]}
+      resizeMode={fit}
     />
   );
 }

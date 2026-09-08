@@ -61,32 +61,33 @@ export default function SettingsPanel({
   onOpenGallery,
 }: Props) {
   const {settings, update, applyTheme} = useSettings();
-  const {premiumUnlocked, redeemCode, martyrCategories, martyrs, quoteCategories} = useStore();
+  const {premiumUnlocked, redeemCode, orbitItems, quoteCategories} = useStore();
   // Upper bound for the ballCount stepper: never more than MAX_ORBS, and
-  // never more than the selected category actually has (so the user can only
-  // dial the count *down* from a category's natural size, not pad it out).
-  const categoryMartyrCount = settings.martyrCategoryId
-    ? martyrs.filter(m => m.categoryId === settings.martyrCategoryId).length
-    : martyrs.length;
+  // never more than the active orbit theme actually has (so the user can
+  // only dial the count *down* from its natural size, not pad it out).
+  const categoryItemCount = settings.orbitCategoryId
+    ? orbitItems.filter(it => it.categoryId === settings.orbitCategoryId).length
+    : orbitItems.length;
   const maxBallCount = Math.max(
     1,
-    Math.min(MAX_ORBS, categoryMartyrCount || MAX_ORBS),
+    Math.min(MAX_ORBS, categoryItemCount || MAX_ORBS),
   );
-  // Switching categories resets ballCount to the new category's natural size
-  // (capped at MAX_ORBS) — e.g. going from a 5-martyr category to a 20-martyr
-  // one should show 20, not stay stuck at 5. Manual decreases via the stepper
-  // still work afterward; they just get reset again on the next switch. If
-  // the martyr list itself changes (e.g. loads in later) without a category
-  // switch, only clamp down so an in-progress manual choice isn't overridden.
-  const prevCategoryRef = useRef(settings.martyrCategoryId);
+  // Switching the orbit theme (via the home screen's own switcher) resets
+  // ballCount to the new theme's natural size (capped at MAX_ORBS) — e.g.
+  // going from a 5-item theme to a 20-item one should show 20, not stay
+  // stuck at 5. Manual decreases via the stepper still work afterward; they
+  // just get reset again on the next switch. If the item list itself changes
+  // (e.g. loads in later) without a theme switch, only clamp down so an
+  // in-progress manual choice isn't overridden.
+  const prevCategoryRef = useRef(settings.orbitCategoryId);
   useEffect(() => {
-    if (prevCategoryRef.current !== settings.martyrCategoryId) {
-      prevCategoryRef.current = settings.martyrCategoryId;
+    if (prevCategoryRef.current !== settings.orbitCategoryId) {
+      prevCategoryRef.current = settings.orbitCategoryId;
       update('ballCount', maxBallCount);
     } else if (settings.ballCount > maxBallCount) {
       update('ballCount', maxBallCount);
     }
-  }, [settings.martyrCategoryId, maxBallCount, settings.ballCount, update]);
+  }, [settings.orbitCategoryId, maxBallCount, settings.ballCount, update]);
   // Persists across opens/closes (the panel stays mounted, only `visible`
   // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('general');
@@ -292,16 +293,6 @@ export default function SettingsPanel({
               />
 
               <RowChoices
-                label="شکل مدار (گوی / فرشته)"
-                options={[
-                  {id: 'orb', label: '⚪ گوی'},
-                  {id: 'angel', label: '👼 فرشته'},
-                ]}
-                selected={settings.orbShape}
-                onSelect={id => update('orbShape', id as 'orb' | 'angel')}
-              />
-
-              <RowChoices
                 label="نمایش گوی‌ها (ثابت / پیدا و پنهان)"
                 options={[
                   {id: 'steady', label: 'ثابت'},
@@ -325,16 +316,6 @@ export default function SettingsPanel({
                     Math.min(maxBallCount, settings.ballCount + 2),
                   )
                 }
-              />
-
-              <RowChoices
-                label="دسته‌ی شهدای لوگوها"
-                options={martyrCategories.map(c => ({
-                  id: c.id,
-                  label: c.title,
-                }))}
-                selected={settings.martyrCategoryId}
-                onSelect={id => update('martyrCategoryId', id)}
               />
 
               <RowChoices
@@ -467,15 +448,24 @@ export default function SettingsPanel({
                 }
               />
 
-              <RowSwitch
+              <RowChoices
                 label="جلوه‌های آب‌وهوا (باران/برف)"
-                value={settings.weatherEffects}
-                onChange={v => update('weatherEffects', v)}
+                options={[
+                  {id: 'off', label: 'خاموش'},
+                  {id: 'rain', label: '🌧️ باران'},
+                  {id: 'snow', label: '❄️ برف'},
+                  {id: 'auto', label: 'خودکار (بر اساس هوا)'},
+                ]}
+                selected={settings.weatherEffects}
+                onSelect={id =>
+                  update('weatherEffects', id as 'off' | 'rain' | 'snow' | 'auto')
+                }
               />
-              {settings.weatherEffects ? (
+              {settings.weatherEffects === 'auto' ? (
                 <AppText style={styles.hint}>
-                  این جلوه به گرفتن موفق وضعیت هوا از GPS و API نیاز دارد؛ اگر
-                  دسترسی موقعیت مکانی داده نشود یا اینترنت نباشد، فعال نمی‌شود.
+                  حالت خودکار به گرفتن موفق وضعیت هوا از GPS و API نیاز دارد؛
+                  اگر دسترسی موقعیت مکانی داده نشود یا اینترنت نباشد، فعال
+                  نمی‌شود.
                 </AppText>
               ) : null}
 

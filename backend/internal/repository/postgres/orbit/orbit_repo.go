@@ -75,21 +75,21 @@ func (d DB) DeleteCategory(ctx context.Context, id string) error {
 
 func scanItem(row interface{ Scan(dest ...any) error }) (domain.Item, error) {
 	var it domain.Item
-	err := row.Scan(&it.ID, &it.CategoryID, &it.Label, &it.Image, &it.Sort, &it.IsActive)
+	err := row.Scan(&it.ID, &it.CategoryID, &it.Label, &it.Image, &it.Description, &it.Sort, &it.IsActive)
 	return it, err
 }
 
 func (d DB) GetActiveItems(ctx context.Context) ([]domain.Item, error) {
 	const op = "postgresorbit.GetActiveItems"
 	return d.queryItems(ctx, op, `
-		SELECT id, category_id, label, image, sort_order, is_active
+		SELECT id, category_id, label, image, description, sort_order, is_active
 		FROM orbit_items WHERE is_active = true ORDER BY sort_order, id`)
 }
 
 func (d DB) GetAllItems(ctx context.Context) ([]domain.Item, error) {
 	const op = "postgresorbit.GetAllItems"
 	return d.queryItems(ctx, op, `
-		SELECT id, category_id, label, image, sort_order, is_active
+		SELECT id, category_id, label, image, description, sort_order, is_active
 		FROM orbit_items ORDER BY sort_order, id`)
 }
 
@@ -115,12 +115,12 @@ func (d DB) SaveItem(ctx context.Context, it domain.Item) (domain.Item, error) {
 	const op = "postgresorbit.SaveItem"
 
 	query := `
-	INSERT INTO orbit_items (id, category_id, label, image, sort_order, is_active)
-	VALUES ($1, $2, $3, $4, $5, $6)
+	INSERT INTO orbit_items (id, category_id, label, image, description, sort_order, is_active)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
 	RETURNING id
 `
 	var id string
-	err := d.conn.QueryRow(ctx, query, it.ID, it.CategoryID, it.Label, it.Image, it.Sort, it.IsActive).Scan(&id)
+	err := d.conn.QueryRow(ctx, query, it.ID, it.CategoryID, it.Label, it.Image, it.Description, it.Sort, it.IsActive).Scan(&id)
 	if err != nil {
 		return domain.Item{}, richerror.New(op).WithErr(err).WithMessage("failed to insert orbit item")
 	}
@@ -133,12 +133,12 @@ func (d DB) UpdateItem(ctx context.Context, it domain.Item) (domain.Item, error)
 
 	query := `
 	UPDATE orbit_items
-	SET category_id = $2, label = $3, image = $4, sort_order = $5, is_active = $6
+	SET category_id = $2, label = $3, image = $4, description = $5, sort_order = $6, is_active = $7
 	WHERE id = $1
 	RETURNING id
 `
 	var id string
-	err := d.conn.QueryRow(ctx, query, it.ID, it.CategoryID, it.Label, it.Image, it.Sort, it.IsActive).Scan(&id)
+	err := d.conn.QueryRow(ctx, query, it.ID, it.CategoryID, it.Label, it.Image, it.Description, it.Sort, it.IsActive).Scan(&id)
 	if err != nil {
 		return domain.Item{}, richerror.New(op).WithErr(err).WithMessage("آیتم مورد نظر پیدا نشد")
 	}

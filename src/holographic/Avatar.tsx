@@ -2,7 +2,6 @@ import React from 'react';
 import {Image, StyleSheet, View} from 'react-native';
 import type {ImageSourcePropType} from 'react-native';
 import AppText from './AppText';
-import AngelWings from './AngelWings';
 
 type Props = {
   size: number;
@@ -12,9 +11,6 @@ type Props = {
   /** Glow ring color. */
   glow?: string;
   ringWidth?: number;
-  /** 'orb' (default): plain glowing circle. 'angel': adds small wings behind
-   * the circle, so the portrait reads as a little angel's face. */
-  shape?: 'orb' | 'angel';
 };
 
 /**
@@ -28,9 +24,8 @@ export default function Avatar({
   image,
   glow = 'rgba(64, 224, 208, 0.9)',
   ringWidth = 2,
-  shape = 'orb',
 }: Props) {
-  const face = (
+  return (
     <View
       style={[
         styles.wrap,
@@ -68,17 +63,6 @@ export default function Avatar({
           ) : null}
         </View>
       )}
-    </View>
-  );
-
-  if (shape !== 'angel') {
-    return face;
-  }
-
-  return (
-    <View style={{width: size, height: size}}>
-      <AngelWings size={size} glow={glow} />
-      {face}
     </View>
   );
 }

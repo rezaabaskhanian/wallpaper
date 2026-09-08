@@ -12,12 +12,13 @@ type CategoryDTO struct {
 
 // ItemDTO خروجی یک آیتم در حال چرخش.
 type ItemDTO struct {
-	ID         string `json:"id"`
-	CategoryID string `json:"categoryId"`
-	Label      string `json:"label"`
-	Image      string `json:"image"`
-	Sort       int    `json:"sort"`
-	IsActive   bool   `json:"isActive"`
+	ID          string `json:"id"`
+	CategoryID  string `json:"categoryId"`
+	Label       string `json:"label"`
+	Image       string `json:"image"`
+	Description string `json:"description,omitempty"`
+	Sort        int    `json:"sort"`
+	IsActive    bool   `json:"isActive"`
 }
 
 // OrbitCatalogResponse پاسخ اندپوینت عمومی GET /api/v1/orbit-catalog.
@@ -47,12 +48,13 @@ type AdminListCategoriesResponse struct {
 
 // UpsertItemRequest ورودی افزودن/ویرایش آیتم اوربیت (ادمین).
 type UpsertItemRequest struct {
-	ID         string `json:"id"`
-	CategoryID string `json:"categoryId"`
-	Label      string `json:"label"`
-	Image      string `json:"image"`
-	Sort       int    `json:"sort"`
-	IsActive   bool   `json:"isActive"`
+	ID          string `json:"id"`
+	CategoryID  string `json:"categoryId"`
+	Label       string `json:"label"`
+	Image       string `json:"image"`
+	Description string `json:"description"`
+	Sort        int    `json:"sort"`
+	IsActive    bool   `json:"isActive"`
 }
 
 type ItemResponse struct {

@@ -72,6 +72,7 @@ export type OrbitCatalogItem = {
   categoryId: string;
   label: string;
   image: string;
+  description?: string;
   sort: number;
   isActive: boolean;
 };

@@ -39,7 +39,8 @@ import SettingsPanel from './SettingsPanel';
 import TopLeftBar from './TopLeftBar';
 import WeatherEffects from './WeatherEffects';
 import {useWeather} from './useWeather';
-import MartyrModal from './MartyrModal';
+import OrbitItemModal from './OrbitItemModal';
+import type {OrbitItem} from './data';
 import WallpaperGallery from './WallpaperGallery';
 import AppDrawer from './AppDrawer';
 import {BASE_TURN_SECONDS} from './config';
@@ -74,7 +75,9 @@ export default function HolographicHome({dream = false}: Props) {
 
   // Fetched once here and shared by the temperature readout (TopLeftBar) and
   // the rain/snow effect (WeatherEffects) so they don't each poll GPS/network.
-  const weather = useWeather(settings.showWeather || settings.weatherEffects);
+  const weather = useWeather(
+    settings.showWeather || settings.weatherEffects === 'auto',
+  );
 
   // Mirrors the chosen background photo onto the home-screen widget (see
   // QuoteWidgetProvider.kt). Only 'custom' has a real file/URL to sync — the
@@ -115,8 +118,8 @@ export default function HolographicHome({dream = false}: Props) {
       setCapturing(false);
     }
   };
-  // Which martyr's modal is open (null = closed).
-  const [activeMartyrId, setActiveMartyrId] = useState<string | null>(null);
+  // Which orbit item's info modal is open (null = closed).
+  const [activeOrbitItem, setActiveOrbitItem] = useState<OrbitItem | null>(null);
 
   // Accumulated auto-orbit angle (radians), integrated every frame so speed
   // can change live without the rings jumping.
@@ -177,8 +180,8 @@ export default function HolographicHome({dream = false}: Props) {
 
   // Pause the sphere whenever a martyr modal is open.
   useEffect(() => {
-    paused.value = activeMartyrId ? 1 : 0;
-  }, [activeMartyrId, paused]);
+    paused.value = activeOrbitItem ? 1 : 0;
+  }, [activeOrbitItem, paused]);
 
   // Base angular speed in rad/s to match BASE_TURN_SECONDS per full turn.
   const baseOmega = (Math.PI * 2) / BASE_TURN_SECONDS;
@@ -326,7 +329,7 @@ export default function HolographicHome({dream = false}: Props) {
               parallaxY={parallaxY}
               tiltX={tiltX}
               tiltY={tiltY}
-              onSelectMartyr={setActiveMartyrId}
+              onSelectItem={setActiveOrbitItem}
             />
           ) : null}
 
@@ -426,9 +429,9 @@ export default function HolographicHome({dream = false}: Props) {
 
           <AppDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
-          <MartyrModal
-            martyrId={activeMartyrId}
-            onClose={() => setActiveMartyrId(null)}
+          <OrbitItemModal
+            item={activeOrbitItem}
+            onClose={() => setActiveOrbitItem(null)}
           />
         </>
       ) : null}

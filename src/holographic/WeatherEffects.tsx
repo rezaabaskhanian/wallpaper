@@ -104,16 +104,21 @@ function Snow({
 }
 
 /**
- * Rain or snow, driven by the live weather condition. Off unless
- * settings.weatherEffects is on AND a live API fetch has resolved a code —
- * no manual/guessed condition to fall back to.
+ * Rain or snow. Either picked directly by the user (settings.weatherEffects
+ * is 'rain' or 'snow'), or — when set to 'auto' — driven by the live weather
+ * condition, off unless a live API fetch has resolved a code.
  */
 export default function WeatherEffects({weather}: {weather: Weather | null}) {
   const {settings} = useSettings();
   const {width, height} = useWindowDimensions();
   const clock = useSharedValue(0);
 
-  const kind = settings.weatherEffects && weather ? kindForCode(weather.code) : null;
+  const kind: Kind | null =
+    settings.weatherEffects === 'rain' || settings.weatherEffects === 'snow'
+      ? settings.weatherEffects
+      : settings.weatherEffects === 'auto' && weather
+      ? kindForCode(weather.code)
+      : null;
   const duration = kind === 'snow' ? 6000 : 1400;
 
   useEffect(() => {

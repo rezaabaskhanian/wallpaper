@@ -33,8 +33,8 @@ type Props = {
    * of the drag-driven parallax above. */
   tiltX: SharedValue<number>;
   tiltY: SharedValue<number>;
-  /** Called with a martyr id when its icon is tapped. */
-  onSelectMartyr?: (martyrId: string) => void;
+  /** Called with the tapped item when it has a non-empty description. */
+  onSelectItem?: (item: OrbitItem) => void;
 };
 
 /** Precomputed position of one avatar on the unit sphere. */
@@ -81,8 +81,6 @@ type OrbitAvatarProps = {
   axis: number;
   /** Glow/accent colour for the avatar ring. */
   glow: string;
-  /** 'orb' or 'angel' — see Avatar's `shape` prop. */
-  shape: 'orb' | 'angel';
   /** 'steady' or 'flicker' — see SettingsContext's `orbVisibility`. */
   visibility: 'steady' | 'flicker';
   minSide: number;
@@ -94,7 +92,8 @@ type OrbitAvatarProps = {
   parallaxY: SharedValue<number>;
   tiltX: SharedValue<number>;
   tiltY: SharedValue<number>;
-  onSelectMartyr?: (martyrId: string) => void;
+  /** Called with the tapped item when it has a non-empty description. */
+  onSelectItem?: (item: OrbitItem) => void;
   items: OrbitItem[];
 };
 
@@ -103,7 +102,6 @@ function OrbitAvatar({
   sphereRadius,
   axis,
   glow,
-  shape,
   visibility,
   minSide,
   centerX,
@@ -114,7 +112,7 @@ function OrbitAvatar({
   parallaxY,
   tiltX,
   tiltY,
-  onSelectMartyr,
+  onSelectItem,
   items,
 }: OrbitAvatarProps) {
   const item = items[point.itemIndex % items.length];
@@ -217,9 +215,9 @@ function OrbitAvatar({
     return null;
   }
 
-  const martyrId = item.martyrId;
+  const hasDescription = !!item.description;
   const handlePress =
-    onSelectMartyr && martyrId ? () => onSelectMartyr(martyrId) : undefined;
+    onSelectItem && hasDescription ? () => onSelectItem(item) : undefined;
 
   return (
     <Animated.View style={[styles.item, style]}>
@@ -231,7 +229,6 @@ function OrbitAvatar({
           image={displayImage}
           glow={glow}
           ringWidth={0}
-          shape={shape}
         />
       </Pressable>
     </Animated.View>
@@ -248,19 +245,19 @@ export default function OrbitLayer({
   parallaxY,
   tiltX,
   tiltY,
-  onSelectMartyr,
+  onSelectItem,
 }: Props) {
   const {settings} = useSettings();
-  const {martyrs} = useStore();
+  const {orbitItems} = useStore();
   const items = useOrbitItems();
   const rings = RINGS.slice(0, Math.max(1, settings.ringCount));
 
-  // Nothing renders — not even placeholder discs — until the real martyr
+  // Nothing renders — not even placeholder discs — until the real orbit item
   // list has loaded from the backend AND every item's photo is downloaded
   // and cached. Avoids ever flashing the numbered fallback tiles or orbs
   // popping in one by one; the screen simply shows no orbs until it can
   // show the real ones, all at once.
-  const martyrsLoaded = martyrs.length > 0;
+  const orbitItemsLoaded = orbitItems.length > 0;
   const photoUrls = React.useMemo(
     () =>
       items
@@ -292,7 +289,7 @@ export default function OrbitLayer({
     [totalCount, sizeFactor],
   );
 
-  if (!settings.showOrbs || !martyrsLoaded || !allImagesReady) {
+  if (!settings.showOrbs || !orbitItemsLoaded || !allImagesReady) {
     return null;
   }
 
@@ -305,7 +302,6 @@ export default function OrbitLayer({
           sphereRadius={sphereRadius}
           axis={mixedAxis ? point.itemIndex % 3 : globalAxis}
           glow={settings.glowColor}
-          shape={settings.orbShape}
           visibility={settings.orbVisibility}
           minSide={minSide}
           centerX={centerX}
@@ -316,7 +312,7 @@ export default function OrbitLayer({
           parallaxY={parallaxY}
           tiltX={tiltX}
           tiltY={tiltY}
-          onSelectMartyr={onSelectMartyr}
+          onSelectItem={onSelectItem}
           items={items}
         />
       ))}
