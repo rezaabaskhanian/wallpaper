@@ -1,11 +1,15 @@
 package com.wallpaperNaghsh
 
 import android.app.WallpaperManager
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.DisplayMetrics
 import android.view.PixelCopy
+import android.view.WindowManager
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -55,6 +59,59 @@ class LockWallpaperModule(reactContext: ReactApplicationContext) :
         else -> WallpaperManager.FLAG_LOCK
       }
 
+  /** Real device screen size in pixels (not just this app's window), used to
+   * pre-crop a downloaded photo to the right aspect ratio before handing it
+   * to WallpaperManager — see centerCropToAspect below for why. */
+  private fun getScreenSize(): Pair<Int, Int> {
+    val windowManager =
+        reactApplicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      val bounds = windowManager.currentWindowMetrics.bounds
+      return Pair(bounds.width(), bounds.height())
+    }
+    val metrics = DisplayMetrics()
+    @Suppress("DEPRECATION")
+    windowManager.defaultDisplay.getRealMetrics(metrics)
+    return Pair(metrics.widthPixels, metrics.heightPixels)
+  }
+
+  /**
+   * Center-crops `bitmap` to exactly the screen's aspect ratio before it's
+   * ever handed to WallpaperManager.
+   *
+   * `setBitmap(bitmap, visibleCropHint, ...)` below passes `null` for the
+   * crop hint, which makes Android scale the bitmap to *cover* the screen
+   * (fill both dimensions) and crop the excess itself. If the photo's aspect
+   * ratio doesn't already match the screen's — e.g. a landscape 16:9 photo
+   * on a ~9:19 portrait phone — covering the screen means scaling the image
+   * up by the screen-height/photo-height ratio (well beyond its native
+   * resolution, hence the blur), and only the resulting center ~25-30% of
+   * the width ends up on screen (hence most of the photo being cropped
+   * away). Cropping to the right aspect ratio *here*, before that implicit
+   * scale-to-cover, means only the true excess (whatever doesn't fit the
+   * aspect ratio) is trimmed instead of three-quarters of the photo.
+   */
+  private fun centerCropToAspect(bitmap: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
+    if (targetWidth <= 0 || targetHeight <= 0) return bitmap
+    val targetAspect = targetWidth.toFloat() / targetHeight.toFloat()
+    val srcAspect = bitmap.width.toFloat() / bitmap.height.toFloat()
+    return when {
+      srcAspect > targetAspect -> {
+        // Photo is relatively wider than the screen — trim the sides.
+        val newWidth = (bitmap.height * targetAspect).toInt().coerceIn(1, bitmap.width)
+        val x = (bitmap.width - newWidth) / 2
+        Bitmap.createBitmap(bitmap, x, 0, newWidth, bitmap.height)
+      }
+      srcAspect < targetAspect -> {
+        // Photo is relatively taller than the screen — trim top/bottom.
+        val newHeight = (bitmap.width / targetAspect).toInt().coerceIn(1, bitmap.height)
+        val y = (bitmap.height - newHeight) / 2
+        Bitmap.createBitmap(bitmap, 0, y, bitmap.width, newHeight)
+      }
+      else -> bitmap
+    }
+  }
+
   /**
    * Downloads an image URL and sets it as the wallpaper (lock/home/both).
    * Used by the wallpaper gallery. Runs off the main thread.
@@ -93,8 +150,22 @@ class LockWallpaperModule(reactContext: ReactApplicationContext) :
           promise.reject("decode_failed", "Could not decode image from $url")
           return@Thread
         }
+        // Pre-crop to the screen's own aspect ratio — see centerCropToAspect's
+        // doc comment for why this matters for a landscape photo on a
+        // portrait screen. Falls back to the uncropped bitmap if the screen
+        // size can't be read for some reason, matching the old behaviour.
+        val toSet =
+            try {
+              val (screenWidth, screenHeight) = getScreenSize()
+              centerCropToAspect(bitmap, screenWidth, screenHeight)
+            } catch (e: Exception) {
+              bitmap
+            }
         WallpaperManager.getInstance(reactApplicationContext)
-            .setBitmap(bitmap, null, true, flagsFor(which))
+            .setBitmap(toSet, null, true, flagsFor(which))
+        if (toSet !== bitmap) {
+          bitmap.recycle()
+        }
         promise.resolve(true)
       } catch (e: Exception) {
         promise.reject("wallpaper_url_failed", e.message, e)
