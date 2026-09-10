@@ -24,7 +24,7 @@ export default function ClockWidget() {
 
   const hours24 = now.getHours();
   const is24 = settings.hourFormat === '24';
-  const ampm = hours24 < 12 ? 'AM' : 'PM';
+  const ampm = hours24 < 12 ? 'ق.ظ' : 'ب.ظ';
   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
   const clock = `${pad(is24 ? hours24 : hours12)}:${pad(now.getMinutes())}`;
 

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -6,22 +6,18 @@ import {
   View,
 } from 'react-native';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   useAnimatedSensor,
   useAnimatedReaction,
   SensorType,
-  withRepeat,
-  withSequence,
-  withDelay,
   withTiming,
   withSpring,
   withDecay,
   useFrameCallback,
   runOnJS,
-  cancelAnimation,
-  Easing,
 } from 'react-native-reanimated';
 import AppText from './AppText';
 import {showAlert} from './AppAlert';
@@ -32,17 +28,20 @@ import AtmosphericFog from './AtmosphericFog';
 // import ProjectileLayer from './ProjectileLayer'; // [combat mode disabled for now]
 import MainBackground from './MainBackground';
 import OrbitLayer from './OrbitLayer';
-import OrbitThemeSwitcher from './OrbitThemeSwitcher';
 import ClockWidget from './ClockWidget';
 import QuoteWidget from './QuoteWidget';
 import SettingsPanel from './SettingsPanel';
 import TopLeftBar from './TopLeftBar';
 import WeatherEffects from './WeatherEffects';
+import TouchRippleLayer, {type TouchRippleHandle} from './TouchRippleLayer';
 import {useWeather} from './useWeather';
 import OrbitItemModal from './OrbitItemModal';
 import type {OrbitItem} from './data';
 import WallpaperGallery from './WallpaperGallery';
 import AppDrawer from './AppDrawer';
+import HelpGuide from './HelpGuide';
+import AppDrawerIntroModal from './AppDrawerIntroModal';
+import {shouldShowAppDrawerIntro, markAppDrawerIntroShown} from './appDrawerIntro';
 import {BASE_TURN_SECONDS} from './config';
 import {setWidgetBackgroundImage} from './homeWidget';
 import {setDeviceWallpaper, type WallpaperTarget} from './lockWallpaper';
@@ -62,13 +61,10 @@ type Props = {
   dream?: boolean;
 };
 
-// How many times the "swipe up to open drawer" hint bounces before giving up
-// on its own, so it doesn't nag forever if the user never discovers it.
-const HINT_REPEAT_COUNT = 6;
-
 export default function HolographicHome({dream = false}: Props) {
   const {settings, update} = useSettings();
   const {width, height} = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const centerX = width / 2;
   const centerY = height / 2;
   const minSide = Math.min(width, height);
@@ -89,10 +85,25 @@ export default function HolographicHome({dream = false}: Props) {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  // Once the user has opened the drawer once, the "swipe up" hint stops —
-  // no need to keep teaching a gesture they already found.
-  const [drawerDiscovered, setDrawerDiscovered] = useState(false);
+  // Shown once on first launch (and again after a long absence — see
+  // appDrawerIntro.ts) to teach the swipe-up-for-your-apps gesture, since
+  // the old animated hint too often went unnoticed.
+  const [introVisible, setIntroVisible] = useState(false);
+  useEffect(() => {
+    if (dream) return;
+    let cancelled = false;
+    shouldShowAppDrawerIntro().then(show => {
+      if (show && !cancelled) {
+        setIntroVisible(true);
+        markAppDrawerIntroShown();
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [dream]);
   // While true, the clock/quote/status chrome is hidden so a clean background
   // frame can be grabbed for the lock-screen wallpaper.
   const [capturing, setCapturing] = useState(false);
@@ -120,6 +131,13 @@ export default function HolographicHome({dream = false}: Props) {
   };
   // Which orbit item's info modal is open (null = closed).
   const [activeOrbitItem, setActiveOrbitItem] = useState<OrbitItem | null>(null);
+
+  // Imperative handle for spawning tap ripples (see below) without
+  // re-rendering this whole component on every touch.
+  const rippleRef = useRef<TouchRippleHandle>(null);
+  const triggerRipple = (x: number, y: number) => {
+    rippleRef.current?.addRipple(x, y);
+  };
 
   // Accumulated auto-orbit angle (radians), integrated every frame so speed
   // can change live without the rings jumping.
@@ -151,6 +169,14 @@ export default function HolographicHome({dream = false}: Props) {
     gyroEnabled.value = settings.gyroParallax ? 1 : 0;
   }, [settings.gyroParallax, gyroEnabled]);
 
+  // 3D "tilting plane" depth parallax for the background photo — Settings ▸
+  // عمومی ▸ پارالاکس سه‌بعدی (off by default; no effect without gyroParallax
+  // also on, since it reuses the same tilt values).
+  const depthEnabled = useSharedValue(settings.depthParallax ? 1 : 0);
+  useEffect(() => {
+    depthEnabled.value = settings.depthParallax ? 1 : 0;
+  }, [settings.depthParallax, depthEnabled]);
+
   const maxTilt = 16;
   useAnimatedReaction(
     () => gravity.sensor.value,
@@ -170,13 +196,34 @@ export default function HolographicHome({dream = false}: Props) {
     [gyroEnabled],
   );
 
-  const backgroundTiltStyle = useAnimatedStyle(() => ({
-    transform: [
-      {scale: 1.08},
-      {translateX: -tiltX.value * 0.6},
-      {translateY: -tiltY.value * 0.6},
-    ],
-  }));
+  const backgroundTiltStyle = useAnimatedStyle(() => {
+    'worklet';
+    if (depthEnabled.value === 1) {
+      // Perspective rotate instead of a flat translate, so the photo reads
+      // as a physical plane hinging in 3D space against the orbit sphere's
+      // own (larger) parallax offset — see the `depthParallax` doc comment
+      // in SettingsContext for what this does and doesn't simulate.
+      const rotY = (tiltX.value / maxTilt) * 6;
+      const rotX = (-tiltY.value / maxTilt) * 6;
+      return {
+        transform: [
+          {perspective: 700},
+          {scale: 1.14},
+          {rotateY: `${rotY}deg`},
+          {rotateX: `${rotX}deg`},
+          {translateX: -tiltX.value * 0.35},
+          {translateY: -tiltY.value * 0.35},
+        ],
+      };
+    }
+    return {
+      transform: [
+        {scale: 1.08},
+        {translateX: -tiltX.value * 0.6},
+        {translateY: -tiltY.value * 0.6},
+      ],
+    };
+  });
 
   // Pause the sphere whenever a martyr modal is open.
   useEffect(() => {
@@ -216,12 +263,24 @@ export default function HolographicHome({dream = false}: Props) {
       parallaxY.value = withSpring(0, {damping: 12, stiffness: 90});
     });
 
+  // A quick tap (not a drag) spawns a glow ripple at the touch point —
+  // Settings ▸ عمومی ▸ واکنش لمسی. Runs alongside `pan` via Simultaneous so
+  // rotating the sphere and tapping it never fight over the gesture.
+  const tap = Gesture.Tap()
+    .maxDuration(250)
+    .onEnd(e => {
+      'worklet';
+      if (settings.touchRipple) {
+        runOnJS(triggerRipple)(e.x, e.y);
+      }
+    });
+  const sceneGesture = Gesture.Simultaneous(pan, tap);
+
   // Small dedicated gesture on the bottom handle only, so it never competes
   // with the full-screen orbit-rotation pan above. A tap or an upward swipe
   // both open the app drawer.
   const openDrawer = () => {
     setDrawerOpen(true);
-    setDrawerDiscovered(true);
   };
   const drawerHandlePan = Gesture.Pan().onEnd(e => {
     'worklet';
@@ -230,88 +289,11 @@ export default function HolographicHome({dream = false}: Props) {
     }
   });
 
-  // "Shake"/bounce hint on the drawer handle so a first-time user notices it
-  // can be dragged up, like a little earthquake nudging it toward the top.
-  // Stops for good once they've opened the drawer, or after HINT_REPEAT_COUNT
-  // bounces if they never do — it shouldn't nag forever.
-  const handleHintY = useSharedValue(0);
-  useEffect(() => {
-    if (dream || drawerDiscovered) {
-      cancelAnimation(handleHintY);
-      handleHintY.value = withTiming(0, {duration: 150});
-      return;
-    }
-    handleHintY.value = withRepeat(
-      withSequence(
-        withTiming(-16, {duration: 220, easing: Easing.out(Easing.quad)}),
-        withTiming(0, {duration: 220, easing: Easing.in(Easing.quad)}),
-        withTiming(-10, {duration: 160, easing: Easing.out(Easing.quad)}),
-        withTiming(0, {duration: 160, easing: Easing.in(Easing.quad)}),
-        withTiming(-16, {duration: 220, easing: Easing.out(Easing.quad)}),
-        withTiming(0, {duration: 220, easing: Easing.in(Easing.quad)}),
-        withDelay(2200, withTiming(0, {duration: 0})),
-      ),
-      HINT_REPEAT_COUNT,
-      false,
-      finished => {
-        'worklet';
-        if (finished) {
-          runOnJS(setDrawerDiscovered)(true);
-        }
-      },
-    );
-    return () => cancelAnimation(handleHintY);
-  }, [dream, drawerDiscovered, handleHintY]);
-  const handleHintStyle = useAnimatedStyle(() => ({
-    transform: [{translateY: handleHintY.value}],
-  }));
-
-  // A finger glyph that visibly slides up from the handle and fades out —
-  // demonstrating the actual swipe-up motion, not just drawing attention to
-  // the handle. Runs on the same on/off condition as the handle bounce.
-  const fingerY = useSharedValue(0);
-  const fingerOpacity = useSharedValue(0);
-  useEffect(() => {
-    if (dream || drawerDiscovered) {
-      cancelAnimation(fingerY);
-      cancelAnimation(fingerOpacity);
-      fingerOpacity.value = withTiming(0, {duration: 150});
-      return;
-    }
-    fingerY.value = withRepeat(
-      withSequence(
-        withTiming(0, {duration: 0}),
-        withTiming(-90, {duration: 750, easing: Easing.out(Easing.cubic)}),
-        withDelay(2400, withTiming(0, {duration: 0})),
-      ),
-      HINT_REPEAT_COUNT,
-      false,
-    );
-    fingerOpacity.value = withRepeat(
-      withSequence(
-        withTiming(1, {duration: 150}),
-        withTiming(1, {duration: 450}),
-        withTiming(0, {duration: 200}),
-        withDelay(2350, withTiming(0, {duration: 0})),
-      ),
-      HINT_REPEAT_COUNT,
-      false,
-    );
-    return () => {
-      cancelAnimation(fingerY);
-      cancelAnimation(fingerOpacity);
-    };
-  }, [dream, drawerDiscovered, fingerY, fingerOpacity]);
-  const fingerStyle = useAnimatedStyle(() => ({
-    opacity: fingerOpacity.value,
-    transform: [{translateY: fingerY.value}],
-  }));
-
   return (
     <View style={styles.root}>
       <DayNightLayer hideStars={capturing} />
 
-      <GestureDetector gesture={pan}>
+      <GestureDetector gesture={sceneGesture}>
         <View style={styles.root}>
           <Animated.View style={[styles.root, backgroundTiltStyle]}>
             <MainBackground />
@@ -335,7 +317,7 @@ export default function HolographicHome({dream = false}: Props) {
 
           {/* Glowing dust motes — also hidden during capture so the wallpaper
               keeps no leftover dots. */}
-          {!capturing ? <ParticleField /> : null}
+          {!capturing ? <ParticleField tiltX={tiltX} tiltY={tiltY} /> : null}
 
           <Vignette />
 
@@ -353,6 +335,9 @@ export default function HolographicHome({dream = false}: Props) {
               Settings → پس‌زمینه. Needs a resolved API weather fetch to know
               the condition — nothing renders until one succeeds. */}
           {!capturing ? <WeatherEffects weather={weather} /> : null}
+
+          {/* Glow ring spawned at each tap — Settings ▸ عمومی ▸ واکنش لمسی. */}
+          {!capturing ? <TouchRippleLayer ref={rippleRef} /> : null}
 
           {/* Hidden during capture so the lock wallpaper is background-only. */}
           {settings.showClock && !capturing ? <ClockWidget /> : null}
@@ -386,27 +371,20 @@ export default function HolographicHome({dream = false}: Props) {
         />
       ) : null}
 
-      {/* Lets the user switch which theme (شهدا/طبیعت/...) populates the
-          orbit + center portrait. Hidden while dreaming or mid-capture, same
-          as the rest of the interactive chrome. */}
-      {!dream && !capturing ? <OrbitThemeSwitcher /> : null}
-
-      {/* App-drawer handle: a small dedicated hit area at the bottom edge so
+      {/* App-drawer handle: a small dedicated hit area near the bottom edge so
           its swipe-up gesture never competes with the orbit-rotation pan.
+          Anchored above `insets.bottom` (the real nav-bar/gesture-pill
+          height), not the raw screen edge — a gesture-nav Android phone
+          reserves that bottom strip for its own "swipe up = go home", and a
+          touch starting inside it never reaches this handler at all, so the
+          whole app just backgrounds instead of opening the drawer.
           Hidden while dreaming, mid-capture, or repositioning widgets. */}
       {!dream && !capturing && !settings.editLayout ? (
-        <>
-          <Animated.Text
-            style={[styles.fingerHint, fingerStyle]}
-            pointerEvents="none">
-            👆
-          </Animated.Text>
-          <GestureDetector gesture={drawerHandlePan}>
-            <View style={styles.drawerHandleZone}>
-              <Animated.View style={[styles.drawerHandleBar, handleHintStyle]} />
-            </View>
-          </GestureDetector>
-        </>
+        <GestureDetector gesture={drawerHandlePan}>
+          <View style={[styles.drawerHandleZone, {bottom: insets.bottom}]}>
+            <View style={styles.drawerHandleBar} />
+          </View>
+        </GestureDetector>
       ) : null}
 
       {/* Interactive chrome — hidden while running as the screen saver. */}
@@ -420,6 +398,10 @@ export default function HolographicHome({dream = false}: Props) {
               setSettingsOpen(false);
               setGalleryOpen(true);
             }}
+            onOpenHelp={() => {
+              setSettingsOpen(false);
+              setHelpOpen(true);
+            }}
           />
 
           <WallpaperGallery
@@ -427,7 +409,18 @@ export default function HolographicHome({dream = false}: Props) {
             onClose={() => setGalleryOpen(false)}
           />
 
+          <HelpGuide visible={helpOpen} onClose={() => setHelpOpen(false)} />
+
           <AppDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
+
+          <AppDrawerIntroModal
+            visible={introVisible}
+            onClose={() => setIntroVisible(false)}
+            onTryNow={() => {
+              setIntroVisible(false);
+              setDrawerOpen(true);
+            }}
+          />
 
           <OrbitItemModal
             item={activeOrbitItem}
@@ -463,12 +456,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(8,32,31,0.92)',
+    backgroundColor: 'rgba(23, 11, 40,0.92)',
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.4)',
+    borderColor: 'rgba(139, 92, 246, 0.4)',
     zIndex: 400,
   },
   editBannerText: {
@@ -479,7 +472,7 @@ const styles = StyleSheet.create({
     writingDirection: 'rtl',
   },
   editDoneBtn: {
-    backgroundColor: 'rgba(64,224,208,0.25)',
+    backgroundColor: 'rgba(139, 92, 246, 0.25)',
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 18,
@@ -490,20 +483,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-  fingerHint: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 34,
-    textAlign: 'center',
-    fontSize: 30,
-    zIndex: 351,
-  },
   drawerHandleZone: {
+    // `bottom` is set inline from useSafeAreaInsets() — see the render below.
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
     height: 56,
     alignItems: 'center',
     justifyContent: 'flex-end',

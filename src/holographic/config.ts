@@ -72,13 +72,14 @@ export const BACKGROUNDS: BackgroundOption[] = [
   // re-add as {id: 'main', label: 'اصلی', source: require('./assets/main.png')}
   // once it's dropped in.
   {
-    id: 'iran_gol',
-    label: 'نقشه گل ایران',
-    source: require('./assets/iran_gol.jpeg'),
-    // Square graphic — 'cover' would crop off most of its width on a tall
-    // phone screen and make the map look stretched/cut off.
-    fit: 'contain',
-    letterboxColor: '#efe3d3',
+    id: 'spaceman',
+    label: 'فضانورد',
+    source: require('./assets/space_man.jpeg'),
+    // 736×1308 (~9:16) — matches phone aspect so 'cover' crops almost
+    // nothing, but it's a lower-res source than the other backgrounds, so
+    // it'll be upscaled ~1.5-2x on most phone screens (see chat: kept as-is
+    // per explicit instruction not to touch this pick further).
+    fit: 'cover',
   },
   // {id: 'hero', label: 'پرتره', source: require('./assets/hero.jpg')},
   // {id: 'black', label: 'مشکی'},
@@ -86,7 +87,7 @@ export const BACKGROUNDS: BackgroundOption[] = [
 ];
 
 /** Which background is selected by default. */
-export const DEFAULT_BACKGROUND_ID = 'iran_gol';
+export const DEFAULT_BACKGROUND_ID = 'spaceman';
 
 /**
  * Countdown widget defaults. This is a GENERIC countdown to a configurable

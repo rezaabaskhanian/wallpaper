@@ -67,6 +67,69 @@ export function sampleDayNight(hour: number, sun: SunTimes): DayNight {
   };
 }
 
+export type SunFlareSample = {
+  /** 0 (left edge) .. 1 (right edge), fraction of screen width. */
+  x: number;
+  /** 0 (near top) .. 1 (lower band), fraction of screen height. */
+  y: number;
+  /** 0 = invisible .. 1 = full brightness. */
+  intensity: number;
+  /** Flare tint as an rgb() string. */
+  color: string;
+};
+
+// Keeps the flare's screen-space travel confined to an upper band, so it
+// arcs behind the clock/orbs instead of drifting through screen centre.
+const FLARE_TOP_BAND = 0.08;
+const FLARE_BOTTOM_BAND = 0.5;
+// How far past the real sunrise/sunset the flare keeps fading in/out, so it
+// doesn't pop on/off at the exact minute.
+const FLARE_EDGE_MARGIN = 0.6;
+
+/**
+ * Where a sun-glow lens flare should sit on screen and how strong it should
+ * be, driven by the same sunrise/sunset window as the tint above. The sun
+ * travels left → right across the day, arcing highest (screen top, solar
+ * noon) and lowest/brightest-flared near the horizon band at sunrise/sunset,
+ * fading out entirely once night falls.
+ */
+export function sampleSunFlare(hour: number, sun: SunTimes): SunFlareSample {
+  const {sunrise, sunset} = sun;
+  const span = sunset - sunrise || 1;
+  const start = sunrise - FLARE_EDGE_MARGIN;
+  const end = sunset + FLARE_EDGE_MARGIN;
+  if (hour <= start || hour >= end) {
+    return {x: 0.5, y: FLARE_BOTTOM_BAND, intensity: 0, color: 'rgb(255,255,255)'};
+  }
+
+  const t = Math.max(0, Math.min(1, (hour - sunrise) / span));
+  // Parabolic arc: 0 at either horizon (t=0/1), 1 at solar noon (t=0.5).
+  const arc = 1 - Math.pow(2 * t - 1, 2);
+
+  let edgeFade = 1;
+  if (hour < sunrise) {
+    edgeFade = (hour - start) / FLARE_EDGE_MARGIN;
+  } else if (hour > sunset) {
+    edgeFade = (end - hour) / FLARE_EDGE_MARGIN;
+  }
+
+  // Real low-sun flares read brighter/warmer than high-noon glare.
+  const closeToHorizon = 1 - arc;
+  const intensity =
+    Math.max(0, Math.min(1, edgeFade)) * (0.35 + 0.65 * closeToHorizon);
+
+  const horizonColor: Rgba = [255, 130, 70, 1];
+  const noonColor: Rgba = [255, 250, 225, 1];
+  const [r, g, b] = lerpRgba(horizonColor, noonColor, arc);
+
+  return {
+    x: t,
+    y: FLARE_TOP_BAND + (1 - arc) * (FLARE_BOTTOM_BAND - FLARE_TOP_BAND),
+    intensity,
+    color: `rgb(${r}, ${g}, ${b})`,
+  };
+}
+
 /** Forced-mode helper: pick a representative hour for 'day' / 'night'. */
 export function hourForMode(
   mode: 'auto' | 'day' | 'night',

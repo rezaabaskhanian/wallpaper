@@ -99,11 +99,11 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 340,
-    backgroundColor: '#08201f',
+    backgroundColor: '#170b28',
     borderRadius: 20,
     padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.25)',
+    borderColor: 'rgba(139, 92, 246, 0.25)',
     alignItems: 'center',
   },
   title: {
@@ -129,12 +129,12 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     flex: 1,
-    backgroundColor: 'rgba(64,224,208,0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.35)',
+    borderColor: 'rgba(139, 92, 246, 0.35)',
   },
   cancelButton: {
     flex: 1,

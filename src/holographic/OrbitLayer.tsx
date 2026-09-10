@@ -247,7 +247,7 @@ export default function OrbitLayer({
   tiltY,
   onSelectItem,
 }: Props) {
-  const {settings} = useSettings();
+  const {settings, resolvedGlowColor} = useSettings();
   const {orbitItems} = useStore();
   const items = useOrbitItems();
   const rings = RINGS.slice(0, Math.max(1, settings.ringCount));
@@ -301,7 +301,7 @@ export default function OrbitLayer({
           point={point}
           sphereRadius={sphereRadius}
           axis={mixedAxis ? point.itemIndex % 3 : globalAxis}
-          glow={settings.glowColor}
+          glow={resolvedGlowColor}
           visibility={settings.orbVisibility}
           minSide={minSide}
           centerX={centerX}

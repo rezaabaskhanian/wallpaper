@@ -77,11 +77,11 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxHeight: '80%',
-    backgroundColor: '#08201f',
+    backgroundColor: '#170b28',
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.25)',
+    borderColor: 'rgba(139, 92, 246, 0.25)',
   },
   content: {
     alignItems: 'center',
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(212,175,55,0.7)',
   },
   photoPlaceholder: {
-    backgroundColor: 'rgba(64,224,208,0.15)',
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
   },
   name: {
     color: '#f5e6b3',
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     marginTop: 16,
-    backgroundColor: 'rgba(64,224,208,0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',

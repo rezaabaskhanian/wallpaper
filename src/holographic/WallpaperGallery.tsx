@@ -262,7 +262,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
 
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator color="#2dd4bf" size="large" />
+            <ActivityIndicator color="#8b5cf6" size="large" />
           </View>
         ) : error ? (
           <View style={styles.center}>
@@ -327,7 +327,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
                 />
                 <AppText style={styles.previewTitle}>{selected.title}</AppText>
                 {busy ? (
-                  <ActivityIndicator color="#2dd4bf" style={styles.busySpinner} />
+                  <ActivityIndicator color="#8b5cf6" style={styles.busySpinner} />
                 ) : (
                   <>
                     <Pressable
@@ -371,7 +371,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: {flex: 1, backgroundColor: '#08201f'},
+  root: {flex: 1, backgroundColor: '#170b28'},
   header: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   },
   title: {color: '#eafffb', fontSize: 18, fontWeight: '700', writingDirection: 'rtl'},
   headerBtn: {paddingHorizontal: 8, paddingVertical: 4},
-  headerBtnText: {color: '#9be7d8', fontSize: 16},
+  headerBtnText: {color: '#c4b5fd', fontSize: 16},
   unlockBanner: {
     margin: 12,
     marginBottom: 0,
@@ -409,9 +409,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.2)',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
   },
-  catActive: {backgroundColor: 'rgba(64,224,208,0.22)', borderColor: '#2dd4bf'},
+  catActive: {backgroundColor: 'rgba(139, 92, 246, 0.22)', borderColor: '#8b5cf6'},
   catText: {color: 'rgba(255,255,255,0.7)', fontSize: 13, writingDirection: 'rtl'},
   catTextActive: {color: '#eafffb', fontWeight: '700'},
   subCats: {paddingTop: 6},
@@ -421,15 +421,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.12)',
+    borderColor: 'rgba(139, 92, 246, 0.12)',
   },
-  subCatActive: {backgroundColor: 'rgba(64,224,208,0.16)', borderColor: '#2dd4bf'},
+  subCatActive: {backgroundColor: 'rgba(139, 92, 246, 0.16)', borderColor: '#8b5cf6'},
   subCatText: {color: 'rgba(255,255,255,0.55)', fontSize: 12, writingDirection: 'rtl'},
   subCatTextActive: {color: '#eafffb', fontWeight: '700'},
   center: {flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12},
   muted: {color: 'rgba(255,255,255,0.6)', fontSize: 15, writingDirection: 'rtl'},
   retry: {
-    backgroundColor: 'rgba(64,224,208,0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
     borderRadius: 10,
     paddingHorizontal: 18,
     paddingVertical: 10,
@@ -469,13 +469,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#08201f',
+    backgroundColor: '#170b28',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 16,
     paddingBottom: 24,
     borderTopWidth: 1,
-    borderColor: 'rgba(64,224,208,0.25)',
+    borderColor: 'rgba(139, 92, 246, 0.25)',
     alignItems: 'stretch',
   },
   previewImage: {
@@ -494,17 +494,17 @@ const styles = StyleSheet.create({
     writingDirection: 'rtl',
   },
   action: {
-    backgroundColor: 'rgba(64,224,208,0.15)',
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.3)',
+    borderColor: 'rgba(139, 92, 246, 0.3)',
     marginTop: 8,
   },
   actionRow: {flexDirection: 'row-reverse', gap: 8},
   actionHalf: {flex: 1},
   actionText: {color: '#eafffb', fontSize: 15, fontWeight: '700', writingDirection: 'rtl'},
   previewClose: {alignItems: 'center', paddingVertical: 12, marginTop: 6},
-  previewCloseText: {color: '#9be7d8', fontSize: 15},
+  previewCloseText: {color: '#c4b5fd', fontSize: 15},
 });

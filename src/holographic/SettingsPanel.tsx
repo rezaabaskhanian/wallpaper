@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import AppText from './AppText';
 import {showAlert} from './AppAlert';
-import {launchImageLibrary} from 'react-native-image-picker';
+// import {launchImageLibrary} from 'react-native-image-picker';
 import {BACKGROUNDS, MAX_ORBS, RINGS} from './config';
 import {FONTS} from './fonts';
 import {setWidgetAutoRotateQuote} from './homeWidget';
@@ -19,7 +19,8 @@ import type {WallpaperTarget} from './lockWallpaper';
 import {openLauncherSettings, openScreenSaverSettings} from './systemScreens';
 import {useSettings} from './SettingsContext';
 import {useStore} from './store/StoreContext';
-import {THEMES} from './themes';
+// «تم آماده» فعلاً از UI کامنت شده — این ایمپورت هم موقتاً غیرفعال است.
+// import {THEMES} from './themes';
 
 /** Telegram handle of the app's developer, shown in Settings ▸ عمومی. */
 const DEVELOPER_TELEGRAM_USERNAME = 'RezaAbaskhanian';
@@ -31,6 +32,8 @@ type Props = {
   onSetWallpaper?: (target: WallpaperTarget) => void;
   /** Open the downloadable-wallpaper gallery. */
   onOpenGallery?: () => void;
+  /** Open the in-app "how to use the app" guide. */
+  onOpenHelp?: () => void;
 };
 
 /** Glow/accent colour swatches offered in settings. */
@@ -59,9 +62,14 @@ export default function SettingsPanel({
   onClose,
   onSetWallpaper,
   onOpenGallery,
+  onOpenHelp,
 }: Props) {
-  const {settings, update, applyTheme} = useSettings();
-  const {premiumUnlocked, redeemCode, orbitItems, quoteCategories} = useStore();
+  // applyTheme از useSettings() اینجا موقتاً استفاده نمی‌شود چون بخش «تم
+  // آماده» بالا کامنت شده — با برگرداندن آن UI، اینجا هم برگردانده شود.
+  const {settings, update, userPresets, savePreset, applyPreset, deletePreset} =
+    useSettings();
+  const {premiumUnlocked, redeemCode, orbitItems, orbitCategories, quoteCategories} =
+    useStore();
   // Upper bound for the ballCount stepper: never more than MAX_ORBS, and
   // never more than the active orbit theme actually has (so the user can
   // only dial the count *down* from its natural size, not pad it out).
@@ -94,6 +102,15 @@ export default function SettingsPanel({
   const scrollRef = useRef<ScrollView>(null);
   const [promoInput, setPromoInput] = useState('');
   const [redeeming, setRedeeming] = useState(false);
+  const [presetNameInput, setPresetNameInput] = useState('');
+
+  const confirmDeletePreset = (id: string, label: string) => {
+    showAlert('حذف پرست', `«${label}» حذف شود؟`, {
+      confirmText: 'حذف',
+      cancelText: 'انصراف',
+      onConfirm: () => deletePreset(id),
+    });
+  };
 
   const submitPromoCode = async () => {
     if (!promoInput.trim() || redeeming) {
@@ -130,25 +147,25 @@ export default function SettingsPanel({
       : []),
   ];
 
-  const pickFromGallery = async () => {
-    try {
-      const result = await launchImageLibrary({
-        mediaType: 'photo',
-        selectionLimit: 1,
-        quality: 1,
-      });
-      if (result.didCancel) {
-        return;
-      }
-      const uri = result.assets?.[0]?.uri;
-      if (uri) {
-        update('customBackgroundUri', uri);
-        update('backgroundId', 'custom');
-      }
-    } catch {
-      showAlert('خطا', 'انتخاب عکس ممکن نشد.');
-    }
-  };
+  // const pickFromGallery = async () => {
+  //   try {
+  //     const result = await launchImageLibrary({
+  //       mediaType: 'photo',
+  //       selectionLimit: 1,
+  //       quality: 1,
+  //     });
+  //     if (result.didCancel) {
+  //       return;
+  //     }
+  //     const uri = result.assets?.[0]?.uri;
+  //     if (uri) {
+  //       update('customBackgroundUri', uri);
+  //       update('backgroundId', 'custom');
+  //     }
+  //   } catch {
+  //     showAlert('خطا', 'انتخاب عکس ممکن نشد.');
+  //   }
+  // };
 
   return (
     <Modal
@@ -180,9 +197,18 @@ export default function SettingsPanel({
           })}
         </View>
 
-        <Pressable style={styles.galleryEntry} onPress={() => onOpenGallery?.()}>
-          <AppText style={styles.galleryEntryText}>🖼️ گالری والپیپرها</AppText>
-        </Pressable>
+        <View style={styles.entryRow}>
+          <Pressable
+            style={[styles.galleryEntry, styles.entryRowItem]}
+            onPress={() => onOpenGallery?.()}>
+            <AppText style={styles.galleryEntryText}>🖼️ گالری والپیپرها</AppText>
+          </Pressable>
+          <Pressable
+            style={[styles.helpEntry, styles.entryRowItem]}
+            onPress={() => onOpenHelp?.()}>
+            <AppText style={styles.helpEntryText}>📖 راهنمای کار با اپ</AppText>
+          </Pressable>
+        </View>
 
         <ScrollView
           ref={scrollRef}
@@ -219,6 +245,9 @@ export default function SettingsPanel({
                 </>
               ) : null}
 
+              {/* «تم آماده» فعلاً کامنت شده — نیاز به اصلاح دارد، شاید بعداً
+                  برگردانده شود. See THEMES in ./themes.ts and applyTheme in
+                  ./SettingsContext.tsx (هنوز موجودند، فقط UI‌اش مخفی است).
               <AppText style={styles.sectionTitle}>تم آماده</AppText>
               <View style={styles.chips}>
                 {THEMES.map(t => {
@@ -239,6 +268,17 @@ export default function SettingsPanel({
                   );
                 })}
               </View>
+              */}
+
+              <RowSwitch
+                label="رنگ پویا از عکس پس‌زمینه"
+                value={settings.dynamicColor}
+                onChange={v => update('dynamicColor', v)}
+              />
+              <AppText style={styles.hint}>
+                به‌جای رنگ دستی زیر، رنگ نور از خودِ عکس پس‌زمینهٔ فعلی
+                استخراج می‌شود.
+              </AppText>
 
               <RowColors
                 label="رنگ نور"
@@ -246,6 +286,61 @@ export default function SettingsPanel({
                 selected={settings.glowColor}
                 onSelect={c => update('glowColor', c)}
               />
+              {settings.dynamicColor ? (
+                <AppText style={styles.hint}>
+                  تا وقتی «رنگ پویا» روشن است، این انتخاب نادیده گرفته
+                  می‌شود.
+                </AppText>
+              ) : null}
+
+              <View style={styles.divider} />
+
+              <AppText style={styles.sectionTitle}>پرست‌های من</AppText>
+              {userPresets.length > 0 ? (
+                <View style={styles.chips}>
+                  {userPresets.map(p => (
+                    <View key={p.id} style={styles.presetChipWrap}>
+                      <Pressable style={styles.chip} onPress={() => applyPreset(p.id)}>
+                        <AppText style={styles.chipText}>{p.label}</AppText>
+                      </Pressable>
+                      <Pressable
+                        style={styles.presetDeleteBtn}
+                        hitSlop={8}
+                        onPress={() => confirmDeletePreset(p.id, p.label)}>
+                        <AppText style={styles.presetDeleteText}>✕</AppText>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <AppText style={styles.hint}>هنوز پرستی ذخیره نکرده‌ای.</AppText>
+              )}
+
+              <View style={styles.promoRow}>
+                <TextInput
+                  style={styles.promoInput}
+                  value={presetNameInput}
+                  onChangeText={setPresetNameInput}
+                  placeholder="نام پرست جدید"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                />
+                <Pressable
+                  style={[
+                    styles.promoBtn,
+                    !presetNameInput.trim() && styles.promoBtnDisabled,
+                  ]}
+                  disabled={!presetNameInput.trim()}
+                  onPress={() => {
+                    savePreset(presetNameInput.trim());
+                    setPresetNameInput('');
+                  }}>
+                  <AppText style={styles.promoBtnText}>ذخیره</AppText>
+                </Pressable>
+              </View>
+              <AppText style={styles.hint}>
+                تنظیمات فعلی (رنگ، ذرات، چرخش، پس‌زمینه و…) را با یک نام
+                دلخواه ذخیره کن تا بعداً با یک لمس به همین حالت برگردی.
+              </AppText>
 
               <View style={styles.divider} />
 
@@ -291,6 +386,15 @@ export default function SettingsPanel({
                 value={settings.showOrbs}
                 onChange={v => update('showOrbs', v)}
               />
+
+              {orbitCategories.length >= 2 ? (
+                <RowChoices
+                  label="تم اوربیت (شهدا/طبیعت/...)"
+                  options={orbitCategories.map(c => ({id: c.id, label: c.title}))}
+                  selected={settings.orbitCategoryId}
+                  onSelect={id => update('orbitCategoryId', id)}
+                />
+              ) : null}
 
               <RowChoices
                 label="نمایش گوی‌ها (ثابت / پیدا و پنهان)"
@@ -342,6 +446,28 @@ export default function SettingsPanel({
               <AppText style={styles.hint}>
                 با کج‌کردن گوشی، پس‌زمینه و گوی‌ها کمی جابه‌جا می‌شوند — علاوه
                 بر کشیدن با انگشت.
+              </AppText>
+
+              <RowSwitch
+                label="پارالاکس سه‌بعدی (شبیه‌سازی عمق)"
+                value={settings.depthParallax}
+                onChange={v => update('depthParallax', v)}
+              />
+              <AppText style={styles.hint}>
+                عکس پس‌زمینه مثل یک صفحهٔ سه‌بعدی با کج‌شدن گوشی می‌چرخد؛
+                نیاز به روشن‌بودن «پارالاکس با حرکت گوشی» دارد. توجه: این
+                جداسازی واقعیِ سوژه از پس‌زمینه (که به هوش‌مصنوعی نیاز دارد)
+                نیست، فقط شبیه‌سازی بصری عمق است.
+              </AppText>
+
+              <RowSwitch
+                label="واکنش لمسی (حلقهٔ نور روی ضربه)"
+                value={settings.touchRipple}
+                onChange={v => update('touchRipple', v)}
+              />
+              <AppText style={styles.hint}>
+                با هر ضربه روی صفحه، یک حلقهٔ نور کوتاه از همان نقطه باز
+                می‌شود و محو می‌شود.
               </AppText>
 
               <RowSwitch
@@ -402,6 +528,16 @@ export default function SettingsPanel({
                 }
               />
 
+              <RowSwitch
+                label="نور خورشید (Lens Flare)"
+                value={settings.sunFlare}
+                onChange={v => update('sunFlare', v)}
+              />
+              <AppText style={styles.hint}>
+                یک هالهٔ نور گرم که هماهنگ با طلوع/غروب واقعی روی آسمان
+                جابه‌جا می‌شود؛ شب خاموش است.
+              </AppText>
+
               <RowChoices
                 label="ذرات نور"
                 options={[
@@ -421,12 +557,20 @@ export default function SettingsPanel({
                   {id: 'low', label: 'کم'},
                   {id: 'medium', label: 'متوسط'},
                   {id: 'high', label: 'زیاد'},
+                  {id: 'extreme', label: 'خیلی زیاد'},
                 ]}
                 selected={settings.particleIntensity}
                 onSelect={id =>
-                  update('particleIntensity', id as 'low' | 'medium' | 'high')
+                  update(
+                    'particleIntensity',
+                    id as 'low' | 'medium' | 'high' | 'extreme',
+                  )
                 }
               />
+              <AppText style={styles.hint}>
+                هرچه شدت بیشتر باشد، هم تعداد ذرات نور بیشتر می‌شود و هم
+                سرعت حرکتشان.
+              </AppText>
 
               <RowSwitch
                 label="افکت سینمایی (تیرگی لبه‌ها)"
@@ -740,7 +884,7 @@ function RowSwitch({
       <Switch
         value={value}
         onValueChange={onChange}
-        trackColor={{true: '#2dd4bf', false: '#334155'}}
+        trackColor={{true: '#8b5cf6', false: '#334155'}}
         thumbColor="#eafffb"
       />
       <AppText style={styles.rowLabel}>{label}</AppText>
@@ -854,14 +998,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: '82%',
-    backgroundColor: '#08201f',
+    backgroundColor: '#170b28',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingBottom: 24,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderColor: 'rgba(64,224,208,0.25)',
+    borderColor: 'rgba(139, 92, 246, 0.25)',
   },
   handle: {
     alignSelf: 'center',
@@ -900,7 +1044,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   tabIndicatorActive: {
-    backgroundColor: '#2dd4bf',
+    backgroundColor: '#8b5cf6',
   },
   scroll: {
     flex: 1,
@@ -930,7 +1074,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(64,224,208,0.15)',
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -963,11 +1107,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.2)',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
   },
   chipActive: {
-    backgroundColor: 'rgba(64,224,208,0.22)',
-    borderColor: '#2dd4bf',
+    backgroundColor: 'rgba(139, 92, 246, 0.22)',
+    borderColor: '#8b5cf6',
   },
   chipText: {
     color: 'rgba(255,255,255,0.7)',
@@ -976,6 +1120,26 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: '#eafffb',
+    fontWeight: '700',
+  },
+  presetChipWrap: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 4,
+  },
+  presetDeleteBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(248,113,113,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(248,113,113,0.4)',
+  },
+  presetDeleteText: {
+    color: '#fca5a5',
+    fontSize: 12,
     fontWeight: '700',
   },
   swatch: {
@@ -991,12 +1155,21 @@ const styles = StyleSheet.create({
   },
   galleryBtn: {
     marginTop: 12,
-    backgroundColor: 'rgba(64,224,208,0.12)',
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.3)',
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+  },
+  entryRow: {
+    flexDirection: 'row-reverse',
+    gap: 8,
+    marginBottom: 10,
+  },
+  entryRowItem: {
+    flex: 1,
+    marginBottom: 0,
   },
   galleryEntry: {
     backgroundColor: 'rgba(245,196,81,0.15)',
@@ -1005,11 +1178,24 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    marginBottom: 10,
   },
   galleryEntryText: {
     color: '#f5e6b3',
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '700',
+    writingDirection: 'rtl',
+  },
+  helpEntry: {
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    borderColor: 'rgba(139, 92, 246, 0.5)',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  helpEntryText: {
+    color: '#c4b5fd',
+    fontSize: 14,
     fontWeight: '700',
     writingDirection: 'rtl',
   },
@@ -1028,7 +1214,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'right',
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.2)',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
   },
   promoBtn: {
     backgroundColor: 'rgba(245,196,81,0.22)',
@@ -1055,12 +1241,12 @@ const styles = StyleSheet.create({
   },
   smallBtn: {
     flex: 1,
-    backgroundColor: 'rgba(64,224,208,0.12)',
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.3)',
+    borderColor: 'rgba(139, 92, 246, 0.3)',
   },
   smallBtnText: {
     color: '#eafffb',
@@ -1076,7 +1262,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(64,224,208,0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
     marginVertical: 14,
   },
   fontList: {
@@ -1093,12 +1279,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.2)',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
     alignItems: 'center',
   },
   fontChipActive: {
-    backgroundColor: 'rgba(64,224,208,0.18)',
-    borderColor: '#2dd4bf',
+    backgroundColor: 'rgba(139, 92, 246, 0.18)',
+    borderColor: '#8b5cf6',
   },
   fontSample: {
     color: '#f5e6b3',
@@ -1117,7 +1303,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   sectionTitle: {
-    color: '#9be7d8',
+    color: '#c4b5fd',
     fontSize: 15,
     fontWeight: '700',
     textAlign: 'right',
@@ -1141,7 +1327,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'right',
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.2)',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
   },
   hint: {
     color: 'rgba(255,255,255,0.4)',
@@ -1152,7 +1338,7 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     marginTop: 14,
-    backgroundColor: 'rgba(64,224,208,0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',

@@ -99,7 +99,7 @@ export default function AppDrawer({visible, onClose}: Props) {
           </View>
         ) : !apps ? (
           <View style={styles.center}>
-            <ActivityIndicator color="#2dd4bf" size="large" />
+            <ActivityIndicator color="#8b5cf6" size="large" />
           </View>
         ) : filtered.length === 0 ? (
           <View style={styles.center}>
@@ -134,7 +134,7 @@ export default function AppDrawer({visible, onClose}: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: {flex: 1, backgroundColor: '#08201fee'},
+  root: {flex: 1, backgroundColor: '#170b28ee'},
   header: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
@@ -145,13 +145,13 @@ const styles = StyleSheet.create({
   },
   title: {color: '#eafffb', fontSize: 18, fontWeight: '700', writingDirection: 'rtl'},
   closeBtn: {paddingHorizontal: 8, paddingVertical: 4, minWidth: 44},
-  closeBtnText: {color: '#9be7d8', fontSize: 16, textAlign: 'left'},
+  closeBtnText: {color: '#c4b5fd', fontSize: 16, textAlign: 'left'},
   search: {
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(64,224,208,0.25)',
+    borderColor: 'rgba(139, 92, 246, 0.25)',
     backgroundColor: 'rgba(255,255,255,0.06)',
     color: '#eafffb',
     paddingHorizontal: 14,
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   center: {flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12},
   muted: {color: 'rgba(255,255,255,0.6)', fontSize: 15, writingDirection: 'rtl'},
   retry: {
-    backgroundColor: 'rgba(64,224,208,0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
     borderRadius: 10,
     paddingHorizontal: 18,
     paddingVertical: 10,

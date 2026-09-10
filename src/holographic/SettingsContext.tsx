@@ -1,11 +1,13 @@
 import React, {createContext, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {COUNTDOWN, DEFAULT_BACKGROUND_ID, RINGS} from './config';
+import {BACKGROUNDS, COUNTDOWN, DEFAULT_BACKGROUND_ID, RINGS} from './config';
 import {DEFAULT_FONT_ID} from './fonts';
 import {setAppFont} from './setupFonts';
 import {THEMES} from './themes';
+import {useDynamicAccentColor, type DynamicColorSource} from './dynamicColor';
 
 const SETTINGS_STORAGE_KEY = 'wallpaperSettings:v1';
+const PRESETS_STORAGE_KEY = 'wallpaperPresets:v1';
 
 /** A draggable widget's position offset (px) from its default anchor. */
 export type LayoutOffset = {x: number; y: number};
@@ -41,12 +43,21 @@ export type WallpaperSettings = {
   customBackgroundUri?: string;
   /** Day/night colour theme: auto (by sun times), forced day/night, or off. */
   dayNightMode: 'auto' | 'day' | 'night' | 'off';
+  /** Dynamic sun-glow lens flare that arcs across the sky in sync with
+   * dayNightMode (see sampleSunFlare in dayNight.ts); off at night. */
+  sunFlare: boolean;
   /** Floating light-particle effect: off, always on, or auto (brighter at night). */
   particleMode: 'off' | 'on' | 'auto';
-  /** Particle density/brightness. */
-  particleIntensity: 'low' | 'medium' | 'high';
-  /** Glow/accent colour for the orbs and particles (hex). */
+  /** Particle density/brightness/speed — each step up adds more dust motes
+   * and makes them drift faster (see COUNTS/SPEED_FACTOR in ParticleField.tsx). */
+  particleIntensity: 'low' | 'medium' | 'high' | 'extreme';
+  /** Glow/accent colour for the orbs and particles (hex). Ignored in favour
+   * of a colour sampled from the background photo when `dynamicColor` is on
+   * (and sampling succeeds) — see `resolvedGlowColor` on the context. */
   glowColor: string;
+  /** Derive the glow colour from the current background photo instead of the
+   * manual swatch above. Off by default. */
+  dynamicColor: boolean;
   /** Cinematic dark-edge vignette overlay. */
   vignette: boolean;
   /** Ambient mist rolling in from an edge: off, bottom, top, or both. */
@@ -97,6 +108,15 @@ export type WallpaperSettings = {
   // combatMode: boolean;
   /** Tilt the scene with the device's gyroscope, on top of the drag parallax. */
   gyroParallax: boolean;
+  /** Tilt the background photo as a 3D plane (perspective rotate) under the
+   * gyroscope, instead of a flat translate. No real subject/foreground
+   * cutout (that needs an on-device ML segmentation model, not currently a
+   * dependency) — this is a stylised "tilting plane" depth cue layered
+   * against the already-independent orbit/particle parallax speeds. Off by
+   * default; requires gyroParallax to also be on to have any effect. */
+  depthParallax: boolean;
+  /** Show an expanding glow ring wherever the screen is tapped. */
+  touchRipple: boolean;
   /** Rain/snow particle effect: off, user-picked rain/snow, or 'auto'
    * (driven by the live weather condition instead of a manual pick). */
   weatherEffects: 'off' | 'rain' | 'snow' | 'auto';
@@ -107,14 +127,33 @@ export type WallpaperSettings = {
   widgetAutoRotateQuote: boolean;
 };
 
+/** A user-saved snapshot of the full settings state, under a name they chose. */
+export type UserPreset = {
+  id: string;
+  label: string;
+  createdAt: number;
+  snapshot: WallpaperSettings;
+};
+
 type SettingsContextValue = {
   settings: WallpaperSettings;
+  /** `settings.glowColor`, unless `dynamicColor` is on and a colour was
+   * successfully sampled from the current background photo — use this
+   * wherever the glow/accent colour is actually rendered. */
+  resolvedGlowColor: string;
   update: <K extends keyof WallpaperSettings>(
     key: K,
     value: WallpaperSettings[K],
   ) => void;
   /** Apply a theme preset (one-shot; values stay editable afterwards). */
   applyTheme: (themeId: string) => void;
+  /** User-saved presets (see savePreset), persisted separately from settings. */
+  userPresets: UserPreset[];
+  /** Snapshot the current settings under a chosen name. */
+  savePreset: (label: string) => void;
+  /** Restore every setting from a previously saved preset. */
+  applyPreset: (id: string) => void;
+  deletePreset: (id: string) => void;
 };
 
 const DEFAULTS: WallpaperSettings = {
@@ -127,9 +166,11 @@ const DEFAULTS: WallpaperSettings = {
   orbitCategoryId: '',
   rotationAxis: 'y',
   dayNightMode: 'auto',
+  sunFlare: false,
   particleMode: 'auto',
   particleIntensity: 'medium',
   glowColor: '#5eead4',
+  dynamicColor: true,
   vignette: false,
   fogMode: 'off',
   fogIntensity: 'medium',
@@ -152,6 +193,8 @@ const DEFAULTS: WallpaperSettings = {
   countdownLabel: COUNTDOWN.label,
   // combatMode: false, // [combat mode disabled for now]
   gyroParallax: false,
+  depthParallax: false,
+  touchRipple: false,
   weatherEffects: 'off',
   animatedLockedPreview: true,
   widgetAutoRotateQuote: true,
@@ -166,11 +209,29 @@ export function SettingsProvider({children}: {children: React.ReactNode}) {
   // DEFAULTS before the real, previously-saved values have been read.
   const loadedRef = useRef(false);
 
+  const [userPresets, setUserPresets] = useState<UserPreset[]>([]);
+  const presetsLoadedRef = useRef(false);
+
   useEffect(() => {
     AsyncStorage.getItem(SETTINGS_STORAGE_KEY)
       .then(raw => {
         if (!raw) return;
         const saved = JSON.parse(raw) as Partial<WallpaperSettings>;
+        // A background bundled at save-time can later be removed from
+        // BACKGROUNDS (see config.ts) — without this, a device that had
+        // picked it stays stuck pointing at a photo that no longer exists
+        // (MainBackground then renders nothing) instead of falling back to
+        // the app's current default.
+        const validBackgroundIds = new Set([
+          ...BACKGROUNDS.map(b => b.id),
+          'custom',
+        ]);
+        if (
+          saved.backgroundId !== undefined &&
+          !validBackgroundIds.has(saved.backgroundId)
+        ) {
+          saved.backgroundId = DEFAULT_BACKGROUND_ID;
+        }
         setSettings(prev => ({...prev, ...saved}));
       })
       .catch(() => {
@@ -179,6 +240,18 @@ export function SettingsProvider({children}: {children: React.ReactNode}) {
       .finally(() => {
         loadedRef.current = true;
       });
+
+    AsyncStorage.getItem(PRESETS_STORAGE_KEY)
+      .then(raw => {
+        if (!raw) return;
+        setUserPresets(JSON.parse(raw) as UserPreset[]);
+      })
+      .catch(() => {
+        // No saved presets yet, or corrupted — start with an empty list.
+      })
+      .finally(() => {
+        presetsLoadedRef.current = true;
+      });
   }, []);
 
   useEffect(() => {
@@ -186,22 +259,65 @@ export function SettingsProvider({children}: {children: React.ReactNode}) {
     AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)).catch(() => {});
   }, [settings]);
 
+  useEffect(() => {
+    if (!presetsLoadedRef.current) return;
+    AsyncStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(userPresets)).catch(() => {});
+  }, [userPresets]);
+
   // Keep the global font patch (setupFonts) in sync with the selection so every
   // re-rendered piece of text uses the chosen font. Done during render so the
   // children below read the correct font on the same pass.
   setAppFont(settings.fontId);
 
+  // Mirrors MainBackground's own source resolution so the sampled colour
+  // always matches what's actually on screen. Skipped for a remote gallery
+  // URL only in that it's fetched directly (Skia's Data.fromURI handles
+  // http(s) itself) rather than through the app's own image cache.
+  const bundledBackground = BACKGROUNDS.find(b => b.id === settings.backgroundId);
+  const dynamicColorSource: DynamicColorSource =
+    settings.backgroundId === 'custom'
+      ? settings.customBackgroundUri
+      : bundledBackground?.source;
+  const dynamicGlowColor = useDynamicAccentColor(
+    dynamicColorSource,
+    settings.dynamicColor,
+  );
+  const resolvedGlowColor = dynamicGlowColor ?? settings.glowColor;
+
   const value = useMemo<SettingsContextValue>(
     () => ({
       settings,
+      resolvedGlowColor,
       update: (key, val) => setSettings(prev => ({...prev, [key]: val})),
       applyTheme: themeId => {
         const theme = THEMES.find(t => t.id === themeId);
         if (!theme) return;
         setSettings(prev => ({...prev, ...theme.patch, themeId}));
       },
+      userPresets,
+      savePreset: label => {
+        const trimmed = label.trim();
+        if (!trimmed) return;
+        setUserPresets(prev => [
+          ...prev,
+          {
+            id: `${Date.now()}`,
+            label: trimmed,
+            createdAt: Date.now(),
+            snapshot: settings,
+          },
+        ]);
+      },
+      applyPreset: id => {
+        const preset = userPresets.find(p => p.id === id);
+        if (!preset) return;
+        setSettings(preset.snapshot);
+      },
+      deletePreset: id => {
+        setUserPresets(prev => prev.filter(p => p.id !== id));
+      },
     }),
-    [settings],
+    [settings, userPresets, resolvedGlowColor],
   );
 
   return (

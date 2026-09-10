@@ -22,7 +22,7 @@ export default function Avatar({
   colors,
   label,
   image,
-  glow = 'rgba(64, 224, 208, 0.9)',
+  glow = 'rgba(139, 92, 246, 0.9)',
   ringWidth = 2,
 }: Props) {
   return (

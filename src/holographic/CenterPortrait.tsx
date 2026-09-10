@@ -28,7 +28,7 @@ export default function CenterPortrait({
   parallaxX,
   parallaxY,
 }: Props) {
-  const {settings} = useSettings();
+  const {resolvedGlowColor} = useSettings();
   const hero = useHero();
   const size = minSide * 0.5;
 
@@ -60,7 +60,7 @@ export default function CenterPortrait({
         size={size}
         colors={hero.colors}
         image={hero.image}
-        glow={settings.glowColor}
+        glow={resolvedGlowColor}
         ringWidth={0}
       />
     </Animated.View>
