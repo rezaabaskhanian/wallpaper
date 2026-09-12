@@ -270,31 +270,6 @@ export default function SettingsPanel({
               </View>
               */}
 
-              <RowSwitch
-                label="رنگ پویا از عکس پس‌زمینه"
-                value={settings.dynamicColor}
-                onChange={v => update('dynamicColor', v)}
-              />
-              <AppText style={styles.hint}>
-                به‌جای رنگ دستی زیر، رنگ نور از خودِ عکس پس‌زمینهٔ فعلی
-                استخراج می‌شود.
-              </AppText>
-
-              <RowColors
-                label="رنگ نور"
-                colors={GLOW_COLORS}
-                selected={settings.glowColor}
-                onSelect={c => update('glowColor', c)}
-              />
-              {settings.dynamicColor ? (
-                <AppText style={styles.hint}>
-                  تا وقتی «رنگ پویا» روشن است، این انتخاب نادیده گرفته
-                  می‌شود.
-                </AppText>
-              ) : null}
-
-              <View style={styles.divider} />
-
               <AppText style={styles.sectionTitle}>پرست‌های من</AppText>
               {userPresets.length > 0 ? (
                 <View style={styles.chips}>
@@ -571,6 +546,29 @@ export default function SettingsPanel({
                 هرچه شدت بیشتر باشد، هم تعداد ذرات نور بیشتر می‌شود و هم
                 سرعت حرکتشان.
               </AppText>
+
+              <RowSwitch
+                label="رنگ پویا از عکس پس‌زمینه"
+                value={settings.dynamicColor}
+                onChange={v => update('dynamicColor', v)}
+              />
+              <AppText style={styles.hint}>
+                به‌جای رنگ دستی زیر، رنگ ذرات نور از خودِ عکس پس‌زمینهٔ فعلی
+                استخراج می‌شود.
+              </AppText>
+
+              <RowColors
+                label="رنگ نور"
+                colors={GLOW_COLORS}
+                selected={settings.glowColor}
+                onSelect={c => update('glowColor', c)}
+              />
+              {settings.dynamicColor ? (
+                <AppText style={styles.hint}>
+                  تا وقتی «رنگ پویا» روشن است، این انتخاب نادیده گرفته
+                  می‌شود.
+                </AppText>
+              ) : null}
 
               <RowSwitch
                 label="افکت سینمایی (تیرگی لبه‌ها)"

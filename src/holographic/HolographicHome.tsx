@@ -291,13 +291,19 @@ export default function HolographicHome({dream = false}: Props) {
 
   return (
     <View style={styles.root}>
-      <DayNightLayer hideStars={capturing} />
-
       <GestureDetector gesture={sceneGesture}>
         <View style={styles.root}>
           <Animated.View style={[styles.root, backgroundTiltStyle]}>
             <MainBackground />
           </Animated.View>
+
+          {/* Painted right after the photo (not before it) — RN stacks
+              children strictly in JSX/paint order when no zIndex is set, so
+              this has to sit above MainBackground or the opaque photo would
+              hide the tint/stars/flare entirely. Still below the orbs and
+              widgets, per its own doc comment. */}
+          <DayNightLayer hideStars={capturing} />
+
           {/* Orbiting martyr avatars — hidden during capture so the wallpaper
               is a clean background without the floating icons. */}
           {!capturing ? (
