@@ -94,6 +94,9 @@ services:
       - "traefik.http.routers.wallpaper-backend.rule=Host(`api.wallpaperapp.ir`)"
       - "traefik.http.routers.wallpaper-backend.entrypoints=web"
       - "traefik.http.services.wallpaper-backend.loadbalancer.server.port=8090"
+      # بک‌اند هم‌زمان روی wallpaper_net و traefik_net است — بدون این لیبل
+      # Traefik نمی‌داند کدام شبکه را برای رسیدن به کانتینر استفاده کند.
+      - "traefik.docker.network=arama_aramina_net"
     networks:
       - wallpaper_net
       - traefik_net
