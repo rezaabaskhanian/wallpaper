@@ -1,8 +1,10 @@
-// Package aiproxyservice یک لینک vless:// را که ادمین از پنل پیست می‌کند به کانفیگ
-// Xray-core تبدیل می‌کند، در یک ولوم مشترک با کانتینر xray (سرویس sidecar در
-// docker-compose.prod.yml) می‌نویسد، و بعد از چند ثانیه (زمانی که xray کانفیگ
-// جدید را تشخیص داده و ری‌استارت می‌کند) اتصال را از طریق همان پراکسی که
-// httpproxy.NewClient برای Claude/Gemini/DeepSeek استفاده می‌کند تست می‌کند.
+// Package aiproxyservice یک لینک اکانت فیلترشکن (vless://, vmess://,
+// trojan://, ss://, یا یک JSON کامل outbound) را که ادمین از پنل پیست می‌کند
+// به کانفیگ Xray-core تبدیل می‌کند (ببینید parseProxyLink در link.go)، در یک
+// ولوم مشترک با کانتینر xray (سرویس sidecar در docker-compose.prod.yml)
+// می‌نویسد، و بعد از چند ثانیه (زمانی که xray کانفیگ جدید را تشخیص داده و
+// ری‌استارت می‌کند) اتصال را از طریق همان پراکسی که httpproxy.NewClient برای
+// Claude/Gemini/DeepSeek استفاده می‌کند تست می‌کند.
 //
 // این الگو عیناً از پیاده‌سازی امتحان‌شده و در پروداکشن پروژه‌ی دیگر (Shadowing/
 // lingoflow.ir، internal/service/proxy) گرفته شده — همان مشکل (بلاک IP سرورهای
@@ -42,8 +44,8 @@ type Status struct {
 }
 
 type Repository interface {
-	GetVlessLink(ctx context.Context) (string, error)
-	SetVlessLink(ctx context.Context, link string) error
+	GetProxyLink(ctx context.Context) (string, error)
+	SetProxyLink(ctx context.Context, link string) error
 }
 
 type Service struct {
@@ -70,7 +72,7 @@ func New(repo Repository, proxyURL string) Service {
 
 // CurrentLink آخرین لینکی که ادمین ثبت کرده را برمی‌گرداند (برای پرکردن فرم در پنل).
 func (s Service) CurrentLink(ctx context.Context) (string, error) {
-	return s.repo.GetVlessLink(ctx)
+	return s.repo.GetProxyLink(ctx)
 }
 
 // Connect لینک جدید را پارس، کانفیگ Xray را می‌نویسد، لینک را ذخیره می‌کند و
@@ -78,7 +80,7 @@ func (s Service) CurrentLink(ctx context.Context) (string, error) {
 func (s Service) Connect(ctx context.Context, link string) (Status, error) {
 	const op = "aiproxyservice.Connect"
 
-	cfg, err := parseVlessLink(link, s.socksPort)
+	cfg, err := parseProxyLink(link, s.socksPort)
 	if err != nil {
 		return Status{}, richerror.New(op).WithErr(err).WithMessage(err.Error())
 	}
@@ -93,7 +95,7 @@ func (s Service) Connect(ctx context.Context, link string) (Status, error) {
 			WithMessage(fmt.Sprintf("خطا در نوشتن کانفیگ (%s): %v", s.configPath, err))
 	}
 
-	if err := s.repo.SetVlessLink(ctx, link); err != nil {
+	if err := s.repo.SetProxyLink(ctx, link); err != nil {
 		return Status{}, richerror.New(op).WithErr(err).WithMessage("خطا در ذخیره‌ی لینک")
 	}
 

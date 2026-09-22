@@ -3,6 +3,7 @@ package postgresaigeneration
 import (
 	"context"
 
+	domain "wallpaperstore/internal/domain/aigenerationlog"
 	"wallpaperstore/internal/pkg/richerror"
 
 	"github.com/jackc/pgx/v5"
@@ -122,4 +123,65 @@ func (d DB) AddCredits(ctx context.Context, deviceID, purchaseToken, sku string,
 		return richerror.New(op).WithErr(err)
 	}
 	return nil
+}
+
+// SaveGenerationLog یک ردیف تاریخچه (توکن مصرف‌شده + هزینه‌ی محاسبه‌شده) برای
+// یک تولید موفق ثبت می‌کند.
+func (d DB) SaveGenerationLog(ctx context.Context, log domain.GenerationLog) error {
+	const op = "postgresaigeneration.SaveGenerationLog"
+
+	_, err := d.conn.Exec(ctx, `
+		INSERT INTO ai_generation_logs
+			(device_id, prompt, image_url, prompt_tokens, output_tokens, total_tokens, cost_usd, cost_toman)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`, log.DeviceID, log.Prompt, log.ImageURL, log.PromptTokens, log.OutputTokens, log.TotalTokens, log.CostUSD, log.CostToman)
+	if err != nil {
+		return richerror.New(op).WithErr(err).WithMessage("failed to save generation log")
+	}
+	return nil
+}
+
+// ListGenerationLogs یک صفحه از تاریخچه (جدیدترین اول) به‌همراه جمع کل هزینه/
+// توکن (مستقل از صفحه‌بندی) برمی‌گرداند — برای نمایش در پنل ادمین.
+func (d DB) ListGenerationLogs(ctx context.Context, limit, offset int) (domain.Page, error) {
+	const op = "postgresaigeneration.ListGenerationLogs"
+
+	rows, err := d.conn.Query(ctx, `
+		SELECT id, device_id, prompt, image_url, prompt_tokens, output_tokens, total_tokens,
+		       cost_usd, cost_toman, created_at
+		FROM ai_generation_logs
+		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2
+	`, limit, offset)
+	if err != nil {
+		return domain.Page{}, richerror.New(op).WithErr(err).WithMessage("failed to list generation logs")
+	}
+	defer rows.Close()
+
+	var logs []domain.GenerationLog
+	for rows.Next() {
+		var l domain.GenerationLog
+		if err := rows.Scan(
+			&l.ID, &l.DeviceID, &l.Prompt, &l.ImageURL, &l.PromptTokens, &l.OutputTokens, &l.TotalTokens,
+			&l.CostUSD, &l.CostToman, &l.CreatedAt,
+		); err != nil {
+			return domain.Page{}, richerror.New(op).WithErr(err).WithMessage("failed to scan generation log")
+		}
+		logs = append(logs, l)
+	}
+	if err := rows.Err(); err != nil {
+		return domain.Page{}, richerror.New(op).WithErr(err)
+	}
+
+	var page domain.Page
+	page.Logs = logs
+	err = d.conn.QueryRow(ctx, `
+		SELECT COUNT(*), COALESCE(SUM(cost_usd), 0), COALESCE(SUM(cost_toman), 0), COALESCE(SUM(total_tokens), 0)
+		FROM ai_generation_logs
+	`).Scan(&page.TotalCount, &page.TotalCostUSD, &page.TotalCostToman, &page.TotalTokens)
+	if err != nil {
+		return domain.Page{}, richerror.New(op).WithErr(err).WithMessage("failed to sum generation logs")
+	}
+
+	return page, nil
 }

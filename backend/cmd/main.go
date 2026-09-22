@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	"wallpaperstore/internal/config"
@@ -33,6 +34,31 @@ import (
 	quoteservice "wallpaperstore/internal/service/quote"
 	wallpaperservice "wallpaperstore/internal/service/wallpaper"
 )
+
+// geminiImageGenerator یک adapter نازک است: gemini.Client نوع gemini.Result
+// برمی‌گرداند، اما aigenerateservice.ImageGenerator (برای جلوگیری از وابستگی
+// لایه‌ی سرویس به پکیج gemini) نوع aigenerateservice.ImageGenerationResult
+// می‌خواهد — این تبدیل فقط اینجا (لایه‌ی wiring) انجام می‌شود.
+type geminiImageGenerator struct {
+	client gemini.Client
+}
+
+func (g geminiImageGenerator) Enabled() bool {
+	return g.client.Enabled()
+}
+
+func (g geminiImageGenerator) GenerateImage(ctx context.Context, prompt string) (aigenerateservice.ImageGenerationResult, error) {
+	res, err := g.client.GenerateImage(ctx, prompt)
+	if err != nil {
+		return aigenerateservice.ImageGenerationResult{}, err
+	}
+	return aigenerateservice.ImageGenerationResult{
+		ImageBytes:   res.ImageBytes,
+		PromptTokens: res.PromptTokens,
+		OutputTokens: res.OutputTokens,
+		TotalTokens:  res.TotalTokens,
+	}, nil
+}
 
 func main() {
 	// کانفیگ از متغیرهای محیطی (12-Factor) با مقادیر پیش‌فرض
@@ -94,7 +120,7 @@ func main() {
 		bazaarClient,
 		storage,
 		func(apiKey string) aigenerateservice.ImageGenerator {
-			return gemini.NewWithClient(apiKey, aiHTTPClient)
+			return geminiImageGenerator{client: gemini.NewWithClient(apiKey, aiHTTPClient)}
 		},
 		aigenerateservice.EnrichmentProviders{
 			NewClaude: func(apiKey string) aigenerateservice.EnrichmentProvider {

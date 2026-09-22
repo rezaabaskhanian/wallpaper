@@ -38,14 +38,17 @@ func toDTO(s domain.AISettings) dto.AISettingsDTO {
 	geminiSet, geminiMasked := mask(s.GeminiAPIKey)
 	deepseekSet, deepseekMasked := mask(s.DeepSeekAPIKey)
 	return dto.AISettingsDTO{
-		ClaudeKeySet:       claudeSet,
-		ClaudeKeyMasked:    claudeMasked,
-		GeminiKeySet:       geminiSet,
-		GeminiKeyMasked:    geminiMasked,
-		DeepSeekKeySet:     deepseekSet,
-		DeepSeekKeyMasked:  deepseekMasked,
-		EnrichmentProvider: s.EnrichmentProvider,
-		PricePerImageToman: s.PricePerImageToman,
+		ClaudeKeySet:                claudeSet,
+		ClaudeKeyMasked:             claudeMasked,
+		GeminiKeySet:                geminiSet,
+		GeminiKeyMasked:             geminiMasked,
+		DeepSeekKeySet:              deepseekSet,
+		DeepSeekKeyMasked:           deepseekMasked,
+		EnrichmentProvider:          s.EnrichmentProvider,
+		PricePerImageToman:          s.PricePerImageToman,
+		GeminiInputPriceUsdPerMTok:  s.GeminiInputPriceUsdPerMTok,
+		GeminiOutputPriceUsdPerMTok: s.GeminiOutputPriceUsdPerMTok,
+		UsdToTomanRate:              s.UsdToTomanRate,
 	}
 }
 
@@ -69,11 +72,14 @@ func (s Service) UpdateSettings(ctx context.Context, req dto.UpdateAISettingsReq
 	}
 
 	updated := domain.AISettings{
-		ClaudeAPIKey:       current.ClaudeAPIKey,
-		GeminiAPIKey:       current.GeminiAPIKey,
-		DeepSeekAPIKey:     current.DeepSeekAPIKey,
-		EnrichmentProvider: req.EnrichmentProvider,
-		PricePerImageToman: req.PricePerImageToman,
+		ClaudeAPIKey:                current.ClaudeAPIKey,
+		GeminiAPIKey:                current.GeminiAPIKey,
+		DeepSeekAPIKey:              current.DeepSeekAPIKey,
+		EnrichmentProvider:          req.EnrichmentProvider,
+		PricePerImageToman:          req.PricePerImageToman,
+		GeminiInputPriceUsdPerMTok:  req.GeminiInputPriceUsdPerMTok,
+		GeminiOutputPriceUsdPerMTok: req.GeminiOutputPriceUsdPerMTok,
+		UsdToTomanRate:              req.UsdToTomanRate,
 	}
 	if req.ClaudeAPIKey != "" {
 		updated.ClaudeAPIKey = req.ClaudeAPIKey

@@ -3,6 +3,7 @@ package aigeneratehandler
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	aigenerateservice "wallpaperstore/internal/service/aigenerate"
 
@@ -26,6 +27,11 @@ func New(svc aigenerateservice.Service) Handler {
 func (h Handler) SetRoutes(api *echo.Group) {
 	api.POST("/ai/generate", h.Generate)
 	api.POST("/ai/credits/redeem", h.RedeemCredits)
+}
+
+// SetAdminRoutes پشت کلید ادمین است — تاریخچه‌ی هزینه/توکن هر تولید برای پنل.
+func (h Handler) SetAdminRoutes(admin *echo.Group) {
+	admin.GET("/ai-generation-logs", h.ListLogs)
 }
 
 type generateRequest struct {
@@ -79,4 +85,69 @@ func (h Handler) RedeemCredits(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, redeemCreditsResponse{CreditsGranted: granted})
+}
+
+const defaultLogsLimit = 20
+
+type generationLogDTO struct {
+	ID           int64   `json:"id"`
+	DeviceID     string  `json:"deviceId"`
+	Prompt       string  `json:"prompt"`
+	ImageURL     string  `json:"imageUrl"`
+	PromptTokens int     `json:"promptTokens"`
+	OutputTokens int     `json:"outputTokens"`
+	TotalTokens  int     `json:"totalTokens"`
+	CostUSD      float64 `json:"costUsd"`
+	CostToman    int64   `json:"costToman"`
+	CreatedAt    string  `json:"createdAt"`
+}
+
+type listGenerationLogsResponse struct {
+	Logs           []generationLogDTO `json:"logs"`
+	TotalCount     int64              `json:"totalCount"`
+	TotalCostUSD   float64            `json:"totalCostUsd"`
+	TotalCostToman int64              `json:"totalCostToman"`
+	TotalTokens    int64              `json:"totalTokens"`
+}
+
+// ListLogs تاریخچه‌ی صفحه‌بندی‌شده‌ی هزینه/توکن هر تولید را برمی‌گرداند —
+// ?limit=&offset= (پیش‌فرض ۲۰/۰).
+func (h Handler) ListLogs(c echo.Context) error {
+	limit, err := strconv.Atoi(c.QueryParam("limit"))
+	if err != nil || limit <= 0 || limit > 100 {
+		limit = defaultLogsLimit
+	}
+	offset, err := strconv.Atoi(c.QueryParam("offset"))
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
+	page, err := h.svc.ListGenerationLogs(c.Request().Context(), limit, offset)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"message": err.Error()})
+	}
+
+	logs := make([]generationLogDTO, 0, len(page.Logs))
+	for _, l := range page.Logs {
+		logs = append(logs, generationLogDTO{
+			ID:           l.ID,
+			DeviceID:     l.DeviceID,
+			Prompt:       l.Prompt,
+			ImageURL:     l.ImageURL,
+			PromptTokens: l.PromptTokens,
+			OutputTokens: l.OutputTokens,
+			TotalTokens:  l.TotalTokens,
+			CostUSD:      l.CostUSD,
+			CostToman:    l.CostToman,
+			CreatedAt:    l.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		})
+	}
+
+	return c.JSON(http.StatusOK, listGenerationLogsResponse{
+		Logs:           logs,
+		TotalCount:     page.TotalCount,
+		TotalCostUSD:   page.TotalCostUSD,
+		TotalCostToman: page.TotalCostToman,
+		TotalTokens:    page.TotalTokens,
+	})
 }

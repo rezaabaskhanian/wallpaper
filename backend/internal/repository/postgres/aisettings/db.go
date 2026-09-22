@@ -23,13 +23,15 @@ func (d DB) GetAISettings(ctx context.Context) (domain.AISettings, error) {
 	var s domain.AISettings
 	query := `
 	SELECT claude_api_key, gemini_api_key, deepseek_api_key, enrichment_provider,
-	       price_per_image_toman, updated_at
+	       price_per_image_toman, gemini_input_price_usd_per_mtok, gemini_output_price_usd_per_mtok,
+	       usd_to_toman_rate, updated_at
 	FROM ai_settings
 	LIMIT 1
 `
 	err := d.conn.QueryRow(ctx, query).Scan(
 		&s.ClaudeAPIKey, &s.GeminiAPIKey, &s.DeepSeekAPIKey, &s.EnrichmentProvider,
-		&s.PricePerImageToman, &s.UpdatedAt,
+		&s.PricePerImageToman, &s.GeminiInputPriceUsdPerMTok, &s.GeminiOutputPriceUsdPerMTok,
+		&s.UsdToTomanRate, &s.UpdatedAt,
 	)
 	if err != nil {
 		return domain.AISettings{}, richerror.New(op).WithErr(err).WithMessage("failed to read ai settings")
@@ -50,12 +52,16 @@ func (d DB) SaveAISettings(ctx context.Context, s domain.AISettings) (domain.AIS
 		deepseek_api_key = $3,
 		enrichment_provider = $4,
 		price_per_image_toman = $5,
+		gemini_input_price_usd_per_mtok = $6,
+		gemini_output_price_usd_per_mtok = $7,
+		usd_to_toman_rate = $8,
 		updated_at = NOW()
 	WHERE id = true
 	RETURNING updated_at
 `
 	err := d.conn.QueryRow(ctx, query,
 		s.ClaudeAPIKey, s.GeminiAPIKey, s.DeepSeekAPIKey, s.EnrichmentProvider, s.PricePerImageToman,
+		s.GeminiInputPriceUsdPerMTok, s.GeminiOutputPriceUsdPerMTok, s.UsdToTomanRate,
 	).Scan(&s.UpdatedAt)
 	if err != nil {
 		return domain.AISettings{}, richerror.New(op).WithErr(err).WithMessage("failed to update ai settings")
@@ -63,26 +69,28 @@ func (d DB) SaveAISettings(ctx context.Context, s domain.AISettings) (domain.AIS
 	return s, nil
 }
 
-// GetVlessLink/SetVlessLink جدا از GetAISettings/SaveAISettings‌اند چون لینک
+// GetProxyLink/SetProxyLink جدا از GetAISettings/SaveAISettings‌اند چون لینک
 // پراکسی یک کلید API نیست و نباید در پاسخ ماسک‌شده‌ی aisettingsservice ظاهر شود —
-// فقط aiproxyservice مستقیم از این‌ها استفاده می‌کند.
-func (d DB) GetVlessLink(ctx context.Context) (string, error) {
-	const op = "postgresaisettings.GetVlessLink"
+// فقط aiproxyservice مستقیم از این‌ها استفاده می‌کند. لینک می‌تواند vless://,
+// vmess://, trojan://, ss:// یا یک JSON کامل outbound باشد (ببینید
+// aiproxyservice.parseProxyLink) — این لایه فقط رشته را ذخیره/بازیابی می‌کند.
+func (d DB) GetProxyLink(ctx context.Context) (string, error) {
+	const op = "postgresaisettings.GetProxyLink"
 
 	var link string
-	err := d.conn.QueryRow(ctx, `SELECT vless_link FROM ai_settings LIMIT 1`).Scan(&link)
+	err := d.conn.QueryRow(ctx, `SELECT proxy_link FROM ai_settings LIMIT 1`).Scan(&link)
 	if err != nil {
-		return "", richerror.New(op).WithErr(err).WithMessage("failed to read vless link")
+		return "", richerror.New(op).WithErr(err).WithMessage("failed to read proxy link")
 	}
 	return link, nil
 }
 
-func (d DB) SetVlessLink(ctx context.Context, link string) error {
-	const op = "postgresaisettings.SetVlessLink"
+func (d DB) SetProxyLink(ctx context.Context, link string) error {
+	const op = "postgresaisettings.SetProxyLink"
 
-	_, err := d.conn.Exec(ctx, `UPDATE ai_settings SET vless_link = $1 WHERE id = true`, link)
+	_, err := d.conn.Exec(ctx, `UPDATE ai_settings SET proxy_link = $1 WHERE id = true`, link)
 	if err != nil {
-		return richerror.New(op).WithErr(err).WithMessage("failed to save vless link")
+		return richerror.New(op).WithErr(err).WithMessage("failed to save proxy link")
 	}
 	return nil
 }

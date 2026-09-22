@@ -9,7 +9,9 @@ import (
 	"errors"
 	"fmt"
 
+	logdomain "wallpaperstore/internal/domain/aigenerationlog"
 	domain "wallpaperstore/internal/domain/aisettings"
+	"wallpaperstore/internal/pkg/logger"
 	"wallpaperstore/internal/pkg/richerror"
 
 	"github.com/google/uuid"
@@ -36,6 +38,10 @@ type UsageRepository interface {
 	DeductCredit(ctx context.Context, deviceID string) (bool, error)
 	HasRedeemedPurchase(ctx context.Context, purchaseToken string) (bool, error)
 	AddCredits(ctx context.Context, deviceID, purchaseToken, sku string, amount int) error
+	// SaveGenerationLog تاریخچه‌ی هزینه/توکن این تولید را ثبت می‌کند — best-effort
+	// از GenerateImage صدا زده می‌شود، شکستش نباید کل درخواست را fail کند.
+	SaveGenerationLog(ctx context.Context, log logdomain.GenerationLog) error
+	ListGenerationLogs(ctx context.Context, limit, offset int) (logdomain.Page, error)
 }
 
 // BazaarValidator را internal/pkg/cafebazaar.Client برآورده می‌کند.
@@ -44,10 +50,20 @@ type BazaarValidator interface {
 	ValidatePurchase(ctx context.Context, productID, purchaseToken string) error
 }
 
-// ImageGenerator را gemini.Client برآورده می‌کند — تنها ارائه‌دهنده‌ای که واقعاً عکس می‌سازد.
+// ImageGenerationResult تصویر تولیدشده و تعداد توکن مصرف‌شده (طبق usageMetadata
+// پاسخ Gemini) را برمی‌گرداند — برای محاسبه‌ی هزینه‌ی واقعی هر تولید.
+type ImageGenerationResult struct {
+	ImageBytes   []byte
+	PromptTokens int
+	OutputTokens int
+	TotalTokens  int
+}
+
+// ImageGenerator با یک adapter نازک در main.go روی gemini.Client پیاده می‌شود —
+// تنها ارائه‌دهنده‌ای که واقعاً عکس می‌سازد.
 type ImageGenerator interface {
 	Enabled() bool
-	GenerateImage(ctx context.Context, prompt string) ([]byte, error)
+	GenerateImage(ctx context.Context, prompt string) (ImageGenerationResult, error)
 }
 
 // EnrichmentProvider را claude.Client و deepseek.Client هر دو برآورده می‌کنند —
@@ -144,16 +160,18 @@ func (s Service) GenerateImage(ctx context.Context, deviceID, prompt string) (st
 
 	finalPrompt := s.enrichPrompt(ctx, settings, prompt)
 
-	imgBytes, err := imageGen.GenerateImage(ctx, finalPrompt)
+	genResult, err := imageGen.GenerateImage(ctx, finalPrompt)
 	if err != nil {
 		return "", richerror.New(op).WithErr(err)
 	}
 
 	key := fmt.Sprintf("ai/%s.png", uuid.NewString())
-	imageURL, err := s.storage.UploadBytes(ctx, key, imgBytes, "image/png")
+	imageURL, err := s.storage.UploadBytes(ctx, key, genResult.ImageBytes, "image/png")
 	if err != nil {
 		return "", richerror.New(op).WithErr(err).WithMessage("آپلود عکس تولیدشده ممکن نشد")
 	}
+
+	s.logGeneration(ctx, deviceID, prompt, imageURL, settings, genResult)
 
 	if usingCredit {
 		deducted, err := s.usageRepo.DeductCredit(ctx, deviceID)
@@ -169,6 +187,42 @@ func (s Service) GenerateImage(ctx context.Context, deviceID, prompt string) (st
 	}
 
 	return imageURL, nil
+}
+
+// logGeneration هزینه‌ی واقعی این تولید را از روی توکن مصرف‌شده و نرخ ذخیره‌شده
+// در ai_settings حساب و در ai_generation_logs ثبت می‌کند. best-effort است: عکس
+// از قبل آپلود و تحویل کاربر شده، پس شکست ثبت لاگ نباید کل درخواست را fail کند.
+func (s Service) logGeneration(
+	ctx context.Context, deviceID, prompt, imageURL string, settings domain.AISettings, gen ImageGenerationResult,
+) {
+	costUSD := (float64(gen.PromptTokens)/1_000_000)*settings.GeminiInputPriceUsdPerMTok +
+		(float64(gen.OutputTokens)/1_000_000)*settings.GeminiOutputPriceUsdPerMTok
+	costToman := int64(costUSD * settings.UsdToTomanRate)
+
+	err := s.usageRepo.SaveGenerationLog(ctx, logdomain.GenerationLog{
+		DeviceID:     deviceID,
+		Prompt:       prompt,
+		ImageURL:     imageURL,
+		PromptTokens: gen.PromptTokens,
+		OutputTokens: gen.OutputTokens,
+		TotalTokens:  gen.TotalTokens,
+		CostUSD:      costUSD,
+		CostToman:    costToman,
+	})
+	if err != nil {
+		logger.L().Error("failed to save ai generation log", "err", err, "deviceId", deviceID)
+	}
+}
+
+// ListGenerationLogs تاریخچه‌ی هزینه/توکن تولیدها را برای نمایش در پنل ادمین
+// برمی‌گرداند (صفحه‌بندی‌شده، همراه با جمع کل هزینه/توکن مستقل از صفحه‌بندی).
+func (s Service) ListGenerationLogs(ctx context.Context, limit, offset int) (logdomain.Page, error) {
+	const op = "aigenerateservice.ListGenerationLogs"
+	page, err := s.usageRepo.ListGenerationLogs(ctx, limit, offset)
+	if err != nil {
+		return logdomain.Page{}, richerror.New(op).WithErr(err)
+	}
+	return page, nil
 }
 
 // RedeemCredits بعد از خریدِ SKU مصرفی «ai_credits» در اپ صدا زده می‌شود:

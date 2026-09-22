@@ -100,6 +100,10 @@ export type AISettings = {
   /** "none" | "claude" | "deepseek" — فقط Gemini عکس می‌سازد؛ این‌ها فقط prompt را غنی می‌کنند. */
   enrichmentProvider: string;
   pricePerImageToman: number;
+  /** نرخ هر ۱ میلیون توکن ورودی/خروجی gemini-2.5-flash-image (دلار) — برای محاسبه‌ی هزینه‌ی واقعی هر تولید. */
+  geminiInputPriceUsdPerMTok: number;
+  geminiOutputPriceUsdPerMTok: number;
+  usdToTomanRate: number;
 };
 
 export type UpdateAISettingsInput = {
@@ -108,6 +112,9 @@ export type UpdateAISettingsInput = {
   deepSeekApiKey?: string;
   enrichmentProvider: string;
   pricePerImageToman: number;
+  geminiInputPriceUsdPerMTok: number;
+  geminiOutputPriceUsdPerMTok: number;
+  usdToTomanRate: number;
 };
 
 export type AIProxyStatus = {
@@ -117,4 +124,25 @@ export type AIProxyStatus = {
   org?: string;
   message: string;
   link?: string;
+};
+
+export type AIGenerationLog = {
+  id: number;
+  deviceId: string;
+  prompt: string;
+  imageUrl: string;
+  promptTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  costUsd: number;
+  costToman: number;
+  createdAt: string;
+};
+
+export type AIGenerationLogsResponse = {
+  logs: AIGenerationLog[];
+  totalCount: number;
+  totalCostUsd: number;
+  totalCostToman: number;
+  totalTokens: number;
 };

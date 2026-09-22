@@ -141,6 +141,7 @@ func (s Service) Server() {
 	s.aiSettingsHandler.SetRoutes(admin)
 	s.aiProxyHandler.SetRoutes(admin)
 	s.aiGenerateHandler.SetRoutes(api)
+	s.aiGenerateHandler.SetAdminRoutes(admin)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", s.cfg.HttpServer.Port)))
 }

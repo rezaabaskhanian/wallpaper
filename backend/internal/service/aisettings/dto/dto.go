@@ -11,6 +11,12 @@ type AISettingsDTO struct {
 	DeepSeekKeyMasked  string `json:"deepSeekKeyMasked"`
 	EnrichmentProvider string `json:"enrichmentProvider"`
 	PricePerImageToman int    `json:"pricePerImageToman"`
+	// نرخ‌های زیر برای محاسبه‌ی هزینه‌ی واقعی (نه قیمت فروش) هر تولید، از روی
+	// توکن مصرف‌شده‌ی مدل gemini-2.5-flash-image استفاده می‌شوند — ببینید
+	// aigenerateservice.logGeneration و صفحه‌ی تاریخچه در پنل ادمین.
+	GeminiInputPriceUsdPerMTok  float64 `json:"geminiInputPriceUsdPerMTok"`
+	GeminiOutputPriceUsdPerMTok float64 `json:"geminiOutputPriceUsdPerMTok"`
+	UsdToTomanRate              float64 `json:"usdToTomanRate"`
 }
 
 type AISettingsResponse struct {
@@ -20,9 +26,12 @@ type AISettingsResponse struct {
 // UpdateAISettingsRequest — هر فیلد کلید که خالی باشد یعنی «بدون تغییر»،
 // چون در GET هیچ‌وقت کلید کامل به فرانت برنمی‌گردد که دوباره ارسالش کند.
 type UpdateAISettingsRequest struct {
-	ClaudeAPIKey       string `json:"claudeApiKey"`
-	GeminiAPIKey       string `json:"geminiApiKey"`
-	DeepSeekAPIKey     string `json:"deepSeekApiKey"`
-	EnrichmentProvider string `json:"enrichmentProvider"`
-	PricePerImageToman int    `json:"pricePerImageToman"`
+	ClaudeAPIKey                string  `json:"claudeApiKey"`
+	GeminiAPIKey                string  `json:"geminiApiKey"`
+	DeepSeekAPIKey              string  `json:"deepSeekApiKey"`
+	EnrichmentProvider          string  `json:"enrichmentProvider"`
+	PricePerImageToman          int     `json:"pricePerImageToman"`
+	GeminiInputPriceUsdPerMTok  float64 `json:"geminiInputPriceUsdPerMTok"`
+	GeminiOutputPriceUsdPerMTok float64 `json:"geminiOutputPriceUsdPerMTok"`
+	UsdToTomanRate              float64 `json:"usdToTomanRate"`
 }

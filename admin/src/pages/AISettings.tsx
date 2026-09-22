@@ -3,13 +3,32 @@ import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
+import {Textarea} from '@/components/ui/textarea';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import SpotlightCard from '@/components/SpotlightCard';
 import {ApiError} from '@/lib/api';
 import {useAISettings, useSaveAISettings} from '@/hooks/useAISettings';
 import {useAIProxyStatus, useConnectAIProxy} from '@/hooks/useAIProxy';
+import {useAIGenerationLogs} from '@/hooks/useAIGenerationLogs';
 
 const SELECT_CLASS =
   'h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30';
+
+// پیشوندهایی که پارسر پراکسی سمت بک‌اند می‌پذیرد — ببینید
+// aiproxyservice.parseProxyLink. JSON خام (شروع با "{") هم پذیرفته می‌شود.
+const SUPPORTED_PROXY_PREFIXES = ['vless://', 'vmess://', 'trojan://', 'ss://'];
+
+function isValidProxyInput(value: string): boolean {
+  const trimmed = value.trim();
+  return SUPPORTED_PROXY_PREFIXES.some(p => trimmed.startsWith(p)) || trimmed.startsWith('{');
+}
 
 type KeyFormState = {
   claudeApiKey: string;
@@ -17,6 +36,9 @@ type KeyFormState = {
   deepSeekApiKey: string;
   enrichmentProvider: string;
   pricePerImageToman: string;
+  geminiInputPriceUsdPerMTok: string;
+  geminiOutputPriceUsdPerMTok: string;
+  usdToTomanRate: string;
 };
 
 const EMPTY_FORM: KeyFormState = {
@@ -25,7 +47,140 @@ const EMPTY_FORM: KeyFormState = {
   deepSeekApiKey: '',
   enrichmentProvider: 'none',
   pricePerImageToman: '0',
+  geminiInputPriceUsdPerMTok: '0.3',
+  geminiOutputPriceUsdPerMTok: '30',
+  usdToTomanRate: '0',
 };
+
+const numberFormat = new Intl.NumberFormat('fa-IR');
+const usdFormat = new Intl.NumberFormat('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 6});
+
+function formatDateTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('fa-IR');
+  } catch {
+    return iso;
+  }
+}
+
+function GenerationLogsSection() {
+  const LIMIT = 20;
+  const [offset, setOffset] = useState(0);
+  const {data, isLoading, isFetching} = useAIGenerationLogs(LIMIT, offset);
+
+  const totalCount = data?.totalCount ?? 0;
+  const hasNext = offset + LIMIT < totalCount;
+  const hasPrev = offset > 0;
+
+  return (
+    <SpotlightCard className="p-6">
+      <h2 className="mb-1 text-lg font-semibold">تاریخچه‌ی هزینه‌ی تولید عکس</h2>
+      <p className="mb-4 text-sm text-muted-foreground">
+        هزینه‌ی واقعی هر تولید از روی توکن مصرف‌شده‌ی مدل Gemini و نرخ‌های بالا محاسبه می‌شود — این
+        همان هزینه‌ای است که به گوگل پرداخت می‌شود، نه قیمت فروش به کاربر.
+      </p>
+
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">تعداد کل تولیدها</p>
+          <p className="font-mono text-lg font-semibold">{numberFormat.format(data?.totalCount ?? 0)}</p>
+        </div>
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">مجموع توکن</p>
+          <p className="font-mono text-lg font-semibold">{numberFormat.format(data?.totalTokens ?? 0)}</p>
+        </div>
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">مجموع هزینه (دلار)</p>
+          <p className="font-mono text-lg font-semibold" dir="ltr">
+            ${usdFormat.format(data?.totalCostUsd ?? 0)}
+          </p>
+        </div>
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">مجموع هزینه (تومان)</p>
+          <p className="font-mono text-lg font-semibold">{numberFormat.format(data?.totalCostToman ?? 0)}</p>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>زمان</TableHead>
+              <TableHead>دستگاه</TableHead>
+              <TableHead>توضیح</TableHead>
+              <TableHead>توکن (ورودی/خروجی)</TableHead>
+              <TableHead>هزینه</TableHead>
+              <TableHead>عکس</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6}>در حال بارگذاری…</TableCell>
+              </TableRow>
+            ) : !data?.logs.length ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-muted-foreground">
+                  هنوز هیچ تولیدی ثبت نشده است.
+                </TableCell>
+              </TableRow>
+            ) : (
+              data.logs.map(log => (
+                <TableRow key={log.id}>
+                  <TableCell className="whitespace-nowrap text-xs">{formatDateTime(log.createdAt)}</TableCell>
+                  <TableCell className="max-w-28 truncate font-mono text-xs" title={log.deviceId}>
+                    {log.deviceId}
+                  </TableCell>
+                  <TableCell className="max-w-64 truncate text-xs" title={log.prompt}>
+                    {log.prompt}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap font-mono text-xs">
+                    {numberFormat.format(log.promptTokens)} / {numberFormat.format(log.outputTokens)}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap font-mono text-xs">
+                    ${usdFormat.format(log.costUsd)} — {numberFormat.format(log.costToman)} ت
+                  </TableCell>
+                  <TableCell>
+                    <a
+                      href={log.imageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-primary underline underline-offset-2">
+                      مشاهده
+                    </a>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          {totalCount > 0 &&
+            `${numberFormat.format(offset + 1)}–${numberFormat.format(Math.min(offset + LIMIT, totalCount))} از ${numberFormat.format(totalCount)}`}
+        </p>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!hasPrev || isFetching}
+            onClick={() => setOffset(o => Math.max(0, o - LIMIT))}>
+            قبلی
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!hasNext || isFetching}
+            onClick={() => setOffset(o => o + LIMIT)}>
+            بعدی
+          </Button>
+        </div>
+      </div>
+    </SpotlightCard>
+  );
+}
 
 export default function AISettings() {
   const {data: settings, isLoading} = useAISettings();
@@ -38,6 +193,9 @@ export default function AISettings() {
       ...f,
       enrichmentProvider: settings.enrichmentProvider,
       pricePerImageToman: String(settings.pricePerImageToman),
+      geminiInputPriceUsdPerMTok: String(settings.geminiInputPriceUsdPerMTok),
+      geminiOutputPriceUsdPerMTok: String(settings.geminiOutputPriceUsdPerMTok),
+      usdToTomanRate: String(settings.usdToTomanRate),
     }));
   }, [settings]);
 
@@ -50,6 +208,9 @@ export default function AISettings() {
         deepSeekApiKey: form.deepSeekApiKey || undefined,
         enrichmentProvider: form.enrichmentProvider,
         pricePerImageToman: Number(form.pricePerImageToman) || 0,
+        geminiInputPriceUsdPerMTok: Number(form.geminiInputPriceUsdPerMTok) || 0,
+        geminiOutputPriceUsdPerMTok: Number(form.geminiOutputPriceUsdPerMTok) || 0,
+        usdToTomanRate: Number(form.usdToTomanRate) || 0,
       });
       toast.success('ذخیره شد');
       setForm(f => ({...f, claudeApiKey: '', geminiApiKey: '', deepSeekApiKey: ''}));
@@ -67,8 +228,8 @@ export default function AISettings() {
   }, [proxyStatus?.link]);
 
   const onConnectProxy = async () => {
-    if (!proxyLink.trim().startsWith('vless://')) {
-      toast.error('لینک باید با vless:// شروع شود');
+    if (!isValidProxyInput(proxyLink)) {
+      toast.error('لینک باید با vless://, vmess://, trojan://, ss:// شروع شود یا یک JSON کامل outbound باشد');
       return;
     }
     try {
@@ -107,7 +268,8 @@ export default function AISettings() {
                 onChange={e => setForm({...form, geminiApiKey: e.target.value})}
               />
               <p className="text-xs text-muted-foreground">
-                تنها سرویسی که واقعاً عکس تولید می‌کند (Imagen) — بدون این کلید فیچر غیرفعال است.
+                تنها سرویسی که واقعاً عکس تولید می‌کند (gemini-2.5-flash-image) — بدون این کلید فیچر
+                غیرفعال است.
               </p>
             </div>
 
@@ -150,7 +312,7 @@ export default function AISettings() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="ai-price">قیمت هر عکس (تومان)</Label>
+              <Label htmlFor="ai-price">قیمت فروش هر عکس به کاربر (تومان)</Label>
               <Input
                 id="ai-price"
                 type="number"
@@ -163,6 +325,57 @@ export default function AISettings() {
               </p>
             </div>
 
+            <div className="rounded-lg border p-3">
+              <p className="mb-3 text-sm font-medium">هزینه‌ی واقعی Gemini (برای محاسبه‌ی جدول پایین)</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ai-gemini-in" className="text-xs">
+                    ورودی ($ / ۱M توکن)
+                  </Label>
+                  <Input
+                    id="ai-gemini-in"
+                    type="number"
+                    min={0}
+                    step="0.0001"
+                    dir="ltr"
+                    value={form.geminiInputPriceUsdPerMTok}
+                    onChange={e => setForm({...form, geminiInputPriceUsdPerMTok: e.target.value})}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ai-gemini-out" className="text-xs">
+                    خروجی ($ / ۱M توکن)
+                  </Label>
+                  <Input
+                    id="ai-gemini-out"
+                    type="number"
+                    min={0}
+                    step="0.0001"
+                    dir="ltr"
+                    value={form.geminiOutputPriceUsdPerMTok}
+                    onChange={e => setForm({...form, geminiOutputPriceUsdPerMTok: e.target.value})}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ai-usd-toman" className="text-xs">
+                    نرخ دلار (تومان)
+                  </Label>
+                  <Input
+                    id="ai-usd-toman"
+                    type="number"
+                    min={0}
+                    dir="ltr"
+                    value={form.usdToTomanRate}
+                    onChange={e => setForm({...form, usdToTomanRate: e.target.value})}
+                  />
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                نرخ‌های پیش‌فرض قیمت رسمی گوگل برای gemini-2.5-flash-image است — چون نرخ دلار نوسان
+                دارد، «نرخ دلار» را باید خودتان به‌روز نگه دارید تا ستون تومان جدول پایین درست باشد.
+              </p>
+            </div>
+
             <Button type="submit" disabled={saveSettings.isPending} className="glow-primary">
               ذخیره
             </Button>
@@ -171,17 +384,20 @@ export default function AISettings() {
       </SpotlightCard>
 
       <SpotlightCard className="max-w-lg p-6">
-        <h2 className="mb-1 text-lg font-semibold">پراکسی خروجی (VLESS)</h2>
+        <h2 className="mb-1 text-lg font-semibold">پراکسی خروجی (اکانت فیلترشکن)</h2>
         <p className="mb-4 text-sm text-muted-foreground">
-          چون سرور از ایران به این سرویس‌ها وصل می‌شود، لینک <code>vless://...</code> رو اینجا بچسبون و
-          «اتصال» رو بزن — چند ثانیه طول می‌کشد تا سایدکار xray کانفیگ جدید را بارگذاری کند.
+          چون سرور از ایران به این سرویس‌ها وصل می‌شود، اکانت فیلترشکن (
+          <code>vless://</code>, <code>vmess://</code>, <code>trojan://</code>, <code>ss://</code>، یا یک
+          JSON کامل outbound برای کانفیگ‌های خاص) رو اینجا بچسبون و «اتصال» رو بزن — چند ثانیه طول
+          می‌کشد تا سایدکار xray کانفیگ جدید را بارگذاری کند.
         </p>
         <div className="flex flex-col gap-3">
-          <Input
-            placeholder="vless://..."
+          <Textarea
+            placeholder="vless://... یا vmess://... یا trojan://... یا ss://... یا { ... JSON outbound }"
             value={proxyLink}
             onChange={e => setProxyLink(e.target.value)}
             dir="ltr"
+            rows={3}
             className="font-mono text-xs"
           />
           <div className="flex gap-2">
@@ -201,6 +417,8 @@ export default function AISettings() {
           )}
         </div>
       </SpotlightCard>
+
+      <GenerationLogsSection />
     </div>
   );
 }
