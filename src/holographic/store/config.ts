@@ -14,14 +14,26 @@ export const MARTYRS_URL = `${API_BASE_URL}/martyrs`;
 export const MARTYR_CATEGORIES_URL = `${API_BASE_URL}/martyr-categories`;
 export const QUOTES_URL = `${API_BASE_URL}/quotes`;
 export const QUOTE_CATEGORIES_URL = `${API_BASE_URL}/quote-categories`;
+export const DAILY_QUOTE_URL = `${API_BASE_URL}/daily-quote`;
 export const HERO_URL = `${API_BASE_URL}/hero`;
 export const PROMO_REDEEM_URL = `${API_BASE_URL}/promo-codes/redeem`;
+export const AI_GENERATE_URL = `${API_BASE_URL}/ai/generate`;
+export const AI_CREDITS_REDEEM_URL = `${API_BASE_URL}/ai/credits/redeem`;
 
 /**
  * The single non-consumable in-app product (defined in the Cafe Bazaar panel)
  * that unlocks every premium wallpaper — current and future.
  */
 export const PREMIUM_SKU = 'premium_unlock';
+
+/**
+ * Consumable in-app product (defined in the Cafe Bazaar panel) that grants a
+ * fixed number of AI wallpaper-generation credits — see backend's
+ * aigenerateservice.skuCredits for the exact amount (currently 30). Unlike
+ * PREMIUM_SKU, this one must be consumed (Poolakey's consumePurchase) after
+ * the backend confirms the credit grant, so it can be bought again.
+ */
+export const AI_CREDITS_SKU = 'ai_credits';
 
 /**
  * The RSA public key from the Cafe Bazaar developer panel (In-App Billing tab),

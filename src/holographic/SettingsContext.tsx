@@ -39,8 +39,19 @@ export type WallpaperSettings = {
   rotationAxis: 'x' | 'y' | 'z' | 'mixed';
   /** Selected background id (see BACKGROUNDS in config, or 'custom'). */
   backgroundId: string;
+  /** "Living wallpaper": slow, continuous Ken-Burns zoom/drift on the main
+   * background photo, with an extra wake-up zoom pulse whenever the app
+   * returns to the foreground (see MainBackground.tsx). */
+  livingWallpaper: boolean;
   /** Uri of a photo the user picked from their gallery (for backgroundId 'custom'). */
   customBackgroundUri?: string;
+  /** Up to 5 wallpaper-gallery photo URLs the user starred for random
+   * rotation (see WallpaperGallery.tsx's star toggle). */
+  randomBackgroundUris: string[];
+  /** When on and randomBackgroundUris isn't empty, one of those photos is
+   * picked at random into customBackgroundUri on launch and whenever the app
+   * returns to the foreground (see HolographicHome.tsx). */
+  randomBackgroundEnabled: boolean;
   /** Day/night colour theme: auto (by sun times), forced day/night, or off. */
   dayNightMode: 'auto' | 'day' | 'night' | 'off';
   /** Dynamic sun-glow lens flare that arcs across the sky in sync with
@@ -56,8 +67,14 @@ export type WallpaperSettings = {
    * (and sampling succeeds) — see `resolvedGlowColor` on the context. */
   glowColor: string;
   /** Derive the glow colour from the current background photo instead of the
-   * manual swatch above. Off by default. */
+   * manual swatch above. On by default. */
   dynamicColor: boolean;
+  /** Also apply that photo-sampled colour to the clock and bottom-quote text
+   * glow (see ClockWidget.tsx/QuoteWidget.tsx), instead of their fixed gold
+   * glow. Off by default — purely additive, so existing installs keep their
+   * current look until the user opts in; has no effect unless dynamicColor
+   * is also on. */
+  dynamicColorText: boolean;
   /** Cinematic dark-edge vignette overlay. */
   vignette: boolean;
   /** Ambient mist rolling in from an edge: off, bottom, top, or both. */
@@ -77,8 +94,31 @@ export type WallpaperSettings = {
   showDate: boolean;
   /** Clock format: 12-hour (with AM/PM) or 24-hour (no AM/PM). */
   hourFormat: '12' | '24';
+  /** Show the ق.ظ/ب.ظ (AM/PM) label next to the clock. Only relevant when
+   * hourFormat is '12' — split out as its own switch so it can be turned off
+   * independently instead of being tied 1:1 to the 12/24 choice. */
+  showAmPm: boolean;
+  /** Digit script used to render the clock's time: Persian (۱۲:۳۰) or
+   * English/western (12:30) — also switches the AM/PM label to "AM"/"PM"
+   * when set to 'en'. Only the clock; other Persian text is unaffected. */
+  clockDigits: 'fa' | 'en';
+  /** Clock widget placement/style: 'inline' is the default small clock next
+   * to the date in the top-left corner; 'bigCentered' shows just the time,
+   * large, centered on the screen, with the hour stacked above the minute
+   * instead of side by side (see ClockWidget.tsx). */
+  clockLayout: 'inline' | 'bigCentered';
+  /** Font colour (hex) for the clock's hour:minute digits, in both layouts.
+   * Independent of glowColor/dynamicColor, which only affect the glow behind
+   * the text, not its fill colour. */
+  clockTextColor: string;
+  /** Font colour (hex) for the bottom quote widget's main (large) line. */
+  quoteTextColor: string;
   /** Selected on-screen font id (see FONTS in fonts.ts). */
   fontId: string;
+  /** Size multiplier for the clock/date widget (0.7 .. 1.6). */
+  clockFontScale: number;
+  /** Size multiplier for the bottom quote widget (0.7 .. 1.6). */
+  quoteFontScale: number;
   /** When true, clock & bottom text become draggable to reposition them. */
   editLayout: boolean;
   /** Drag offset for the clock/date block. */
@@ -97,6 +137,11 @@ export type WallpaperSettings = {
    * bottom-of-screen quote widget; '' picks the first category returned by
    * the backend (normally "بیانات رهبر", preserving the original content). */
   quoteCategoryId: string;
+  /** When on, the bottom quote widget shows the backend's AI-generated
+   * "quote of the day" (GET /daily-quote) instead of quoteCategoryId's
+   * pick — see QuoteWidget.tsx. Falls back to the normal category pick if
+   * the fetch fails (e.g. the feature isn't configured server-side). */
+  dailyAiQuote: boolean;
   /** Countdown target date-time (ISO string). [countdown feature disabled] */
   countdownTargetISO: string;
   /** Countdown label. [countdown feature disabled] */
@@ -171,16 +216,27 @@ const DEFAULTS: WallpaperSettings = {
   particleIntensity: 'medium',
   glowColor: '#5eead4',
   dynamicColor: true,
+  dynamicColorText: false,
   vignette: false,
   fogMode: 'off',
   fogIntensity: 'medium',
   themeId: 'A',
   backgroundId: DEFAULT_BACKGROUND_ID,
+  livingWallpaper: false,
+  randomBackgroundUris: [],
+  randomBackgroundEnabled: false,
   showClock: true,
   showWeather: true,
   showDate: true,
   hourFormat: '12',
+  showAmPm: true,
+  clockDigits: 'fa',
+  clockLayout: 'inline',
+  clockTextColor: '#f5e6b3',
+  quoteTextColor: '#f5e6b3',
   fontId: DEFAULT_FONT_ID,
+  clockFontScale: 1,
+  quoteFontScale: 1,
   editLayout: false,
   clockOffset: {x: 0, y: 0},
   weatherOffset: {x: 0, y: 0},
@@ -189,6 +245,7 @@ const DEFAULTS: WallpaperSettings = {
   quoteLine1: 'ما با این جوان‌ها',
   quoteLine2: 'به جایی خواهیم رسید',
   quoteCategoryId: '',
+  dailyAiQuote: false,
   countdownTargetISO: COUNTDOWN.targetISO,
   countdownLabel: COUNTDOWN.label,
   // combatMode: false, // [combat mode disabled for now]

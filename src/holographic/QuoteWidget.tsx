@@ -4,6 +4,8 @@ import AppText from './AppText';
 import {useActiveQuoteCategoryId} from './data';
 import DraggableWidget from './DraggableWidget';
 import {useSettings} from './SettingsContext';
+import {withAlpha} from './dynamicColor';
+import {fetchDailyQuote} from './store/dailyQuote';
 import {useStore} from './store/StoreContext';
 import type {QuoteItem} from './store/types';
 
@@ -30,7 +32,7 @@ function pickRandom(quotes: QuoteItem[], excludeId?: string): QuoteItem | null {
  * quotes DB is empty.
  */
 export default function QuoteWidget() {
-  const {settings, update} = useSettings();
+  const {settings, update, resolvedGlowColor} = useSettings();
   const {quotes} = useStore();
   const activeCategoryId = useActiveQuoteCategoryId();
   const categoryQuotes = useMemo(
@@ -44,9 +46,30 @@ export default function QuoteWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryQuotes]);
 
+  // Backend-generated "quote of the day" (cached server-side, one call/day) —
+  // shown instead of the category pick above when settings.dailyAiQuote is
+  // on. Silently falls back to the category pick on any fetch failure (e.g.
+  // the feature isn't configured server-side).
+  const [dailyQuote, setDailyQuote] = useState<QuoteItem | null>(null);
+  const loadDailyQuote = useCallback(() => {
+    if (!settings.dailyAiQuote) return;
+    fetchDailyQuote()
+      .then(setDailyQuote)
+      .catch(() => {});
+  }, [settings.dailyAiQuote]);
+
+  useEffect(() => {
+    if (!settings.dailyAiQuote) {
+      setDailyQuote(null);
+      return;
+    }
+    loadDailyQuote();
+  }, [settings.dailyAiQuote, loadDailyQuote]);
+
   const onForeground = useCallback(() => {
     setQuote(prev => pickRandom(categoryQuotes, prev?.id) ?? prev);
-  }, [categoryQuotes]);
+    loadDailyQuote();
+  }, [categoryQuotes, loadDailyQuote]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => {
@@ -61,9 +84,16 @@ export default function QuoteWidget() {
     return null;
   }
 
+  const usingDaily = settings.dailyAiQuote && !!dailyQuote;
   const hasDb = categoryQuotes.length > 0;
-  const line1 = hasDb ? quote?.line1 : settings.quoteLine1;
-  const line2 = hasDb ? quote?.line2 : settings.quoteLine2;
+  const line1 = usingDaily ? dailyQuote?.line1 : hasDb ? quote?.line1 : settings.quoteLine1;
+  const line2 = usingDaily ? dailyQuote?.line2 : hasDb ? quote?.line2 : settings.quoteLine2;
+  const scale = settings.quoteFontScale;
+  // See ClockWidget's matching comment — off by default, additive only.
+  const glowShadow =
+    settings.dynamicColor && settings.dynamicColorText
+      ? withAlpha(resolvedGlowColor, 0.55)
+      : undefined;
 
   return (
     <DraggableWidget
@@ -72,8 +102,21 @@ export default function QuoteWidget() {
       editing={settings.editLayout}
       onCommit={o => update('quoteOffset', o)}
       label="متن پایین">
-      {line1 ? <AppText style={styles.line1}>{line1}</AppText> : null}
-      {line2 ? <AppText style={styles.line2}>{line2}</AppText> : null}
+      {line1 ? (
+        <AppText style={[styles.line1, {fontSize: 15 * scale}]}>
+          {line1}
+        </AppText>
+      ) : null}
+      {line2 ? (
+        <AppText
+          style={[
+            styles.line2,
+            {fontSize: 28 * scale, color: settings.quoteTextColor},
+            glowShadow ? {textShadowColor: glowShadow} : null,
+          ]}>
+          {line2}
+        </AppText>
+      ) : null}
     </DraggableWidget>
   );
 }

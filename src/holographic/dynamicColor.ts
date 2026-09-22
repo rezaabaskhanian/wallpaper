@@ -66,6 +66,36 @@ function toAccentColor(r: number, g: number, b: number): string {
   return `rgb(${ar}, ${ag}, ${ab})`;
 }
 
+/**
+ * Re-wraps `color` (a `#rrggbb`/`#rgb` hex or an `rgb(...)`/`rgba(...)` string
+ * — the two shapes resolvedGlowColor can be, see SettingsContext) as an
+ * `rgba(...)` string with `alpha` — used to apply the same accent colour to a
+ * text glow (Settings ▸ عمومی ▸ رنگ پویا هم روی نوشته‌ها) without hardcoding
+ * a second colour format assumption at each call site.
+ */
+export function withAlpha(color: string, alpha: number): string {
+  const hexMatch = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+  if (hexMatch) {
+    const hex = hexMatch[1];
+    const full =
+      hex.length === 3
+        ? hex
+            .split('')
+            .map(c => c + c)
+            .join('')
+        : hex;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  const rgbMatch = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(color);
+  if (rgbMatch) {
+    return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${alpha})`;
+  }
+  return color;
+}
+
 export type DynamicColorSource = number | string | undefined;
 
 /**

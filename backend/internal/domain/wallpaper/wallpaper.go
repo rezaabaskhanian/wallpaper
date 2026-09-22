@@ -9,18 +9,24 @@ import (
 
 // Wallpaper یک والپیپر قابل دانلود در کاتالوگ.
 type Wallpaper struct {
-	ID        wallpapervalueobject.WallpaperID
-	Title     string
-	Category  string // شناسه‌ی دسته (slug)
-	Premium   bool   // false = رایگان، true = پشت خرید «باز کردن همه»
-	Thumb     string // آدرس تصویر کوچک (grid)
-	Full      string // آدرس تصویر باکیفیت (اعمال والپیپر)
-	Width     int
-	Height    int
-	Bytes     int64
-	IsActive  bool
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID       wallpapervalueobject.WallpaperID
+	Title    string
+	Category string // شناسه‌ی دسته (slug)
+	Premium  bool   // false = رایگان، true = پشت خرید «باز کردن همه»
+	Thumb    string // آدرس تصویر کوچک (grid)
+	Full     string // آدرس تصویر باکیفیت (اعمال والپیپر)
+	Width    int
+	Height   int
+	Bytes    int64
+	IsActive bool
+	// DownloadCount چند بار این والپیپر واقعاً روی گوشی اعمال/دانلود شده —
+	// از دیدگاه بک‌اند تنها سیگنال واقعیِ استفاده، چون Thumb/Full مستقیم از
+	// CDN سرو می‌شوند و بک‌اند خودش دانلود را نمی‌بیند (باید اپ صریحاً خبر
+	// بدهد، ببینید TrackDownload). برای پاک‌سازی تدریجی والپیپرهای بی‌استفاده
+	// در پنل ادمین استفاده می‌شود.
+	DownloadCount int
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 // Category دسته‌بندی والپیپرها (برای فیلتر در گالری).

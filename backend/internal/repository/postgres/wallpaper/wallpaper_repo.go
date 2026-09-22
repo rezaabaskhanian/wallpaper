@@ -35,7 +35,7 @@ func (d DB) GetActiveWallpapers(ctx context.Context) ([]domain.Wallpaper, error)
 
 	query := `
 	SELECT id, title, category, premium, thumb, full_url, width, height, bytes,
-	       is_active, created_at, updated_at
+	       is_active, download_count, created_at, updated_at
 	FROM wallpapers
 	WHERE is_active = true
 	ORDER BY premium ASC, created_at ASC
@@ -55,7 +55,7 @@ func (d DB) GetActiveWallpapers(ctx context.Context) ([]domain.Wallpaper, error)
 		)
 		if err := rows.Scan(
 			&id, &w.Title, &w.Category, &w.Premium, &w.Thumb, &w.Full,
-			&w.Width, &w.Height, &w.Bytes, &w.IsActive, &w.CreatedAt, &w.UpdatedAt,
+			&w.Width, &w.Height, &w.Bytes, &w.IsActive, &w.DownloadCount, &w.CreatedAt, &w.UpdatedAt,
 		); err != nil {
 			return nil, richerror.New(op).WithErr(err)
 		}
@@ -70,7 +70,7 @@ func (d DB) GetAllWallpapers(ctx context.Context) ([]domain.Wallpaper, error) {
 
 	query := `
 	SELECT id, title, category, premium, thumb, full_url, width, height, bytes,
-	       is_active, created_at, updated_at
+	       is_active, download_count, created_at, updated_at
 	FROM wallpapers
 	ORDER BY created_at DESC
 `
@@ -89,7 +89,7 @@ func (d DB) GetAllWallpapers(ctx context.Context) ([]domain.Wallpaper, error) {
 		)
 		if err := rows.Scan(
 			&id, &w.Title, &w.Category, &w.Premium, &w.Thumb, &w.Full,
-			&w.Width, &w.Height, &w.Bytes, &w.IsActive, &w.CreatedAt, &w.UpdatedAt,
+			&w.Width, &w.Height, &w.Bytes, &w.IsActive, &w.DownloadCount, &w.CreatedAt, &w.UpdatedAt,
 		); err != nil {
 			return nil, richerror.New(op).WithErr(err)
 		}
@@ -97,6 +97,21 @@ func (d DB) GetAllWallpapers(ctx context.Context) ([]domain.Wallpaper, error) {
 		wallpapers = append(wallpapers, w)
 	}
 	return wallpapers, rows.Err()
+}
+
+// IncrementDownloadCount +۱ به شمارندهٔ دانلود یک والپیپر (اتمیک، بدون
+// نیاز به خواندن مقدار قبلی) — ببینید wallpaper.DownloadCount.
+func (d DB) IncrementDownloadCount(ctx context.Context, id string) error {
+	const op = "postgreswallpaper.IncrementDownloadCount"
+
+	tag, err := d.conn.Exec(ctx, `UPDATE wallpapers SET download_count = download_count + 1 WHERE id = $1`, id)
+	if err != nil {
+		return richerror.New(op).WithErr(err).WithMessage("failed to increment download count")
+	}
+	if tag.RowsAffected() == 0 {
+		return richerror.New(op).WithMessage("والپیپر مورد نظر پیدا نشد")
+	}
+	return nil
 }
 
 func (d DB) GetCatalogVersion(ctx context.Context) (int, error) {

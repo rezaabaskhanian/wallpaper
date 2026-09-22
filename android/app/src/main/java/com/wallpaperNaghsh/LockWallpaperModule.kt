@@ -1,7 +1,9 @@
 package com.wallpaperNaghsh
 
 import android.app.WallpaperManager
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
@@ -14,6 +16,8 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import java.io.File
+import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -222,6 +226,144 @@ class LockWallpaperModule(reactContext: ReactApplicationContext) :
       } catch (e: Exception) {
         promise.reject("pixelcopy_error", e.message, e)
       }
+    }
+  }
+
+  /** Where HolographicWallpaperService reads its source photo from — see that
+   * class's LIVE_WALLPAPER_FILE_NAME doc comment. */
+  private fun liveWallpaperFile(): File =
+      File(reactApplicationContext.filesDir, HolographicWallpaperService.LIVE_WALLPAPER_FILE_NAME)
+
+  private fun saveAsLiveWallpaperSource(bitmap: Bitmap) {
+    FileOutputStream(liveWallpaperFile()).use { out ->
+      bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
+    }
+  }
+
+  /**
+   * Captures the current on-screen scene (same PixelCopy technique as
+   * setWallpaperFromScreen) and saves it as the source photo for the real
+   * system live wallpaper (HolographicWallpaperService) — home screen only,
+   * see that class's doc comment for why the lock screen can't be animated.
+   */
+  @ReactMethod
+  fun captureLiveWallpaperSource(promise: Promise) {
+    val activity = reactApplicationContext.currentActivity
+    if (activity == null) {
+      promise.reject("no_activity", "No current activity to capture")
+      return
+    }
+
+    Handler(Looper.getMainLooper()).post {
+      val window = activity.window
+      val decor = window.decorView
+      val width = decor.width
+      val height = decor.height
+      if (width <= 0 || height <= 0) {
+        promise.reject("no_size", "Window not laid out yet")
+        return@post
+      }
+
+      val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+      try {
+        PixelCopy.request(
+            window,
+            bitmap,
+            { result ->
+              if (result == PixelCopy.SUCCESS) {
+                try {
+                  saveAsLiveWallpaperSource(bitmap)
+                  promise.resolve(true)
+                } catch (e: Exception) {
+                  promise.reject("save_failed", e.message, e)
+                } finally {
+                  bitmap.recycle()
+                }
+              } else {
+                bitmap.recycle()
+                promise.reject("copy_failed", "PixelCopy failed with code $result")
+              }
+            },
+            Handler(Looper.getMainLooper()),
+        )
+      } catch (e: Exception) {
+        bitmap.recycle()
+        promise.reject("pixelcopy_error", e.message, e)
+      }
+    }
+  }
+
+  /**
+   * Downloads a gallery wallpaper URL and saves it as the live-wallpaper
+   * source photo (see captureLiveWallpaperSource). Used when the user's
+   * current background is one of the app's own remote wallpapers rather than
+   * the on-screen holographic scene.
+   */
+  @ReactMethod
+  fun setLiveWallpaperSourceFromUrl(url: String, promise: Promise) {
+    Thread {
+      var conn: HttpURLConnection? = null
+      try {
+        val parsed =
+            try {
+              URL(url)
+            } catch (e: Exception) {
+              promise.reject("bad_url", "Malformed wallpaper URL", e)
+              return@Thread
+            }
+        if (!isAllowedWallpaperUrl(parsed)) {
+          promise.reject("url_not_allowed", "Wallpaper URL must be https on $ASSET_HOST")
+          return@Thread
+        }
+        conn = (parsed.openConnection() as HttpURLConnection).apply {
+          connectTimeout = 15000
+          readTimeout = 20000
+          instanceFollowRedirects = false
+          doInput = true
+          connect()
+        }
+        if (conn.responseCode != HttpURLConnection.HTTP_OK) {
+          promise.reject("http_error", "Wallpaper fetch returned HTTP ${conn.responseCode}")
+          return@Thread
+        }
+        val bitmap = conn.inputStream.use { BitmapFactory.decodeStream(it) }
+        if (bitmap == null) {
+          promise.reject("decode_failed", "Could not decode image from $url")
+          return@Thread
+        }
+        saveAsLiveWallpaperSource(bitmap)
+        bitmap.recycle()
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.reject("wallpaper_url_failed", e.message, e)
+      } finally {
+        conn?.disconnect()
+      }
+    }.start()
+  }
+
+  /**
+   * Opens Android's own "set live wallpaper" preview/confirmation screen for
+   * HolographicWallpaperService — the user still has to tap "Set wallpaper"
+   * there, same as picking any other live wallpaper from Settings.
+   */
+  @ReactMethod
+  fun requestSetLiveWallpaper(promise: Promise) {
+    val activity = reactApplicationContext.currentActivity
+    if (activity == null) {
+      promise.reject("no_activity", "No current activity to launch the picker from")
+      return
+    }
+    try {
+      val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER)
+      intent.putExtra(
+          WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
+          ComponentName(reactApplicationContext, HolographicWallpaperService::class.java),
+      )
+      activity.startActivity(intent)
+      promise.resolve(true)
+    } catch (e: Exception) {
+      promise.reject("launch_failed", e.message, e)
     }
   }
 }

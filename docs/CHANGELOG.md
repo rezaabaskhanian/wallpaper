@@ -325,3 +325,31 @@
 - فایل‌های واقعی والپیپر مستقیم از CDN/Object Storage سرو می‌شوند، نه از بک‌اند Go — پس دانلود واقعی عکس‌ها اصلاً به بک‌اند فشار نمی‌آورد.
 - بک‌اند فقط API سبک کاتالوگ (`/api/v1/catalog`) را جواب می‌دهد؛ روی همون یک rate limiter دارد (۲۰ req/s به‌ازای هر IP، [server.go:100](../backend/internal/delivery/httpserver/server.go#L100)).
 - تست با k6 (۱۰۰۰ VU، از یک مک با VPN روشن) اول عدد بی‌معنی داد (VPN گلوگاه کلاینت بود، تأخیر تا ۵۵ ثانیه). با VPN خاموش: توان واقعی به ۳۰۵ req/s رسید؛ هر وقت درخواست واقعاً جواب ۲۰۰ گرفت، حداکثر ۳.۴ ثانیه و معمولاً زیر ۱.۷ ثانیه طول کشید — یعنی بک‌اند زیر بار سالم و سریع جواب داد. نرخ خطای بالا (٪۸۸) عمداً از rate limiter بود چون همه‌ی ۱۰۰۰ VU از یک IP واحد می‌آمدند؛ برای تست ظرفیت واقعی زیر ۱۰۰۰ IP متفاوت باید یا موقتاً لیمیت بالا برود یا تست از چند منبع پخش شود (هنوز انجام نشده).
+
+---
+
+## کارهای عقب‌افتاده برای نسخه‌ی بعدی (TODO)
+
+> نسخه‌ی فعلی در کافه‌بازار ثبت و تأیید شده؛ موارد زیر عمداً برای این نسخه انجام نشدند تا ریلیزِ تأییدشده دست نخورد باقی بماند.
+
+### ۱. سینک دسته‌بندی نقل‌قول با ویجت صفحه‌ی اصلی گوشی
+**وضعیت الان:** انتخاب دسته‌بندی (مثلاً «احادیث» به‌جای «بیانات رهبر») در تنظیمات اپ فقط روی ویجت پایین‌صفحه‌ی **داخل اپ** ([QuoteWidget.tsx](../src/holographic/QuoteWidget.tsx)) اثر می‌گذارد. ویجت **صفحه‌ی اصلی گوشی** (Android home-screen widget) از دسته‌بندی بی‌خبر است و همیشه از یک لیست ثابت در [strings.xml](../android/app/src/main/res/values/strings.xml) (آرایه‌های `widget_quote_line1`/`widget_quote_line2`) تصادفی انتخاب می‌کند — چون [QuoteWidgetProvider.kt](../android/app/src/main/java/com/wallpaperNaghsh/QuoteWidgetProvider.kt) در یک پروسه‌ی جدا از اپ اجرا می‌شود و باید حتی وقتی اپ بسته است هم کار کند، پس فقط به `SharedPreferences` و فایل عکسِ کش‌شده دسترسی دارد، نه به دیتابیس/سرور دسته‌بندی‌شده‌ی اپ.
+
+**راه‌حل پیشنهادی برای نسخه‌ی بعد:**
+1. هر بار که اپ باز و آنلاین است، جمله‌های دسته‌ی فعال (`settings.quoteCategoryId`) را در `SharedPreferences` (همون `widget_prefs` که [HomeWidgetModule.kt](../android/app/src/main/java/com/wallpaperNaghsh/HomeWidgetModule.kt) استفاده می‌کند) ذخیره کن — شبیه کاری که الان برای عکس پس‌زمینه انجام می‌شود.
+2. متد جدید در `HomeWidgetModule.kt` (مثلاً `setQuotePool(lines: Array<...>)`) اضافه شود که این کش را بنویسد و `QuoteWidgetProvider.refreshAll()` را صدا بزند.
+3. `QuoteWidgetProvider.kt` طوری تغییر کند که اول این لیستِ ذخیره‌شده را بخواند و فقط اگر خالی/نبود، به لیست ثابت `strings.xml` برگردد (fallback).
+4. سمت JS: در [SettingsContext.tsx](../src/holographic/SettingsContext.tsx)، هر بار `quoteCategoryId` یا لیست `quotes` عوض شد، پول جمله‌های دسته‌ی فعال را به `HomeWidget.setQuotePool(...)` بفرست.
+
+**نیازمند rebuild native** (تغییر Kotlin) — نمی‌شود فقط با ری‌لود JS تست کرد.
+
+### ۲. رنگ فونت ساعت/تاریخ خودکار متناسب با روشنی پس‌زمینه
+**وضعیت الان:** رنگ متن ساعت و تاریخ در [ClockWidget.tsx](../src/holographic/ClockWidget.tsx) کاملاً ثابت (hardcoded) است — مثلاً `#f5e6b3` برای ساعت و `#eafffb` برای تاریخ — و فقط با `textShadow` سعی می‌کند روی پس‌زمینه‌های روشن هم خوانا بماند. اگر عکس پس‌زمینه (یا رنگ ثابت انتخابی کاربر) کاملاً سفید/روشن یا کاملاً مشکی/تیره باشد، هیچ تشخیصی برای عوض‌کردن رنگ فونت انجام نمی‌شود و ممکن است خوانایی افت کند.
+
+**راه‌حل پیشنهادی برای نسخه‌ی بعد:**
+1. در [dynamicColor.ts](../src/holographic/dynamicColor.ts) از همون منطق نمونه‌برداری Skia که الان برای `useDynamicAccentColor` هست، یک هوک/تابع کمکی جدید بساز که به‌جای رنگ accent، فقط **روشنایی میانگین (luminance)** پس‌زمینه را برگرداند (یا مستقیم یک `isLightBackground: boolean`).
+2. این مقدار را در [SettingsContext.tsx](../src/holographic/SettingsContext.tsx) کنار `dynamicGlowColor` محاسبه و در context expose کن (مثلاً `isLightBackground`).
+3. در [ClockWidget.tsx](../src/holographic/ClockWidget.tsx) و [QuoteWidget.tsx](../src/holographic/QuoteWidget.tsx)، رنگ‌های ثابت فعلی را با یک انتخاب دوحالته جایگزین کن: پس‌زمینه‌ی روشن/سفید → متن تیره (مثلاً `#1a1a1a`)، پس‌زمینه‌ی تیره/مشکی → همون پالت روشن فعلی.
+4. چون تشخیص فقط برای دو حالت افراطی (خیلی روشن/خیلی تیره) لازم است نه هر رنگی، یک آستانه (threshold) روی luminance بگذار — مثلاً بالای ۰.۸۵ روشن، زیر ۰.۱۵ تیره، بین این دو رنگ‌های فعلی با shadow را نگه دار.
+
+**فقط JS** — نیاز به rebuild native ندارد؛ فقط ری‌لود کافی است.

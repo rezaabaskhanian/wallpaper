@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
+  AppState,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -31,6 +32,7 @@ import OrbitLayer from './OrbitLayer';
 import ClockWidget from './ClockWidget';
 import QuoteWidget from './QuoteWidget';
 import SettingsPanel from './SettingsPanel';
+import AIGenerateScreen from './AIGenerateScreen';
 import TopLeftBar from './TopLeftBar';
 import WeatherEffects from './WeatherEffects';
 import TouchRippleLayer, {type TouchRippleHandle} from './TouchRippleLayer';
@@ -44,7 +46,11 @@ import AppDrawerIntroModal from './AppDrawerIntroModal';
 import {shouldShowAppDrawerIntro, markAppDrawerIntroShown} from './appDrawerIntro';
 import {BASE_TURN_SECONDS} from './config';
 import {setWidgetBackgroundImage} from './homeWidget';
-import {setDeviceWallpaper, type WallpaperTarget} from './lockWallpaper';
+import {
+  setDeviceWallpaper,
+  setLiveWallpaperFromCurrentScreen,
+  type WallpaperTarget,
+} from './lockWallpaper';
 import {useSettings} from './SettingsContext';
 
 /**
@@ -63,6 +69,10 @@ type Props = {
 
 export default function HolographicHome({dream = false}: Props) {
   const {settings, update} = useSettings();
+  // Read inside the random-background-rotation effect below without making
+  // it re-subscribe to AppState on every settings change (see that effect).
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const {width, height} = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const centerX = width / 2;
@@ -83,9 +93,42 @@ export default function HolographicHome({dream = false}: Props) {
     setWidgetBackgroundImage(uri ?? null).catch(() => {});
   }, [settings.backgroundId, settings.customBackgroundUri]);
 
+  // Random background rotation: whenever it's on and the user has starred at
+  // least one gallery photo (see WallpaperGallery's star toggle), pick one at
+  // random into customBackgroundUri on launch and every time the app returns
+  // to the foreground — the same "surprise me" moment as QuoteWidget's random
+  // quote pick.
+  useEffect(() => {
+    if (!settings.randomBackgroundEnabled) return;
+    const pickRandomBackground = () => {
+      const pool = settingsRef.current.randomBackgroundUris;
+      if (pool.length === 0) return;
+      let pick = pool[Math.floor(Math.random() * pool.length)];
+      if (pool.length > 1) {
+        let guard = 0;
+        while (pick === settingsRef.current.customBackgroundUri && guard < 10) {
+          pick = pool[Math.floor(Math.random() * pool.length)];
+          guard += 1;
+        }
+      }
+      update('customBackgroundUri', pick);
+      update('backgroundId', 'custom');
+    };
+
+    pickRandomBackground();
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        pickRandomBackground();
+      }
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.randomBackgroundEnabled]);
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [aiGenerateOpen, setAiGenerateOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Shown once on first launch (and again after a long absence — see
   // appDrawerIntro.ts) to teach the swipe-up-for-your-apps gesture, since
@@ -125,6 +168,20 @@ export default function HolographicHome({dream = false}: Props) {
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e);
       showAlert('خطا', `تنظیم والپیپر ممکن نشد: ${detail}`);
+    } finally {
+      setCapturing(false);
+    }
+  };
+
+  const setLiveWallpaper = async () => {
+    setSettingsOpen(false);
+    setCapturing(true);
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 550));
+    try {
+      await setLiveWallpaperFromCurrentScreen();
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      showAlert('خطا', `تنظیم لایو ولپیپر ممکن نشد: ${detail}`);
     } finally {
       setCapturing(false);
     }
@@ -400,6 +457,7 @@ export default function HolographicHome({dream = false}: Props) {
             visible={settingsOpen}
             onClose={() => setSettingsOpen(false)}
             onSetWallpaper={setWallpaper}
+            onSetLiveWallpaper={setLiveWallpaper}
             onOpenGallery={() => {
               setSettingsOpen(false);
               setGalleryOpen(true);
@@ -408,11 +466,20 @@ export default function HolographicHome({dream = false}: Props) {
               setSettingsOpen(false);
               setHelpOpen(true);
             }}
+            onOpenAIGenerate={() => {
+              setSettingsOpen(false);
+              setAiGenerateOpen(true);
+            }}
           />
 
           <WallpaperGallery
             visible={galleryOpen}
             onClose={() => setGalleryOpen(false)}
+          />
+
+          <AIGenerateScreen
+            visible={aiGenerateOpen}
+            onClose={() => setAiGenerateOpen(false)}
           />
 
           <HelpGuide visible={helpOpen} onClose={() => setHelpOpen(false)} />

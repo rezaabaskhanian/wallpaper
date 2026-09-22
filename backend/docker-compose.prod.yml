@@ -34,6 +34,21 @@ services:
     networks:
       - wallpaper_net
 
+  # پراکسی خروجی (VLESS) برای عبور از فیلترینگ وقتی بک‌اند به API‌های
+  # کلود/جمینای/دیپ‌سیک وصل می‌شود. کانفیگش دستی نیست — ادمین لینک vless:// را
+  # از پنل ادمین (تنظیمات AI) پیست می‌کند، بک‌اند کانفیگ را در ولوم مشترک
+  # xray_config می‌نویسد و watch.sh همین‌جا آن را ری‌لود می‌کند. ببینید
+  # deploy/xray/README.md. فقط روی wallpaper_net، هیچ پورتی به هاست منتشر نمی‌شود.
+  xray:
+    build:
+      context: ./deploy/xray
+    container_name: wallpaper_xray_prod
+    restart: unless-stopped
+    volumes:
+      - xray_config:/etc/xray
+    networks:
+      - wallpaper_net
+
   backend:
     build:
       context: .
@@ -42,6 +57,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      xray:
+        condition: service_started
     environment:
       ENV: production
       RUN_MIGRATIONS: "true"
@@ -64,6 +81,14 @@ services:
       ARVAN_S3_SECRET_KEY: ${ARVAN_S3_SECRET_KEY}
       ARVAN_S3_USE_SSL: ${ARVAN_S3_USE_SSL}
       ARVAN_S3_PUBLIC_BASE_URL: ${ARVAN_S3_PUBLIC_BASE_URL}
+      AI_PROXY_URL: socks5://xray:1080
+      XRAY_CONFIG_PATH: /xray-config/config.json
+      CAFEBAZAAR_PACKAGE_NAME: ${CAFEBAZAAR_PACKAGE_NAME}
+      CAFEBAZAAR_CLIENT_ID: ${CAFEBAZAAR_CLIENT_ID}
+      CAFEBAZAAR_CLIENT_SECRET: ${CAFEBAZAAR_CLIENT_SECRET}
+      CAFEBAZAAR_REFRESH_TOKEN: ${CAFEBAZAAR_REFRESH_TOKEN}
+    volumes:
+      - xray_config:/xray-config
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.wallpaper-backend.rule=Host(`api.wallpaperapp.ir`)"
@@ -75,6 +100,7 @@ services:
 
 volumes:
   wallpaper_prod_pg_data:
+  xray_config:
 
 networks:
   wallpaper_net:

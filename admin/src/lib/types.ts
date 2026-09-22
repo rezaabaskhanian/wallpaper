@@ -16,6 +16,10 @@ export type Wallpaper = {
   height: number;
   bytes: number;
   isActive: boolean;
+  /** How many times this wallpaper has actually been applied on a device —
+   * see the backend's TrackDownload. Use it to spot unused wallpapers to
+   * prune. */
+  downloadCount: number;
 };
 
 export type Martyr = {
@@ -84,4 +88,33 @@ export type PromoCode = {
   code: string;
   isActive: boolean;
   usedCount: number;
+};
+
+export type AISettings = {
+  claudeKeySet: boolean;
+  claudeKeyMasked: string;
+  geminiKeySet: boolean;
+  geminiKeyMasked: string;
+  deepSeekKeySet: boolean;
+  deepSeekKeyMasked: string;
+  /** "none" | "claude" | "deepseek" — فقط Gemini عکس می‌سازد؛ این‌ها فقط prompt را غنی می‌کنند. */
+  enrichmentProvider: string;
+  pricePerImageToman: number;
+};
+
+export type UpdateAISettingsInput = {
+  claudeApiKey?: string;
+  geminiApiKey?: string;
+  deepSeekApiKey?: string;
+  enrichmentProvider: string;
+  pricePerImageToman: number;
+};
+
+export type AIProxyStatus = {
+  connected: boolean;
+  ip?: string;
+  country?: string;
+  org?: string;
+  message: string;
+  link?: string;
 };

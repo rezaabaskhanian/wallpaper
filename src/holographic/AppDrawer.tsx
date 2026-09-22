@@ -1,13 +1,13 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
+import type {GestureResponderEvent} from 'react-native';
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   Modal,
   Pressable,
+  SectionList,
   StyleSheet,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import AppText from './AppText';
@@ -19,17 +19,57 @@ type Props = {
   onClose: () => void;
 };
 
+type Section = {title: string; data: InstalledApp[]};
+
+/** Canonical Persian alphabet order — used both to group apps and to order
+ * (and only show) the letters that actually have apps in the side index. */
+const PERSIAN_ALPHABET = [
+  'ا', 'آ', 'ب', 'پ', 'ت', 'ث', 'ج', 'چ', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'ژ',
+  'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ک', 'گ', 'ل', 'م', 'ن',
+  'و', 'ه', 'ی',
+];
+const ENGLISH_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+// Persian letters first (matches the app's own language), then English, then
+// a catch-all for labels starting with a digit/emoji/other script.
+const SECTION_ORDER = [...PERSIAN_ALPHABET, ...ENGLISH_ALPHABET, '#'];
+
+/** Groups an app label under a single index letter — Arabic-script look-alike
+ * characters (ي/ك, different alef forms) are folded onto their Persian
+ * counterpart so e.g. "يوتيوب" and "یوتیوب" land in the same "ی"/"ا" bucket. */
+function sectionKeyFor(label: string): string {
+  const first = label.trim().charAt(0);
+  if (!first) return '#';
+  const upper = first.toUpperCase();
+  if (/^[A-Z]$/.test(upper)) return upper;
+  const normalized = first
+    .replace(/[إأٱ]/, 'آ')
+    .replace(/ي/, 'ی')
+    .replace(/ك/, 'ک');
+  return PERSIAN_ALPHABET.includes(normalized) ? normalized : '#';
+}
+
+const ROW_HEIGHT = 60;
+const SECTION_HEADER_HEIGHT = 30;
+
 /**
  * Full-screen app drawer, opened by swiping up the handle at the bottom of
  * the home scene. Being the device's Home app only replaces the wallpaper +
  * icon grid the *system* draws — it doesn't give any other way to reach
  * installed apps, so this is required once the app is set as the launcher.
+ *
+ * Layout: a vertical, alphabetically-grouped app list fills the left side of
+ * the screen; a Persian+English letter index sits opposite it on the right.
+ * Dragging a finger down the index live-scrolls the list to that letter,
+ * like the fast-scroll index in a contacts app.
  */
 export default function AppDrawer({visible, onClose}: Props) {
-  const {width} = useWindowDimensions();
   const [apps, setApps] = useState<InstalledApp[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [activeLetter, setActiveLetter] = useState<string | null>(null);
+  const [bubbleY, setBubbleY] = useState(0);
+  const sidebarHeight = useRef(0);
+  const listRef = useRef<SectionList<InstalledApp, Section>>(null);
 
   useEffect(() => {
     if (!visible || apps || error) return;
@@ -45,10 +85,6 @@ export default function AppDrawer({visible, onClose}: Props) {
     if (visible) setQuery('');
   }, [visible]);
 
-  const columns = 4;
-  const gap = 14;
-  const cellWidth = (width - gap * (columns + 1)) / columns;
-
   const filtered = useMemo(() => {
     if (!apps) return [];
     const q = query.trim();
@@ -56,12 +92,57 @@ export default function AppDrawer({visible, onClose}: Props) {
     return apps.filter(a => a.label.includes(q) || a.packageName.includes(q));
   }, [apps, query]);
 
+  const sections = useMemo<Section[]>(() => {
+    const groups = new Map<string, InstalledApp[]>();
+    for (const app of filtered) {
+      const key = sectionKeyFor(app.label);
+      const bucket = groups.get(key);
+      if (bucket) {
+        bucket.push(app);
+      } else {
+        groups.set(key, [app]);
+      }
+    }
+    return SECTION_ORDER.filter(k => groups.has(k)).map(k => ({
+      title: k,
+      data: groups.get(k)!,
+    }));
+  }, [filtered]);
+
+  const letters = useMemo(() => sections.map(s => s.title), [sections]);
+
   const onPressApp = async (app: InstalledApp) => {
     try {
       await launchApp(app.packageName);
       onClose();
     } catch {
       showAlert('خطا', 'باز کردن این اپ ممکن نشد.');
+    }
+  };
+
+  const scrollToLetter = (letter: string) => {
+    const sectionIndex = sections.findIndex(s => s.title === letter);
+    if (sectionIndex < 0) return;
+    listRef.current?.scrollToLocation({
+      sectionIndex,
+      itemIndex: 0,
+      viewPosition: 0,
+      animated: false,
+    });
+  };
+
+  const handleSidebarTouch = (evt: GestureResponderEvent) => {
+    if (letters.length === 0 || sidebarHeight.current === 0) return;
+    const y = evt.nativeEvent.locationY;
+    const idx = Math.min(
+      letters.length - 1,
+      Math.max(0, Math.floor((y / sidebarHeight.current) * letters.length)),
+    );
+    const letter = letters[idx];
+    setBubbleY(Math.min(Math.max(y - 22, 0), sidebarHeight.current - 44));
+    if (letter !== activeLetter) {
+      setActiveLetter(letter);
+      scrollToLetter(letter);
     }
   };
 
@@ -106,27 +187,64 @@ export default function AppDrawer({visible, onClose}: Props) {
             <AppText style={styles.muted}>اپی پیدا نشد.</AppText>
           </View>
         ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={a => a.packageName}
-            numColumns={columns}
-            contentContainerStyle={styles.gridContent}
-            columnWrapperStyle={styles.gridRow}
-            renderItem={({item}) => (
-              <Pressable
-                onPress={() => onPressApp(item)}
-                style={[styles.cell, {width: cellWidth}]}>
-                {item.icon ? (
-                  <Image source={{uri: item.icon}} style={styles.icon} />
-                ) : (
-                  <View style={styles.icon} />
+          <View style={styles.body}>
+            <View style={styles.listCol}>
+              <SectionList
+                ref={listRef}
+                sections={sections}
+                keyExtractor={a => a.packageName}
+                stickySectionHeadersEnabled
+                contentContainerStyle={styles.listContent}
+                onScrollToIndexFailed={() => {}}
+                renderSectionHeader={({section}) => (
+                  <View style={styles.sectionHeader}>
+                    <AppText style={styles.sectionHeaderText}>{section.title}</AppText>
+                  </View>
                 )}
-                <AppText numberOfLines={1} style={styles.label}>
-                  {item.label}
+                renderItem={({item}) => (
+                  <Pressable onPress={() => onPressApp(item)} style={styles.row}>
+                    {item.icon ? (
+                      <Image source={{uri: item.icon}} style={styles.icon} />
+                    ) : (
+                      <View style={styles.icon} />
+                    )}
+                    <AppText numberOfLines={1} style={styles.rowLabel}>
+                      {item.label}
+                    </AppText>
+                  </Pressable>
+                )}
+              />
+            </View>
+
+            <View
+              style={styles.sidebar}
+              onLayout={e => {
+                sidebarHeight.current = e.nativeEvent.layout.height;
+              }}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderGrant={handleSidebarTouch}
+              onResponderMove={handleSidebarTouch}
+              onResponderRelease={() => setActiveLetter(null)}
+              onResponderTerminate={() => setActiveLetter(null)}>
+              {letters.map(letter => (
+                <AppText
+                  key={letter}
+                  style={[
+                    styles.sidebarLetter,
+                    letter === activeLetter && styles.sidebarLetterActive,
+                  ]}>
+                  {letter}
                 </AppText>
-              </Pressable>
-            )}
-          />
+              ))}
+            </View>
+
+            {activeLetter ? (
+              <View pointerEvents="none" style={[styles.bubble, {top: bubbleY}]}>
+                <AppText style={styles.bubbleText}>{activeLetter}</AppText>
+              </View>
+            ) : null}
+          </View>
         )}
       </View>
     </Modal>
@@ -168,20 +286,68 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   retryText: {color: '#eafffb', fontWeight: '700'},
-  gridContent: {padding: 14},
-  gridRow: {gap: 14, marginBottom: 18},
-  cell: {alignItems: 'center', gap: 6},
+  body: {flex: 1, flexDirection: 'row'},
+  listCol: {flex: 1},
+  listContent: {paddingBottom: 24},
+  sectionHeader: {
+    height: SECTION_HEADER_HEIGHT,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    backgroundColor: '#170b28ee',
+  },
+  sectionHeaderText: {
+    color: '#c4b5fd',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  row: {
+    height: ROW_HEIGHT,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+  },
   icon: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 11,
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  label: {
+  rowLabel: {
+    flex: 1,
     color: '#d6f5ee',
-    fontSize: 11,
-    textAlign: 'center',
+    fontSize: 14,
     writingDirection: 'rtl',
-    maxWidth: 70,
+    textAlign: 'right',
+  },
+  sidebar: {
+    width: 26,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sidebarLetter: {
+    color: 'rgba(214,245,238,0.55)',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  sidebarLetterActive: {
+    color: '#f5e6b3',
+    fontSize: 13,
+  },
+  bubble: {
+    position: 'absolute',
+    right: 34,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(139, 92, 246, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bubbleText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
   },
 });

@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {NavLink, Outlet} from 'react-router-dom';
 import {
+  BrainCircuit,
   FolderTree,
   Image,
   LayoutDashboard,
@@ -42,6 +43,7 @@ const NAV_ITEMS = [
   {to: '/quotes', label: 'نقل‌قول‌ها', icon: Quote},
   {to: '/hero', label: 'رهبر / لوگو', icon: User},
   {to: '/promo-codes', label: 'کدهای تخفیف', icon: Ticket},
+  {to: '/ai-settings', label: 'تنظیمات AI', icon: BrainCircuit},
 ];
 
 function SidebarNavContent({onNavigate}: {onNavigate?: () => void}) {

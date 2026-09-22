@@ -14,6 +14,7 @@ import Quotes from '@/pages/Quotes';
 import QuoteCategories from '@/pages/QuoteCategories';
 import Hero from '@/pages/Hero';
 import PromoCodes from '@/pages/PromoCodes';
+import AISettings from '@/pages/AISettings';
 
 function RequireAuth({children}: {children: React.ReactNode}) {
   const {isAuthed} = useAuth();
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/quotes" element={<Quotes />} />
           <Route path="/hero" element={<Hero />} />
           <Route path="/promo-codes" element={<PromoCodes />} />
+          <Route path="/ai-settings" element={<AISettings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

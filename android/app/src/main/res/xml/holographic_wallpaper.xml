@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Metadata for the real system live wallpaper. `settingsActivity` opens the
+  app (where the user picks/refreshes the source photo) from the system's
+  live-wallpaper preview screen.
+-->
+<wallpaper xmlns:android="http://schemas.android.com/apk/res/android"
+    android:thumbnail="@mipmap/ic_launcher"
+    android:description="@string/live_wallpaper_description"
+    android:settingsActivity="com.wallpaperNaghsh/com.wallpaperNaghsh.MainActivity" />

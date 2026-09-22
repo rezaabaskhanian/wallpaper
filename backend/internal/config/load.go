@@ -34,6 +34,18 @@ func Load() Config {
 			UseSSL:        getEnv("ARVAN_S3_USE_SSL", "true") == "true",
 			PublicBaseURL: getEnv("ARVAN_S3_PUBLIC_BASE_URL", ""),
 		},
+		DeepSeek: DeepSeek{
+			APIKey:  getEnv("DEEPSEEK_API_KEY", ""),
+			BaseURL: getEnv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+			Model:   getEnv("DEEPSEEK_MODEL", "deepseek-chat"),
+		},
+		AIProxyURL: getEnv("AI_PROXY_URL", ""),
+		CafeBazaar: CafeBazaar{
+			PackageName:  getEnv("CAFEBAZAAR_PACKAGE_NAME", ""),
+			ClientID:     getEnv("CAFEBAZAAR_CLIENT_ID", ""),
+			ClientSecret: getEnv("CAFEBAZAAR_CLIENT_SECRET", ""),
+			RefreshToken: getEnv("CAFEBAZAAR_REFRESH_TOKEN", ""),
+		},
 	}
 }
 

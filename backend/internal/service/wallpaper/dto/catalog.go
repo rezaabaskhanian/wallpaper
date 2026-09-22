@@ -20,6 +20,9 @@ type WallpaperDTO struct {
 	Height   int    `json:"height"`
 	Bytes    int64  `json:"bytes"`
 	IsActive bool   `json:"isActive"`
+	// DownloadCount چند بار این والپیپر واقعاً روی گوشی اعمال شده — ببینید
+	// wallpaper.DownloadCount و TrackDownload.
+	DownloadCount int `json:"downloadCount"`
 }
 
 // CatalogResponse پاسخ اندپوینت GET /api/v1/catalog.

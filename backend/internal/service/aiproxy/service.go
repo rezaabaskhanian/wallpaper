@@ -1,0 +1,167 @@
+// Package aiproxyservice یک لینک vless:// را که ادمین از پنل پیست می‌کند به کانفیگ
+// Xray-core تبدیل می‌کند، در یک ولوم مشترک با کانتینر xray (سرویس sidecar در
+// docker-compose.prod.yml) می‌نویسد، و بعد از چند ثانیه (زمانی که xray کانفیگ
+// جدید را تشخیص داده و ری‌استارت می‌کند) اتصال را از طریق همان پراکسی که
+// httpproxy.NewClient برای Claude/Gemini/DeepSeek استفاده می‌کند تست می‌کند.
+//
+// این الگو عیناً از پیاده‌سازی امتحان‌شده و در پروداکشن پروژه‌ی دیگر (Shadowing/
+// lingoflow.ir، internal/service/proxy) گرفته شده — همان مشکل (بلاک IP سرورهای
+// ایران روی API‌های AI) و همان راه‌حل.
+package aiproxyservice
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
+	"wallpaperstore/internal/pkg/httpproxy"
+	"wallpaperstore/internal/pkg/richerror"
+)
+
+const (
+	// مدتی که بعد از نوشتن کانفیگ جدید صبر می‌کنیم تا سایدکار xray آن را بارگذاری
+	// کند (watch.sh هر ۳ ثانیه چک‌سام فایل کانفیگ را می‌بیند).
+	reloadWait = 5 * time.Second
+
+	statusCheckURL     = "https://ipinfo.io/json"
+	statusCheckTimeout = 12 * time.Second
+)
+
+type Status struct {
+	Connected bool   `json:"connected"`
+	IP        string `json:"ip,omitempty"`
+	Country   string `json:"country,omitempty"`
+	Org       string `json:"org,omitempty"`
+	Message   string `json:"message"`
+}
+
+type Repository interface {
+	GetVlessLink(ctx context.Context) (string, error)
+	SetVlessLink(ctx context.Context, link string) error
+}
+
+type Service struct {
+	repo Repository
+	// proxyURL همان AI_PROXY_URL است که بک‌اند برای فراخوانی خودِ AI استفاده
+	// می‌کند (socks5://xray:1080) — تست وضعیت هم از همین پراکسی رد می‌شود تا
+	// دقیقاً همان مسیری که فراخوانی‌های AI واقعی طی می‌کنند را بسنجد.
+	proxyURL   string
+	configPath string
+	socksPort  int
+}
+
+func New(repo Repository, proxyURL string) Service {
+	configPath := os.Getenv("XRAY_CONFIG_PATH")
+	if configPath == "" {
+		configPath = "/xray-config/config.json"
+	}
+	socksPort := 1080
+	if v, err := strconv.Atoi(os.Getenv("XRAY_SOCKS_PORT")); err == nil && v > 0 {
+		socksPort = v
+	}
+	return Service{repo: repo, proxyURL: proxyURL, configPath: configPath, socksPort: socksPort}
+}
+
+// CurrentLink آخرین لینکی که ادمین ثبت کرده را برمی‌گرداند (برای پرکردن فرم در پنل).
+func (s Service) CurrentLink(ctx context.Context) (string, error) {
+	return s.repo.GetVlessLink(ctx)
+}
+
+// Connect لینک جدید را پارس، کانفیگ Xray را می‌نویسد، لینک را ذخیره می‌کند و
+// بعد از مکث کوتاه (تا سایدکار xray ری‌لود کند) وضعیت اتصال را برمی‌گرداند.
+func (s Service) Connect(ctx context.Context, link string) (Status, error) {
+	const op = "aiproxyservice.Connect"
+
+	cfg, err := parseVlessLink(link, s.socksPort)
+	if err != nil {
+		return Status{}, richerror.New(op).WithErr(err).WithMessage(err.Error())
+	}
+
+	data, err := cfg.toJSON()
+	if err != nil {
+		return Status{}, richerror.New(op).WithErr(err).WithMessage("خطا در ساخت کانفیگ")
+	}
+
+	if err := writeAtomic(s.configPath, data); err != nil {
+		return Status{}, richerror.New(op).WithErr(err).
+			WithMessage(fmt.Sprintf("خطا در نوشتن کانفیگ (%s): %v", s.configPath, err))
+	}
+
+	if err := s.repo.SetVlessLink(ctx, link); err != nil {
+		return Status{}, richerror.New(op).WithErr(err).WithMessage("خطا در ذخیره‌ی لینک")
+	}
+
+	select {
+	case <-time.After(reloadWait):
+	case <-ctx.Done():
+		return Status{}, ctx.Err()
+	}
+
+	return s.checkStatus(ctx), nil
+}
+
+// Status اتصال فعلی را (بدون تغییر کانفیگ) تست می‌کند.
+func (s Service) Status(ctx context.Context) Status {
+	return s.checkStatus(ctx)
+}
+
+func (s Service) checkStatus(ctx context.Context) Status {
+	client, err := httpproxy.NewClient(statusCheckTimeout, s.proxyURL)
+	if err != nil {
+		return Status{Connected: false, Message: fmt.Sprintf("خطا در تنظیم پراکسی: %v", err)}
+	}
+
+	reqCtx, cancel := context.WithTimeout(ctx, statusCheckTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, statusCheckURL, nil)
+	if err != nil {
+		return Status{Connected: false, Message: fmt.Sprintf("خطا در ساخت درخواست تست: %v", err)}
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return Status{Connected: false, Message: fmt.Sprintf("اتصال برقرار نشد: %v", err)}
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return Status{Connected: false, Message: fmt.Sprintf("پاسخ غیرمنتظره (%d): %s", resp.StatusCode, string(body))}
+	}
+
+	var info struct {
+		IP      string `json:"ip"`
+		Country string `json:"country"`
+		Org     string `json:"org"`
+	}
+	if err := json.Unmarshal(body, &info); err != nil {
+		return Status{Connected: false, Message: "پاسخ سرویس تست قابل پردازش نبود"}
+	}
+
+	return Status{
+		Connected: true,
+		IP:        info.IP,
+		Country:   info.Country,
+		Org:       info.Org,
+		Message:   "متصل",
+	}
+}
+
+func writeAtomic(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
+}

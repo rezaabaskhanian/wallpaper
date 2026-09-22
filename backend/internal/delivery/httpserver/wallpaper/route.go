@@ -8,6 +8,7 @@ import (
 // api = گروه /api/v1 (عمومی)، admin = گروه /api/v1/admin (پشت کلید ادمین).
 func (h Handler) SetWallpaperRoutes(api *echo.Group, admin *echo.Group) {
 	api.GET("/catalog", h.GetCatalog)
+	api.POST("/wallpapers/:id/download", h.TrackDownload)
 
 	admin.GET("/wallpapers", h.AdminListWallpapers)
 	admin.POST("/wallpapers", h.CreateWallpaper)

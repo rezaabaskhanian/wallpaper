@@ -8,6 +8,10 @@ import (
 	"wallpaperstore/internal/delivery/middlware"
 	"wallpaperstore/internal/pkg/objectstorage"
 
+	aigeneratehandler "wallpaperstore/internal/delivery/httpserver/aigenerate"
+	aiproxyhandler "wallpaperstore/internal/delivery/httpserver/aiproxy"
+	aisettingshandler "wallpaperstore/internal/delivery/httpserver/aisettings"
+	dailyquotehandler "wallpaperstore/internal/delivery/httpserver/dailyquote"
 	herohandler "wallpaperstore/internal/delivery/httpserver/hero"
 	martyrhandler "wallpaperstore/internal/delivery/httpserver/martyr"
 	orbithandler "wallpaperstore/internal/delivery/httpserver/orbit"
@@ -16,6 +20,10 @@ import (
 	uploadhandler "wallpaperstore/internal/delivery/httpserver/upload"
 	wallpaperhandler "wallpaperstore/internal/delivery/httpserver/wallpaper"
 
+	aigenerateservice "wallpaperstore/internal/service/aigenerate"
+	aiproxyservice "wallpaperstore/internal/service/aiproxy"
+	aisettingsservice "wallpaperstore/internal/service/aisettings"
+	dailyquoteservice "wallpaperstore/internal/service/dailyquote"
 	heroservice "wallpaperstore/internal/service/hero"
 	martyrservice "wallpaperstore/internal/service/martyr"
 	orbitservice "wallpaperstore/internal/service/orbit"
@@ -29,14 +37,18 @@ import (
 )
 
 type Service struct {
-	cfg              config.Config
-	wallpaperHandler wallpaperhandler.Handler
-	martyrHandler    martyrhandler.Handler
-	orbitHandler     orbithandler.Handler
-	quoteHandler     quotehandler.Handler
-	heroHandler      herohandler.Handler
-	uploadHandler    uploadhandler.Handler
-	promoCodeHandler promocodehandler.Handler
+	cfg               config.Config
+	wallpaperHandler  wallpaperhandler.Handler
+	martyrHandler     martyrhandler.Handler
+	orbitHandler      orbithandler.Handler
+	quoteHandler      quotehandler.Handler
+	dailyQuoteHandler dailyquotehandler.Handler
+	heroHandler       herohandler.Handler
+	uploadHandler     uploadhandler.Handler
+	promoCodeHandler  promocodehandler.Handler
+	aiSettingsHandler aisettingshandler.Handler
+	aiProxyHandler    aiproxyhandler.Handler
+	aiGenerateHandler aigeneratehandler.Handler
 }
 
 func New(
@@ -45,19 +57,27 @@ func New(
 	martyrSvc martyrservice.Service,
 	orbitSvc orbitservice.Service,
 	quoteSvc quoteservice.Service,
+	dailyQuoteSvc *dailyquoteservice.Service,
 	heroSvc heroservice.Service,
 	promoCodeSvc promocodeservice.Service,
 	storage *objectstorage.Client,
+	aiSettingsSvc aisettingsservice.Service,
+	aiProxySvc aiproxyservice.Service,
+	aiGenerateSvc aigenerateservice.Service,
 ) Service {
 	return Service{
-		cfg:              cfg,
-		wallpaperHandler: wallpaperhandler.New(wallpaperSvc),
-		martyrHandler:    martyrhandler.New(martyrSvc),
-		orbitHandler:     orbithandler.New(orbitSvc),
-		quoteHandler:     quotehandler.New(quoteSvc),
-		heroHandler:      herohandler.New(heroSvc),
-		uploadHandler:    uploadhandler.New(storage),
-		promoCodeHandler: promocodehandler.New(promoCodeSvc),
+		cfg:               cfg,
+		wallpaperHandler:  wallpaperhandler.New(wallpaperSvc),
+		martyrHandler:     martyrhandler.New(martyrSvc),
+		orbitHandler:      orbithandler.New(orbitSvc),
+		quoteHandler:      quotehandler.New(quoteSvc),
+		dailyQuoteHandler: dailyquotehandler.New(dailyQuoteSvc),
+		heroHandler:       herohandler.New(heroSvc),
+		uploadHandler:     uploadhandler.New(storage),
+		promoCodeHandler:  promocodehandler.New(promoCodeSvc),
+		aiSettingsHandler: aisettingshandler.New(aiSettingsSvc),
+		aiProxyHandler:    aiproxyhandler.New(aiProxySvc),
+		aiGenerateHandler: aigeneratehandler.New(aiGenerateSvc),
 	}
 }
 
@@ -114,9 +134,13 @@ func (s Service) Server() {
 	s.martyrHandler.SetRoutes(api, admin)
 	s.orbitHandler.SetRoutes(api, admin)
 	s.quoteHandler.SetRoutes(api, admin)
+	s.dailyQuoteHandler.SetRoutes(api)
 	s.heroHandler.SetRoutes(api, admin)
 	s.uploadHandler.SetRoutes(admin)
 	s.promoCodeHandler.SetRoutes(api, admin)
+	s.aiSettingsHandler.SetRoutes(admin)
+	s.aiProxyHandler.SetRoutes(admin)
+	s.aiGenerateHandler.SetRoutes(api)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", s.cfg.HttpServer.Port)))
 }

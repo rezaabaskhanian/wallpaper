@@ -24,6 +24,7 @@ import type {WallpaperTarget} from './lockWallpaper';
 import {useSettings} from './SettingsContext';
 import {useStore} from './store/StoreContext';
 import type {WallpaperItem} from './store/types';
+import {trackWallpaperDownload} from './store/wallpaperDownload';
 
 type Props = {
   visible: boolean;
@@ -169,15 +170,38 @@ export default function WallpaperGallery({visible, onClose}: Props) {
   const applyInApp = (item: WallpaperItem) => {
     update('customBackgroundUri', item.full);
     update('backgroundId', 'custom');
+    trackWallpaperDownload(item.id);
     setSelected(null);
     onClose();
     showAlert('انجام شد', 'به‌عنوان پس‌زمینهٔ اپ تنظیم شد.');
+  };
+
+  const MAX_RANDOM_BACKGROUNDS = 5;
+
+  const toggleRandomPick = (item: WallpaperItem) => {
+    const already = settings.randomBackgroundUris.includes(item.full);
+    if (already) {
+      update(
+        'randomBackgroundUris',
+        settings.randomBackgroundUris.filter(uri => uri !== item.full),
+      );
+      return;
+    }
+    if (settings.randomBackgroundUris.length >= MAX_RANDOM_BACKGROUNDS) {
+      showAlert(
+        'حداکثر ۵ عکس',
+        'برای اضافه‌کردن این یکی، اول یکی از عکس‌های چرخش رندوم را (تنظیمات ▸ پس‌زمینه) حذف کن.',
+      );
+      return;
+    }
+    update('randomBackgroundUris', [...settings.randomBackgroundUris, item.full]);
   };
 
   const applyToDevice = async (item: WallpaperItem, target: WallpaperTarget) => {
     setBusy(true);
     try {
       await setWallpaperFromUrl(item.full, target);
+      trackWallpaperDownload(item.id);
       const where =
         target === 'home' ? 'صفحهٔ اصلی' : target === 'both' ? 'اصلی و قفل' : 'صفحهٔ قفل';
       showAlert('انجام شد', `والپیپر ${where} تنظیم شد.`);
@@ -335,6 +359,15 @@ export default function WallpaperGallery({visible, onClose}: Props) {
                       onPress={() => applyInApp(selected)}>
                       <AppText style={styles.actionText}>
                         🖼️ پس‌زمینهٔ اپ
+                      </AppText>
+                    </Pressable>
+                    <Pressable
+                      style={styles.action}
+                      onPress={() => toggleRandomPick(selected)}>
+                      <AppText style={styles.actionText}>
+                        {settings.randomBackgroundUris.includes(selected.full)
+                          ? '★ حذف از چرخش رندوم'
+                          : '☆ افزودن به چرخش رندوم'}
                       </AppText>
                     </Pressable>
                     <View style={styles.actionRow}>

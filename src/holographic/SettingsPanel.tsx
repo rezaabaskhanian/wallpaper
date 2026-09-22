@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
+  Image,
   Linking,
   Modal,
   Pressable,
@@ -30,10 +31,15 @@ type Props = {
   onClose: () => void;
   /** Capture the current background and set it as the device wallpaper. */
   onSetWallpaper?: (target: WallpaperTarget) => void;
+  /** Save the current background as the source photo for the real system
+   * live wallpaper and open Android's "set live wallpaper" screen for it. */
+  onSetLiveWallpaper?: () => void;
   /** Open the downloadable-wallpaper gallery. */
   onOpenGallery?: () => void;
   /** Open the in-app "how to use the app" guide. */
   onOpenHelp?: () => void;
+  /** Open the "generate wallpaper from text with AI" screen. */
+  onOpenAIGenerate?: () => void;
 };
 
 /** Glow/accent colour swatches offered in settings. */
@@ -41,6 +47,17 @@ const GLOW_COLORS = [
   '#5eead4', // teal
   '#f5c451', // gold
   '#ffffff', // white
+  '#6ee7b7', // green
+  '#f87171', // red
+  '#7dd3fc', // blue
+];
+
+/** Font colour swatches for the clock/quote text (Settings ▸ ویجت‌ها).
+ * Starts with the app's original gold so the default shows as selected. */
+const TEXT_COLORS = [
+  '#f5e6b3', // classic gold (default)
+  '#ffffff', // white
+  '#5eead4', // teal
   '#6ee7b7', // green
   '#f87171', // red
   '#7dd3fc', // blue
@@ -61,8 +78,10 @@ export default function SettingsPanel({
   visible,
   onClose,
   onSetWallpaper,
+  onSetLiveWallpaper,
   onOpenGallery,
   onOpenHelp,
+  onOpenAIGenerate,
 }: Props) {
   // applyTheme از useSettings() اینجا موقتاً استفاده نمی‌شود چون بخش «تم
   // آماده» بالا کامنت شده — با برگرداندن آن UI، اینجا هم برگردانده شود.
@@ -103,6 +122,12 @@ export default function SettingsPanel({
   const [promoInput, setPromoInput] = useState('');
   const [redeeming, setRedeeming] = useState(false);
   const [presetNameInput, setPresetNameInput] = useState('');
+
+  // In the "وسط صفحه" clock layout, allow a much higher nominal scale than
+  // the small inline clock — the actual on-screen size is clamped to fit the
+  // screen in ClockWidget.tsx, so this is just a generous request ceiling.
+  const maxClockScale = settings.clockLayout === 'bigCentered' ? 12 : 1.6;
+  const clockScaleStep = settings.clockLayout === 'bigCentered' ? 0.5 : 0.1;
 
   const confirmDeletePreset = (id: string, label: string) => {
     showAlert('حذف پرست', `«${label}» حذف شود؟`, {
@@ -207,6 +232,14 @@ export default function SettingsPanel({
             style={[styles.helpEntry, styles.entryRowItem]}
             onPress={() => onOpenHelp?.()}>
             <AppText style={styles.helpEntryText}>📖 راهنمای کار با اپ</AppText>
+          </Pressable>
+        </View>
+
+        <View style={styles.entryRow}>
+          <Pressable
+            style={[styles.aiEntry, styles.entryRowItem]}
+            onPress={() => onOpenAIGenerate?.()}>
+            <AppText style={styles.aiEntryText}>🎨 ساخت والپیپر با AI</AppText>
           </Pressable>
         </View>
 
@@ -489,6 +522,57 @@ export default function SettingsPanel({
                 </AppText>
               ) : null}
 
+              <View style={styles.divider} />
+              <AppText style={styles.sectionTitle}>چرخش رندوم پس‌زمینه‌ها</AppText>
+
+              <RowSwitch
+                label="نمایش رندوم عکس‌های ستاره‌دار"
+                value={settings.randomBackgroundEnabled}
+                onChange={v => update('randomBackgroundEnabled', v)}
+              />
+              <AppText style={styles.hint}>
+                هر بار که اپ باز می‌شود، یکی از عکس‌های زیر رندوم به‌عنوان
+                پس‌زمینه انتخاب می‌شود. از «گالری والپیپر» یک عکس را باز کن و
+                «☆ افزودن به چرخش رندوم» را بزن (حداکثر ۵ عکس).
+              </AppText>
+
+              {settings.randomBackgroundUris.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.randomBgRow}>
+                  {settings.randomBackgroundUris.map(uri => (
+                    <View key={uri} style={styles.randomBgThumbWrap}>
+                      <Image source={{uri}} style={styles.randomBgThumb} />
+                      <Pressable
+                        style={styles.randomBgRemove}
+                        onPress={() =>
+                          update(
+                            'randomBackgroundUris',
+                            settings.randomBackgroundUris.filter(u => u !== uri),
+                          )
+                        }>
+                        <AppText style={styles.randomBgRemoveText}>×</AppText>
+                      </Pressable>
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : (
+                <AppText style={styles.hint}>هنوز عکسی اضافه نشده.</AppText>
+              )}
+
+              <View style={styles.divider} />
+
+              <RowSwitch
+                label="زنده‌سازی پس‌زمینه (حرکت آرام)"
+                value={settings.livingWallpaper}
+                onChange={v => update('livingWallpaper', v)}
+              />
+              <AppText style={styles.hint}>
+                عکس پس‌زمینه به‌آرامی زوم و جابه‌جا می‌شود؛ هر بار که اپ باز
+                می‌شود هم یک حرکت شروع (بیدار شدن) دارد.
+              </AppText>
+
               <RowChoices
                 label="حالت روز/شب"
                 options={[
@@ -556,6 +640,21 @@ export default function SettingsPanel({
                 به‌جای رنگ دستی زیر، رنگ ذرات نور از خودِ عکس پس‌زمینهٔ فعلی
                 استخراج می‌شود.
               </AppText>
+
+              {settings.dynamicColor ? (
+                <>
+                  <RowSwitch
+                    label="رنگ پویا هم روی نوشته‌ها"
+                    value={settings.dynamicColorText}
+                    onChange={v => update('dynamicColorText', v)}
+                  />
+                  <AppText style={styles.hint}>
+                    درخشش دور ساعت و متن پایین هم به‌جای طلایی ثابت، همرنگ
+                    عکس پس‌زمینه می‌شود — برای هماهنگی کامل‌تر بین کل صفحه و
+                    عکس.
+                  </AppText>
+                </>
+              ) : null}
 
               <RowColors
                 label="رنگ نور"
@@ -685,6 +784,80 @@ export default function SettingsPanel({
                 onSelect={id => update('hourFormat', id as '12' | '24')}
               />
 
+              {settings.hourFormat === '12' ? (
+                <RowSwitch
+                  label="نمایش قبل‌ازظهر/بعدازظهر"
+                  value={settings.showAmPm}
+                  onChange={v => update('showAmPm', v)}
+                />
+              ) : null}
+
+              <RowChoices
+                label="ارقام ساعت"
+                options={[
+                  {id: 'fa', label: 'فارسی'},
+                  {id: 'en', label: 'انگلیسی'},
+                ]}
+                selected={settings.clockDigits}
+                onSelect={id => update('clockDigits', id as 'fa' | 'en')}
+              />
+
+              <RowChoices
+                label="چیدمان ساعت"
+                options={[
+                  {id: 'inline', label: 'بالا (کنار تاریخ)'},
+                  {id: 'bigCentered', label: 'وسط صفحه (بزرگ)'},
+                ]}
+                selected={settings.clockLayout}
+                onSelect={id =>
+                  update('clockLayout', id as 'inline' | 'bigCentered')
+                }
+              />
+              {settings.clockLayout === 'bigCentered' ? (
+                <AppText style={styles.hint}>
+                  در این حالت فقط ساعت وسط صفحه و بزرگ نمایش داده می‌شود —
+                  ساعت‌شمار بالا، دقیقه پایین — و تاریخ زیر آن نشان داده
+                  نمی‌شود.
+                </AppText>
+              ) : null}
+
+              <RowStepper
+                label="اندازه فونت ساعت"
+                value={`${settings.clockFontScale.toFixed(1)}×`}
+                onDec={() =>
+                  update(
+                    'clockFontScale',
+                    Math.max(
+                      0.7,
+                      +(settings.clockFontScale - clockScaleStep).toFixed(1),
+                    ),
+                  )
+                }
+                onInc={() =>
+                  update(
+                    'clockFontScale',
+                    Math.min(
+                      maxClockScale,
+                      +(settings.clockFontScale + clockScaleStep).toFixed(1),
+                    ),
+                  )
+                }
+              />
+              {settings.clockLayout === 'bigCentered' ? (
+                <AppText style={styles.hint}>
+                  در چیدمان «وسط صفحه» اندازه تا هر عددی زیاد بشه، خودِ اپ آن
+                  را طوری کوچک می‌کند که دقیقاً داخل صفحه جا شود و بیرون نزند
+                  — یعنی این عدد فقط سقفِ درخواستی است، نه اندازهٔ قطعی.
+                </AppText>
+              ) : null}
+
+              <RowColors
+                label="رنگ فونت ساعت"
+                colors={TEXT_COLORS}
+                selected={settings.clockTextColor}
+                onSelect={c => update('clockTextColor', c)}
+              />
+
               <RowSwitch
                 label="نمایش هوا"
                 value={settings.showWeather}
@@ -733,6 +906,17 @@ export default function SettingsPanel({
                 onChange={v => update('showQuote', v)}
               />
 
+              <RowSwitch
+                label="جملهٔ روزانه با هوش مصنوعی ✨"
+                value={settings.dailyAiQuote}
+                onChange={v => update('dailyAiQuote', v)}
+              />
+              <AppText style={styles.hint}>
+                هر روز یک جملهٔ تازه (ساخته‌شده با هوش مصنوعی) به‌جای دسته‌ی
+                زیر نمایش داده می‌شود. اگر این فیچر روی سرور فعال نباشد،
+                خودکار به دسته‌ی انتخابی برمی‌گردد.
+              </AppText>
+
               {quoteCategories.length > 1 ? (
                 <RowChoices
                   label="دسته‌ی نقل‌قول‌ها"
@@ -741,6 +925,30 @@ export default function SettingsPanel({
                   onSelect={id => update('quoteCategoryId', id)}
                 />
               ) : null}
+
+              <RowStepper
+                label="اندازه فونت متن پایین"
+                value={`${settings.quoteFontScale.toFixed(1)}×`}
+                onDec={() =>
+                  update(
+                    'quoteFontScale',
+                    Math.max(0.7, +(settings.quoteFontScale - 0.1).toFixed(1)),
+                  )
+                }
+                onInc={() =>
+                  update(
+                    'quoteFontScale',
+                    Math.min(1.6, +(settings.quoteFontScale + 0.1).toFixed(1)),
+                  )
+                }
+              />
+
+              <RowColors
+                label="رنگ فونت متن پایین"
+                colors={TEXT_COLORS}
+                selected={settings.quoteTextColor}
+                onSelect={c => update('quoteTextColor', c)}
+              />
 
               {/* <AppText style={styles.fieldLabel}>خط اول (کوچک)</AppText>
               <TextInput
@@ -816,6 +1024,20 @@ export default function SettingsPanel({
               <AppText style={styles.hint}>
                 ساعت و متن حذف می‌شوند و فقط پس‌زمینه ذخیره می‌شود. تصویر ثابت
                 است (اندروید انیمیشن زنده روی صفحهٔ قفل نمی‌دهد).
+              </AppText>
+
+              <Pressable
+                style={styles.galleryBtn}
+                onPress={() => onSetLiveWallpaper?.()}>
+                <AppText style={styles.galleryBtnText}>
+                  ✨ ست کردن لایو ولپیپر (فقط صفحهٔ اصلی)
+                </AppText>
+              </Pressable>
+              <AppText style={styles.hint}>
+                این یکی واقعاً زنده است — عکس فعلی ذخیره و صفحهٔ «تنظیم ولپیپر
+                زنده» اندروید باز می‌شود؛ آنجا «Set wallpaper» را بزن. پشت
+                آیکون‌های صفحهٔ اصلی اجرا می‌شود، نه پشت صفحهٔ قفل (محدودیت
+                خودِ اندروید از نسخهٔ ۷ به بعد).
               </AppText>
 
               <Pressable
@@ -1160,6 +1382,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(139, 92, 246, 0.3)',
   },
+  randomBgRow: {
+    gap: 10,
+    paddingVertical: 6,
+  },
+  randomBgThumbWrap: {
+    width: 64,
+    height: 64,
+  },
+  randomBgThumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+  },
+  randomBgRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(20,10,30,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  randomBgRemoveText: {
+    color: '#eafffb',
+    fontSize: 13,
+    lineHeight: 14,
+  },
   entryRow: {
     flexDirection: 'row-reverse',
     gap: 8,
@@ -1193,6 +1448,20 @@ const styles = StyleSheet.create({
   },
   helpEntryText: {
     color: '#c4b5fd',
+    fontSize: 14,
+    fontWeight: '700',
+    writingDirection: 'rtl',
+  },
+  aiEntry: {
+    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    borderColor: 'rgba(94, 234, 212, 0.5)',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  aiEntryText: {
+    color: '#5eead4',
     fontSize: 14,
     fontWeight: '700',
     writingDirection: 'rtl',

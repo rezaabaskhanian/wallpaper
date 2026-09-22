@@ -23,6 +23,9 @@ type Repository interface {
 	SaveCategory(ctx context.Context, c domain.Category) (domain.Category, error)
 	DeleteCategory(ctx context.Context, id string) error
 	BumpCatalogVersion(ctx context.Context) error
+
+	// عمومی (اپ): شمارش دانلود واقعی — ببینید wallpaper.DownloadCount.
+	IncrementDownloadCount(ctx context.Context, id string) error
 }
 
 type Service struct {
@@ -35,16 +38,17 @@ func New(repo Repository) Service {
 
 func toWallpaperDTO(w domain.Wallpaper) dto.WallpaperDTO {
 	return dto.WallpaperDTO{
-		ID:       string(w.ID),
-		Title:    w.Title,
-		Category: w.Category,
-		Premium:  w.Premium,
-		Thumb:    w.Thumb,
-		Full:     w.Full,
-		Width:    w.Width,
-		Height:   w.Height,
-		Bytes:    w.Bytes,
-		IsActive: w.IsActive,
+		ID:            string(w.ID),
+		Title:         w.Title,
+		Category:      w.Category,
+		Premium:       w.Premium,
+		Thumb:         w.Thumb,
+		Full:          w.Full,
+		Width:         w.Width,
+		Height:        w.Height,
+		Bytes:         w.Bytes,
+		IsActive:      w.IsActive,
+		DownloadCount: w.DownloadCount,
 	}
 }
 

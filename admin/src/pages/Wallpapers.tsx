@@ -1,6 +1,6 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import {toast} from 'sonner';
-import {Plus} from 'lucide-react';
+import {ArrowDown01, Plus} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
@@ -203,7 +203,15 @@ export default function Wallpapers() {
   const delMany = useDeleteManyWallpapers();
   const [editing, setEditing] = useState<Wallpaper | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [sortByDownloads, setSortByDownloads] = useState(false);
   const sel = useRowSelection(wallpapers);
+
+  // کمترین‌دانلود اول، تا والپیپرهای بی‌استفاده برای پاک‌سازی راحت پیدا شوند.
+  const rows = useMemo(() => {
+    if (!wallpapers) return wallpapers;
+    if (!sortByDownloads) return wallpapers;
+    return [...wallpapers].sort((a, b) => a.downloadCount - b.downloadCount);
+  }, [wallpapers, sortByDownloads]);
 
   const bulkDelete = async () => {
     try {
@@ -222,15 +230,24 @@ export default function Wallpapers() {
           <h1 className="text-2xl font-bold tracking-tight">والپیپرها</h1>
           <p className="text-sm text-muted-foreground">کاتالوگ والپیپرهای اپ</p>
         </div>
-        <Button
-          className="glow-primary"
-          onClick={() => {
-            setEditing(null);
-            setDialogOpen(true);
-          }}>
-          <Plus className="size-4" />
-          والپیپر جدید
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={sortByDownloads ? 'default' : 'outline'}
+            onClick={() => setSortByDownloads(v => !v)}
+            title="کم‌دانلودترین‌ها اول — برای پیدا کردن والپیپرهای بی‌استفاده">
+            <ArrowDown01 className="size-4" />
+            مرتب‌سازی بر اساس دانلود
+          </Button>
+          <Button
+            className="glow-primary"
+            onClick={() => {
+              setEditing(null);
+              setDialogOpen(true);
+            }}>
+            <Plus className="size-4" />
+            والپیپر جدید
+          </Button>
+        </div>
       </div>
 
       <BulkActionsBar
@@ -250,6 +267,7 @@ export default function Wallpapers() {
               <TableHead>پیش‌نمایش</TableHead>
               <TableHead>عنوان</TableHead>
               <TableHead>دسته</TableHead>
+              <TableHead>دانلود</TableHead>
               <TableHead>وضعیت</TableHead>
               <TableHead className="w-32" />
             </TableRow>
@@ -257,10 +275,10 @@ export default function Wallpapers() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6}>در حال بارگذاری…</TableCell>
+                <TableCell colSpan={7}>در حال بارگذاری…</TableCell>
               </TableRow>
             ) : (
-              wallpapers?.map(w => (
+              rows?.map(w => (
                 <TableRow key={w.id} data-state={sel.selected.has(w.id) && 'selected'}>
                   <TableCell>
                     <Checkbox
@@ -276,6 +294,13 @@ export default function Wallpapers() {
                   <TableCell className="font-medium">{w.title}</TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {w.category}
+                  </TableCell>
+                  <TableCell>
+                    {w.downloadCount === 0 ? (
+                      <StatusBadge label="۰ دانلود" tone="warning" />
+                    ) : (
+                      <span className="font-mono text-sm">{w.downloadCount}</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1.5">

@@ -20,6 +20,8 @@ import {
   PREMIUM_SKU,
   useBazaar,
 } from './billing';
+import {AI_CREDITS_SKU} from './config';
+import {redeemAICredits} from './aiGenerate';
 import type {
   Catalog,
   HeroData,
@@ -62,6 +64,10 @@ type StoreValue = {
   isUnlocked: (item: WallpaperItem) => boolean;
   /** Redeems a discount code with the backend; unlocks premium locally on success. */
   redeemCode: (code: string) => Promise<{success: boolean; message: string}>;
+  /** Buys the ai_credits pack, has the backend verify + grant credits, then
+   * consumes the purchase so it can be bought again. Returns the number of
+   * credits granted, or false if the user canceled. */
+  buyAICredits: () => Promise<number | false>;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -147,6 +153,25 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
     return true;
   }, [bazaar, refreshEntitlements]);
 
+  const buyAICredits = useCallback(async () => {
+    if (!isBillingAvailable()) {
+      throw new Error('BILLING_UNAVAILABLE');
+    }
+    let purchaseToken: string;
+    try {
+      const result = await bazaar.purchaseProduct(AI_CREDITS_SKU);
+      purchaseToken = result.purchaseToken;
+    } catch (e: any) {
+      if (e?.message === 'purchase canceled') {
+        return false;
+      }
+      throw e;
+    }
+    const {creditsGranted} = await redeemAICredits(purchaseToken);
+    await bazaar.consumePurchase(purchaseToken);
+    return creditsGranted;
+  }, [bazaar]);
+
   const redeemCode = useCallback(async (code: string) => {
     const result = await redeemPromoCode(code);
     if (result.success) {
@@ -176,6 +201,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       buyUnlock,
       isUnlocked,
       redeemCode,
+      buyAICredits,
     }),
     [
       catalog,
@@ -195,6 +221,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       buyUnlock,
       isUnlocked,
       redeemCode,
+      buyAICredits,
     ],
   );
 
