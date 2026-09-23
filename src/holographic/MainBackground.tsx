@@ -1,5 +1,10 @@
-import React, {useEffect} from 'react';
-import {AppState, ImageBackground, StyleSheet} from 'react-native';
+import React, {forwardRef, useEffect, useImperativeHandle, useRef} from 'react';
+import {
+  AppState,
+  ImageBackground,
+  StyleSheet,
+  useWindowDimensions,
+} from 'react-native';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -12,8 +17,7 @@ import Animated, {
 import {BACKGROUNDS} from './config';
 import {useSettings} from './SettingsContext';
 import {useCachedImage} from './imageCache';
-
-const AnimatedImageBackground = Animated.createAnimatedComponent(ImageBackground);
+import WaterRippleLayer, {type WaterRippleHandle} from './WaterRippleLayer';
 
 /** True for a remote http(s) URL (a wallpaper picked from the app's own
  * gallery); false for a local device photo (content://, file://, ph://…)
@@ -34,13 +38,17 @@ const isRemoteUrl = (uri: string) => /^https?:\/\//i.test(uri);
  * goes offline. A photo picked straight from the phone's gallery is already
  * a local file and is used as-is.
  */
-export default function MainBackground() {
+const MainBackground = forwardRef<WaterRippleHandle>((_props, ref) => {
   const {settings} = useSettings();
-  const {livingWallpaper} = settings;
+  const {livingWallpaper, wallpaperShake, waterRipple} = settings;
+  const {width, height} = useWindowDimensions();
 
   const scale = useSharedValue(1);
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
+  const shakeX = useSharedValue(0);
+  const shakeY = useSharedValue(0);
+  const shakeRot = useSharedValue(0);
 
   useEffect(() => {
     if (!livingWallpaper) {
@@ -102,13 +110,72 @@ export default function MainBackground() {
     };
   }, [livingWallpaper, scale, tx, ty]);
 
+  // Low-amplitude tremble layered on the drift above. Each axis runs on its
+  // own period so the three never line up into an obvious back-and-forth, and
+  // the amplitude stays inside the Ken-Burns overscan so no edge is exposed.
+  useEffect(() => {
+    const trembling = livingWallpaper && wallpaperShake;
+    if (!trembling) {
+      cancelAnimation(shakeX);
+      cancelAnimation(shakeY);
+      cancelAnimation(shakeRot);
+      shakeX.value = withTiming(0, {duration: 400});
+      shakeY.value = withTiming(0, {duration: 400});
+      shakeRot.value = withTiming(0, {duration: 400});
+      return;
+    }
+
+    const tremble = (sv: typeof shakeX, amp: number, duration: number) => {
+      sv.value = withRepeat(
+        withSequence(
+          withTiming(amp, {duration, easing: Easing.inOut(Easing.sin)}),
+          withTiming(-amp, {duration, easing: Easing.inOut(Easing.sin)}),
+        ),
+        -1,
+        true,
+      );
+    };
+    tremble(shakeX, 1.6, 130);
+    tremble(shakeY, 1.2, 170);
+    tremble(shakeRot, 0.14, 210);
+
+    return () => {
+      cancelAnimation(shakeX);
+      cancelAnimation(shakeY);
+      cancelAnimation(shakeRot);
+    };
+  }, [livingWallpaper, wallpaperShake, shakeX, shakeY, shakeRot]);
+
   const livingStyle = useAnimatedStyle(() => ({
     transform: [
       {scale: scale.value},
-      {translateX: tx.value},
-      {translateY: ty.value},
+      {translateX: tx.value + shakeX.value},
+      {translateY: ty.value + shakeY.value},
+      {rotateZ: `${shakeRot.value}deg`},
     ],
   }));
+
+  // The tap gesture lives on the whole scene (HolographicHome), so its point
+  // is in untransformed screen space while the ripple canvas sits *inside*
+  // the Ken-Burns transform — undo that transform here so the ripple starts
+  // exactly under the finger. Matches the transform list above: a point maps
+  // to screen as s * (local + t) about the centre.
+  const rippleRef = useRef<WaterRippleHandle>(null);
+  useImperativeHandle(
+    ref,
+    () => ({
+      addDrop: (x: number, y: number) => {
+        const s = scale.value || 1;
+        const cx = width / 2;
+        const cy = height / 2;
+        rippleRef.current?.addDrop(
+          (x - cx) / s - (tx.value + shakeX.value) + cx,
+          (y - cy) / s - (ty.value + shakeY.value) + cy,
+        );
+      },
+    }),
+    [scale, tx, ty, shakeX, shakeY, width, height],
+  );
 
   const customUri = settings.customBackgroundUri;
   const customIsRemote = !!customUri && isRemoteUrl(customUri);
@@ -137,20 +204,40 @@ export default function MainBackground() {
 
   // ImageBackground (not a bare Image) because it sizes the inner image to
   // 100% × 100%; absolute insets alone leave it at its intrinsic pixel size.
+  // The ripple canvas is a sibling inside the same animated wrapper so it
+  // inherits an identical transform — drawn on its own it would otherwise
+  // show an un-zoomed copy of the photo over the drifting one.
   return (
-    <AnimatedImageBackground
-      // Remount on source change so a newly picked photo replaces the old one
-      // instead of being served from the previous decode.
-      key={typeof source === 'number' ? `bundled-${source}` : source.uri}
-      source={source}
+    <Animated.View
+      pointerEvents="none"
       style={[
         StyleSheet.absoluteFill,
-        fit === 'contain' && bundled?.letterboxColor
-          ? {backgroundColor: bundled.letterboxColor}
-          : null,
         livingWallpaper ? livingStyle : null,
-      ]}
-      resizeMode={fit}
-    />
+      ]}>
+      <ImageBackground
+        // Remount on source change so a newly picked photo replaces the old
+        // one instead of being served from the previous decode.
+        key={typeof source === 'number' ? `bundled-${source}` : source.uri}
+        source={source}
+        style={[
+          StyleSheet.absoluteFill,
+          fit === 'contain' && bundled?.letterboxColor
+            ? {backgroundColor: bundled.letterboxColor}
+            : null,
+        ]}
+        resizeMode={fit}
+      />
+      {waterRipple ? (
+        <WaterRippleLayer
+          ref={rippleRef}
+          source={source}
+          width={width}
+          height={height}
+          fit={fit}
+        />
+      ) : null}
+    </Animated.View>
   );
-}
+});
+
+export default MainBackground;

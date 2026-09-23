@@ -16,6 +16,16 @@ type LockWallpaperNative = {
   /** Opens Android's own "set live wallpaper" screen for this app's live
    * wallpaper — the user still taps "Set wallpaper" there. */
   requestSetLiveWallpaper: () => Promise<boolean>;
+  /** Mirrors the water-ripple switches into the live wallpaper service. */
+  setLiveWallpaperRipple: (
+    enabled: boolean,
+    auto: boolean,
+  ) => Promise<boolean>;
+  /** Downloads the starred photos into the live wallpaper's rotation pool. */
+  setLiveWallpaperSources: (
+    urls: string[],
+    enabled: boolean,
+  ) => Promise<boolean>;
 };
 
 const LockWallpaper: LockWallpaperNative | undefined =
@@ -82,4 +92,52 @@ export async function setLiveWallpaperFromUrl(url: string): Promise<void> {
   }
   await LockWallpaper.setLiveWallpaperSourceFromUrl(url);
   await LockWallpaper.requestSetLiveWallpaper();
+}
+
+/**
+ * Pushes the water-ripple switches down to the live wallpaper service, which
+ * has no access to the JS settings store. Safe to call on every settings
+ * change — it's a SharedPreferences write, and a missing native module (an
+ * older build) is ignored rather than thrown, since the in-app ripple works
+ * regardless of whether the live wallpaper is even in use.
+ */
+/**
+ * Hands the starred rotation photos to the live wallpaper service so the home
+ * screen rerolls one on every unlock, instead of staying on the single photo
+ * that was set once. Only the app's own gallery URLs can be fetched natively,
+ * so device-gallery picks (content://, file://) are dropped here rather than
+ * failing one by one in the download loop.
+ *
+ * Fire-and-forget like the ripple sync: the pool simply keeps its previous
+ * contents if a download fails.
+ */
+export async function syncLiveWallpaperSources(
+  uris: string[],
+  enabled: boolean,
+): Promise<void> {
+  if (!LockWallpaper?.setLiveWallpaperSources) {
+    return;
+  }
+  try {
+    await LockWallpaper.setLiveWallpaperSources(
+      uris.filter(u => /^https:\/\//i.test(u)),
+      enabled,
+    );
+  } catch {
+    // Keeps whatever pool the service already had.
+  }
+}
+
+export async function syncLiveWallpaperRipple(
+  enabled: boolean,
+  auto: boolean,
+): Promise<void> {
+  if (!LockWallpaper?.setLiveWallpaperRipple) {
+    return;
+  }
+  try {
+    await LockWallpaper.setLiveWallpaperRipple(enabled, auto);
+  } catch {
+    // Not worth surfacing — the home-screen ripple simply keeps its old state.
+  }
 }

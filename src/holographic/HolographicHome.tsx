@@ -28,11 +28,12 @@ import Vignette from './Vignette';
 import AtmosphericFog from './AtmosphericFog';
 // import ProjectileLayer from './ProjectileLayer'; // [combat mode disabled for now]
 import MainBackground from './MainBackground';
+import {type WaterRippleHandle} from './WaterRippleLayer';
 import OrbitLayer from './OrbitLayer';
 import ClockWidget from './ClockWidget';
 import QuoteWidget from './QuoteWidget';
 import SettingsPanel from './SettingsPanel';
-import AIGenerateScreen from './AIGenerateScreen';
+// import AIGenerateScreen from './AIGenerateScreen'; // [AI disabled for this version]
 import TopLeftBar from './TopLeftBar';
 import WeatherEffects from './WeatherEffects';
 import TouchRippleLayer, {type TouchRippleHandle} from './TouchRippleLayer';
@@ -128,7 +129,7 @@ export default function HolographicHome({dream = false}: Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [aiGenerateOpen, setAiGenerateOpen] = useState(false);
+  // const [aiGenerateOpen, setAiGenerateOpen] = useState(false); // [AI disabled for this version]
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Shown once on first launch (and again after a long absence — see
   // appDrawerIntro.ts) to teach the swipe-up-for-your-apps gesture, since
@@ -194,6 +195,13 @@ export default function HolographicHome({dream = false}: Props) {
   const rippleRef = useRef<TouchRippleHandle>(null);
   const triggerRipple = (x: number, y: number) => {
     rippleRef.current?.addRipple(x, y);
+  };
+
+  // Water-surface ripple on the photo itself — the drop is spawned by
+  // MainBackground, which owns the canvas and the transform it sits under.
+  const waterRippleRef = useRef<WaterRippleHandle>(null);
+  const triggerWaterDrop = (x: number, y: number) => {
+    waterRippleRef.current?.addDrop(x, y);
   };
 
   // Accumulated auto-orbit angle (radians), integrated every frame so speed
@@ -330,6 +338,9 @@ export default function HolographicHome({dream = false}: Props) {
       if (settings.touchRipple) {
         runOnJS(triggerRipple)(e.x, e.y);
       }
+      if (settings.waterRipple) {
+        runOnJS(triggerWaterDrop)(e.x, e.y);
+      }
     });
   const sceneGesture = Gesture.Simultaneous(pan, tap);
 
@@ -351,7 +362,7 @@ export default function HolographicHome({dream = false}: Props) {
       <GestureDetector gesture={sceneGesture}>
         <View style={styles.root}>
           <Animated.View style={[styles.root, backgroundTiltStyle]}>
-            <MainBackground />
+            <MainBackground ref={waterRippleRef} />
           </Animated.View>
 
           {/* Painted right after the photo (not before it) — RN stacks
@@ -466,10 +477,12 @@ export default function HolographicHome({dream = false}: Props) {
               setSettingsOpen(false);
               setHelpOpen(true);
             }}
-            onOpenAIGenerate={() => {
-              setSettingsOpen(false);
-              setAiGenerateOpen(true);
-            }}
+            // [AI disabled for this version] re-enable together with the
+            // AIGenerateScreen below and its button in SettingsPanel.tsx.
+            // onOpenAIGenerate={() => {
+            //   setSettingsOpen(false);
+            //   setAiGenerateOpen(true);
+            // }}
           />
 
           <WallpaperGallery
@@ -477,10 +490,13 @@ export default function HolographicHome({dream = false}: Props) {
             onClose={() => setGalleryOpen(false)}
           />
 
+          {/* [AI disabled for this version] AI wallpaper generation — the
+              screen itself (AIGenerateScreen.tsx) and its API client
+              (store/aiGenerate.ts) are untouched, just not mounted.
           <AIGenerateScreen
             visible={aiGenerateOpen}
             onClose={() => setAiGenerateOpen(false)}
-          />
+          /> */}
 
           <HelpGuide visible={helpOpen} onClose={() => setHelpOpen(false)} />
 

@@ -38,8 +38,8 @@ type Props = {
   onOpenGallery?: () => void;
   /** Open the in-app "how to use the app" guide. */
   onOpenHelp?: () => void;
-  /** Open the "generate wallpaper from text with AI" screen. */
-  onOpenAIGenerate?: () => void;
+  // /** Open the "generate wallpaper from text with AI" screen. */
+  // onOpenAIGenerate?: () => void; // [AI disabled for this version]
 };
 
 /** Glow/accent colour swatches offered in settings. */
@@ -81,7 +81,7 @@ export default function SettingsPanel({
   onSetLiveWallpaper,
   onOpenGallery,
   onOpenHelp,
-  onOpenAIGenerate,
+  // onOpenAIGenerate, // [AI disabled for this version]
 }: Props) {
   // applyTheme از useSettings() اینجا موقتاً استفاده نمی‌شود چون بخش «تم
   // آماده» بالا کامنت شده — با برگرداندن آن UI، اینجا هم برگردانده شود.
@@ -235,13 +235,15 @@ export default function SettingsPanel({
           </Pressable>
         </View>
 
+        {/* [AI disabled for this version] entry point for AI wallpaper
+            generation — styles.aiEntry/aiEntryText are kept below.
         <View style={styles.entryRow}>
           <Pressable
             style={[styles.aiEntry, styles.entryRowItem]}
             onPress={() => onOpenAIGenerate?.()}>
             <AppText style={styles.aiEntryText}>🎨 ساخت والپیپر با AI</AppText>
           </Pressable>
-        </View>
+        </View> */}
 
         <ScrollView
           ref={scrollRef}
@@ -572,6 +574,46 @@ export default function SettingsPanel({
                 عکس پس‌زمینه به‌آرامی زوم و جابه‌جا می‌شود؛ هر بار که اپ باز
                 می‌شود هم یک حرکت شروع (بیدار شدن) دارد.
               </AppText>
+
+              {settings.livingWallpaper ? (
+                <>
+                  <RowSwitch
+                    label="لرزش آرام پس‌زمینه"
+                    value={settings.wallpaperShake}
+                    onChange={v => update('wallpaperShake', v)}
+                  />
+                  <AppText style={styles.hint}>
+                    یک لرزش بسیار ریز و ملایم روی حرکت آرام بالا اضافه می‌شود.
+                  </AppText>
+                </>
+              ) : null}
+
+              <RowSwitch
+                label="موج آب با لمس صفحه"
+                value={settings.waterRipple}
+                onChange={v => update('waterRipple', v)}
+              />
+              <AppText style={styles.hint}>
+                با هر لمس، مثل افتادن سنگ در آب، موج روی خودِ عکس پخش می‌شود؛
+                هر بار که اپ باز می‌شود هم یک موج از وسط صفحه شروع می‌شود.
+                اگر لایو ولپیپر را هم ست کرده باشید، روی صفحهٔ اصلی گوشی هم کار
+                می‌کند (اندروید ۱۳ به بالا). ⚡ با این قابلیت مصرف باتری کمی
+                بیشتر می‌شود.
+              </AppText>
+
+              {settings.waterRipple ? (
+                <>
+                  <RowSwitch
+                    label="موج خودکار (هر ۱۰ ثانیه)"
+                    value={settings.waterRippleAuto}
+                    onChange={v => update('waterRippleAuto', v)}
+                  />
+                  <AppText style={styles.hint}>
+                    بدون لمس هم هر ۱۰ ثانیه یک موج از یک نقطهٔ تصادفی شروع
+                    می‌شود. فقط وقتی اپ باز است اجرا می‌شود تا باتری مصرف نکند.
+                  </AppText>
+                </>
+              ) : null}
 
               <RowChoices
                 label="حالت روز/شب"
@@ -906,6 +948,9 @@ export default function SettingsPanel({
                 onChange={v => update('showQuote', v)}
               />
 
+              {/* [AI disabled for this version] daily AI-generated quote —
+                  re-enable with dailyAiQuote in SettingsContext.tsx and the
+                  fetch block in QuoteWidget.tsx.
               <RowSwitch
                 label="جملهٔ روزانه با هوش مصنوعی ✨"
                 value={settings.dailyAiQuote}
@@ -915,7 +960,7 @@ export default function SettingsPanel({
                 هر روز یک جملهٔ تازه (ساخته‌شده با هوش مصنوعی) به‌جای دسته‌ی
                 زیر نمایش داده می‌شود. اگر این فیچر روی سرور فعال نباشد،
                 خودکار به دسته‌ی انتخابی برمی‌گردد.
-              </AppText>
+              </AppText> */}
 
               {quoteCategories.length > 1 ? (
                 <RowChoices

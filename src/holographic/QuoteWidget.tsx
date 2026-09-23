@@ -5,7 +5,7 @@ import {useActiveQuoteCategoryId} from './data';
 import DraggableWidget from './DraggableWidget';
 import {useSettings} from './SettingsContext';
 import {withAlpha} from './dynamicColor';
-import {fetchDailyQuote} from './store/dailyQuote';
+// import {fetchDailyQuote} from './store/dailyQuote'; // [AI disabled for this version]
 import {useStore} from './store/StoreContext';
 import type {QuoteItem} from './store/types';
 
@@ -46,30 +46,31 @@ export default function QuoteWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryQuotes]);
 
-  // Backend-generated "quote of the day" (cached server-side, one call/day) —
-  // shown instead of the category pick above when settings.dailyAiQuote is
-  // on. Silently falls back to the category pick on any fetch failure (e.g.
-  // the feature isn't configured server-side).
-  const [dailyQuote, setDailyQuote] = useState<QuoteItem | null>(null);
-  const loadDailyQuote = useCallback(() => {
-    if (!settings.dailyAiQuote) return;
-    fetchDailyQuote()
-      .then(setDailyQuote)
-      .catch(() => {});
-  }, [settings.dailyAiQuote]);
-
-  useEffect(() => {
-    if (!settings.dailyAiQuote) {
-      setDailyQuote(null);
-      return;
-    }
-    loadDailyQuote();
-  }, [settings.dailyAiQuote, loadDailyQuote]);
+  // [AI disabled for this version] Backend-generated "quote of the day"
+  // (cached server-side, one call/day), shown instead of the category pick
+  // above when settings.dailyAiQuote is on. To re-enable: uncomment this
+  // block, the fetchDailyQuote import, `usingDaily` below, dailyAiQuote in
+  // SettingsContext.tsx and its switch in SettingsPanel.tsx.
+  // const [dailyQuote, setDailyQuote] = useState<QuoteItem | null>(null);
+  // const loadDailyQuote = useCallback(() => {
+  //   if (!settings.dailyAiQuote) return;
+  //   fetchDailyQuote()
+  //     .then(setDailyQuote)
+  //     .catch(() => {});
+  // }, [settings.dailyAiQuote]);
+  //
+  // useEffect(() => {
+  //   if (!settings.dailyAiQuote) {
+  //     setDailyQuote(null);
+  //     return;
+  //   }
+  //   loadDailyQuote();
+  // }, [settings.dailyAiQuote, loadDailyQuote]);
 
   const onForeground = useCallback(() => {
     setQuote(prev => pickRandom(categoryQuotes, prev?.id) ?? prev);
-    loadDailyQuote();
-  }, [categoryQuotes, loadDailyQuote]);
+    // loadDailyQuote(); // [AI disabled for this version]
+  }, [categoryQuotes]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => {
@@ -84,10 +85,10 @@ export default function QuoteWidget() {
     return null;
   }
 
-  const usingDaily = settings.dailyAiQuote && !!dailyQuote;
+  // const usingDaily = settings.dailyAiQuote && !!dailyQuote; // [AI disabled for this version]
   const hasDb = categoryQuotes.length > 0;
-  const line1 = usingDaily ? dailyQuote?.line1 : hasDb ? quote?.line1 : settings.quoteLine1;
-  const line2 = usingDaily ? dailyQuote?.line2 : hasDb ? quote?.line2 : settings.quoteLine2;
+  const line1 = hasDb ? quote?.line1 : settings.quoteLine1;
+  const line2 = hasDb ? quote?.line2 : settings.quoteLine2;
   const scale = settings.quoteFontScale;
   // See ClockWidget's matching comment — off by default, additive only.
   const glowShadow =

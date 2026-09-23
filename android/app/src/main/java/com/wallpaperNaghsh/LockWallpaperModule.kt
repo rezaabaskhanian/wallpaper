@@ -16,6 +16,7 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableArray
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
@@ -41,6 +42,10 @@ class LockWallpaperModule(reactContext: ReactApplicationContext) :
      * catalog image URLs are served through cdn.wallpaperapp.ir, which fronts
      * the ArvanCloud bucket (see backend/.env.example ARVAN_S3_PUBLIC_BASE_URL). */
     private const val ASSET_HOST = "wallpaperapp.ir"
+
+    /** Matches the app's own cap on starred rotation photos (SettingsContext
+     * randomBackgroundUris) — used to sweep away files from a shrunk pool. */
+    private const val MAX_RANDOM_SOURCES = 5
   }
 
   override fun getName(): String = "LockWallpaper"
@@ -364,6 +369,122 @@ class LockWallpaperModule(reactContext: ReactApplicationContext) :
       promise.resolve(true)
     } catch (e: Exception) {
       promise.reject("launch_failed", e.message, e)
+    }
+  }
+
+  /**
+   * Fills the live wallpaper's random rotation pool from the starred gallery
+   * photos, so the home screen picks a different one on every unlock instead
+   * of being frozen on whatever was set once.
+   *
+   * The service runs in its own process and can't reach the JS settings or the
+   * app's image cache, so each photo is downloaded once and written to its own
+   * numbered file. The joined URL list is kept in prefs as a cheap change
+   * marker — re-syncing the same list does no network work at all.
+   */
+  @ReactMethod
+  fun setLiveWallpaperSources(urls: ReadableArray, enabled: Boolean, promise: Promise) {
+    Thread {
+      val prefs =
+          reactApplicationContext.getSharedPreferences(
+              HolographicWallpaperService.PREFS_NAME,
+              android.content.Context.MODE_PRIVATE,
+          )
+      try {
+        val list = (0 until urls.size()).mapNotNull { urls.getString(it) }
+        val marker = list.joinToString("|")
+        if (marker == prefs.getString(HolographicWallpaperService.PREF_SOURCE_URLS, null)) {
+          prefs
+              .edit()
+              .putBoolean(HolographicWallpaperService.PREF_RANDOM_SOURCES, enabled)
+              .apply()
+          promise.resolve(true)
+          return@Thread
+        }
+
+        var saved = 0
+        for (url in list) {
+          val parsed =
+              try {
+                URL(url)
+              } catch (e: Exception) {
+                continue
+              }
+          if (!isAllowedWallpaperUrl(parsed)) continue
+          var conn: HttpURLConnection? = null
+          try {
+            conn = (parsed.openConnection() as HttpURLConnection).apply {
+              connectTimeout = 15000
+              readTimeout = 20000
+              instanceFollowRedirects = false
+              doInput = true
+              connect()
+            }
+            if (conn.responseCode != HttpURLConnection.HTTP_OK) continue
+            val bitmap = conn.inputStream.use { BitmapFactory.decodeStream(it) } ?: continue
+            val file =
+                File(
+                    reactApplicationContext.filesDir,
+                    "${HolographicWallpaperService.RANDOM_SOURCE_PREFIX}$saved.jpg",
+                )
+            FileOutputStream(file).use { out ->
+              bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
+            }
+            bitmap.recycle()
+            saved++
+          } catch (e: Exception) {
+            // One unreachable photo shouldn't sink the whole pool.
+          } finally {
+            conn?.disconnect()
+          }
+        }
+
+        // Drop files left over from a previously longer pool so a stale photo
+        // can never be rolled.
+        var stale = saved
+        while (stale < MAX_RANDOM_SOURCES) {
+          File(
+                  reactApplicationContext.filesDir,
+                  "${HolographicWallpaperService.RANDOM_SOURCE_PREFIX}$stale.jpg",
+              )
+              .delete()
+          stale++
+        }
+
+        prefs
+            .edit()
+            .putBoolean(HolographicWallpaperService.PREF_RANDOM_SOURCES, enabled)
+            .putInt(HolographicWallpaperService.PREF_SOURCE_COUNT, saved)
+            .putString(HolographicWallpaperService.PREF_SOURCE_URLS, marker)
+            .apply()
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.reject("sources_failed", e.message, e)
+      }
+    }.start()
+  }
+
+  /**
+   * Mirrors the app's water-ripple switches into the live wallpaper service,
+   * which can't read the JS settings store. The service re-reads these every
+   * time it becomes visible, so a toggle in the app takes effect on the home
+   * screen without re-picking the wallpaper.
+   */
+  @ReactMethod
+  fun setLiveWallpaperRipple(enabled: Boolean, auto: Boolean, promise: Promise) {
+    try {
+      reactApplicationContext
+          .getSharedPreferences(
+              HolographicWallpaperService.PREFS_NAME,
+              android.content.Context.MODE_PRIVATE,
+          )
+          .edit()
+          .putBoolean(HolographicWallpaperService.PREF_RIPPLE_ENABLED, enabled)
+          .putBoolean(HolographicWallpaperService.PREF_RIPPLE_AUTO, auto)
+          .apply()
+      promise.resolve(true)
+    } catch (e: Exception) {
+      promise.reject("prefs_failed", e.message, e)
     }
   }
 }

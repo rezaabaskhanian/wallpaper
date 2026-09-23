@@ -9,7 +9,7 @@
  * (see `familyForWeight`). Decorative/display fonts (Lalezar, Gandom) ship a
  * single weight and reuse it for every weight.
  */
-export type FontScript = 'fa' | 'ar';
+export type FontScript = 'fa' | 'ar' | 'en';
 
 export type FontOption = {
   /** Stable id stored in settings. */
@@ -97,6 +97,39 @@ export const FONTS: FontOption[] = [
     sample: 'بسم الله الرحمن',
     script: 'ar',
     families: {regular: 'ArefRuqaa-Regular', bold: 'ArefRuqaa-Bold'},
+  },
+  {
+    id: 'poppins',
+    label: 'Poppins (انگلیسی)',
+    sample: 'Good Morning',
+    script: 'en',
+    families: {
+      light: 'Poppins-Light',
+      regular: 'Poppins-Regular',
+      medium: 'Poppins-Medium',
+      bold: 'Poppins-Bold',
+    },
+  },
+  {
+    id: 'lato',
+    label: 'Lato (انگلیسی)',
+    sample: 'Good Morning',
+    script: 'en',
+    families: {regular: 'Lato-Regular', bold: 'Lato-Bold'},
+  },
+  {
+    id: 'ptsans',
+    label: 'PT Sans (انگلیسی)',
+    sample: 'Good Morning',
+    script: 'en',
+    families: {regular: 'PT_Sans-Web-Regular', bold: 'PT_Sans-Web-Bold'},
+  },
+  {
+    id: 'bebasneue',
+    label: 'Bebas Neue (انگلیسی)',
+    sample: 'GOOD MORNING',
+    script: 'en',
+    families: {regular: 'BebasNeue-Regular', bold: 'BebasNeue-Regular'},
   },
 ];
 

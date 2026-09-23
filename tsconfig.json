@@ -4,5 +4,11 @@
     "types": ["jest"]
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["**/node_modules", "**/Pods", "admin"]
+  "_comment_ai": "[AI disabled for this version] AIGenerateScreen.tsx is left fully intact but nothing imports it, so it is skipped here rather than gutted — it still references buyAICredits, which is commented out in store/StoreContext.tsx. Remove this exclude when the AI feature comes back.",
+  "exclude": [
+    "**/node_modules",
+    "**/Pods",
+    "admin",
+    "src/holographic/AIGenerateScreen.tsx"
+  ]
 }

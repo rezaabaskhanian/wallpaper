@@ -2,6 +2,7 @@ import React, {createContext, useContext, useEffect, useMemo, useRef, useState} 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {BACKGROUNDS, COUNTDOWN, DEFAULT_BACKGROUND_ID, RINGS} from './config';
 import {DEFAULT_FONT_ID} from './fonts';
+import {syncLiveWallpaperRipple, syncLiveWallpaperSources} from './lockWallpaper';
 import {setAppFont} from './setupFonts';
 import {THEMES} from './themes';
 import {useDynamicAccentColor, type DynamicColorSource} from './dynamicColor';
@@ -43,6 +44,9 @@ export type WallpaperSettings = {
    * background photo, with an extra wake-up zoom pulse whenever the app
    * returns to the foreground (see MainBackground.tsx). */
   livingWallpaper: boolean;
+  /** Adds a very slow, low-amplitude tremble on top of the living-wallpaper
+   * drift (see MainBackground.tsx). No effect unless livingWallpaper is on. */
+  wallpaperShake: boolean;
   /** Uri of a photo the user picked from their gallery (for backgroundId 'custom'). */
   customBackgroundUri?: string;
   /** Up to 5 wallpaper-gallery photo URLs the user starred for random
@@ -137,11 +141,11 @@ export type WallpaperSettings = {
    * bottom-of-screen quote widget; '' picks the first category returned by
    * the backend (normally "بیانات رهبر", preserving the original content). */
   quoteCategoryId: string;
-  /** When on, the bottom quote widget shows the backend's AI-generated
-   * "quote of the day" (GET /daily-quote) instead of quoteCategoryId's
-   * pick — see QuoteWidget.tsx. Falls back to the normal category pick if
-   * the fetch fails (e.g. the feature isn't configured server-side). */
-  dailyAiQuote: boolean;
+  // /** When on, the bottom quote widget shows the backend's AI-generated
+  //  * "quote of the day" (GET /daily-quote) instead of quoteCategoryId's
+  //  * pick — see QuoteWidget.tsx. Falls back to the normal category pick if
+  //  * the fetch fails (e.g. the feature isn't configured server-side). */
+  // dailyAiQuote: boolean; // [AI disabled for this version]
   /** Countdown target date-time (ISO string). [countdown feature disabled] */
   countdownTargetISO: string;
   /** Countdown label. [countdown feature disabled] */
@@ -162,6 +166,13 @@ export type WallpaperSettings = {
   depthParallax: boolean;
   /** Show an expanding glow ring wherever the screen is tapped. */
   touchRipple: boolean;
+  /** Water-surface ripple: tapping the wallpaper distorts the photo itself in
+   * spreading rings, like a pebble dropped in water, and one drop plays in the
+   * centre whenever the app is opened (see WaterRippleLayer.tsx). */
+  waterRipple: boolean;
+  /** Keep the water rippling on its own: a drop lands somewhere at random
+   * every 10s while the app is in the foreground. Needs waterRipple on. */
+  waterRippleAuto: boolean;
   /** Rain/snow particle effect: off, user-picked rain/snow, or 'auto'
    * (driven by the live weather condition instead of a manual pick). */
   weatherEffects: 'off' | 'rain' | 'snow' | 'auto';
@@ -223,6 +234,7 @@ const DEFAULTS: WallpaperSettings = {
   themeId: 'A',
   backgroundId: DEFAULT_BACKGROUND_ID,
   livingWallpaper: false,
+  wallpaperShake: false,
   randomBackgroundUris: [],
   randomBackgroundEnabled: false,
   showClock: true,
@@ -245,13 +257,15 @@ const DEFAULTS: WallpaperSettings = {
   quoteLine1: 'ما با این جوان‌ها',
   quoteLine2: 'به جایی خواهیم رسید',
   quoteCategoryId: '',
-  dailyAiQuote: false,
+  // dailyAiQuote: false, // [AI disabled for this version]
   countdownTargetISO: COUNTDOWN.targetISO,
   countdownLabel: COUNTDOWN.label,
   // combatMode: false, // [combat mode disabled for now]
   gyroParallax: false,
   depthParallax: false,
   touchRipple: false,
+  waterRipple: false,
+  waterRippleAuto: false,
   weatherEffects: 'off',
   animatedLockedPreview: true,
   widgetAutoRotateQuote: true,
@@ -320,6 +334,21 @@ export function SettingsProvider({children}: {children: React.ReactNode}) {
     if (!presetsLoadedRef.current) return;
     AsyncStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(userPresets)).catch(() => {});
   }, [userPresets]);
+
+  // The live wallpaper runs in its own process with no access to this store,
+  // so the ripple switches have to be mirrored into its SharedPreferences.
+  useEffect(() => {
+    syncLiveWallpaperRipple(settings.waterRipple, settings.waterRippleAuto);
+  }, [settings.waterRipple, settings.waterRippleAuto]);
+
+  // Same reason, for the rotation pool: the service downloads and keeps its
+  // own copies, since it can reach neither the JS store nor the image cache.
+  useEffect(() => {
+    syncLiveWallpaperSources(
+      settings.randomBackgroundUris,
+      settings.randomBackgroundEnabled,
+    );
+  }, [settings.randomBackgroundUris, settings.randomBackgroundEnabled]);
 
   // Keep the global font patch (setupFonts) in sync with the selection so every
   // re-rendered piece of text uses the chosen font. Done during render so the
