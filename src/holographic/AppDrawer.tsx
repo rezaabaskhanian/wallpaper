@@ -48,6 +48,26 @@ function sectionKeyFor(label: string): string {
   return PERSIAN_ALPHABET.includes(normalized) ? normalized : '#';
 }
 
+/** Folds a string for search matching: case-insensitive ("whatsapp" finds
+ * "WhatsApp"), and Arabic ي/ك treated as Persian ی/ک like sectionKeyFor does. */
+function normalizeForSearch(s: string): string {
+  return s.toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک');
+}
+
+/** How well an app matches a (normalized, non-empty) query — lower is better,
+ * null means no match. Prefix hits come first so typing "l" puts "LingoFlow"
+ * at the top instead of every app that merely contains an "l" somewhere. The
+ * package name only counts from 3 characters on, since nearly every package
+ * ("com.google…") contains any single letter. */
+function matchRank(app: InstalledApp, q: string): number | null {
+  const label = normalizeForSearch(app.label);
+  if (label.startsWith(q)) return 0;
+  if (label.split(/[\s\-_.]+/).some(word => word.startsWith(q))) return 1;
+  if (label.includes(q)) return 2;
+  if (q.length >= 3 && normalizeForSearch(app.packageName).includes(q)) return 3;
+  return null;
+}
+
 const ROW_HEIGHT = 60;
 const SECTION_HEADER_HEIGHT = 30;
 
@@ -87,12 +107,24 @@ export default function AppDrawer({visible, onClose}: Props) {
 
   const filtered = useMemo(() => {
     if (!apps) return [];
-    const q = query.trim();
+    const q = normalizeForSearch(query.trim());
     if (!q) return apps;
-    return apps.filter(a => a.label.includes(q) || a.packageName.includes(q));
+    // apps is already alphabetical and sort is stable, so ties stay A→Z.
+    return apps
+      .map(app => ({app, rank: matchRank(app, q)}))
+      .filter((m): m is {app: InstalledApp; rank: number} => m.rank !== null)
+      .sort((a, b) => a.rank - b.rank)
+      .map(m => m.app);
   }, [apps, query]);
 
+  const searching = query.trim().length > 0;
+
   const sections = useMemo<Section[]>(() => {
+    // While searching, keep the relevance order as one flat list instead of
+    // re-splitting it into alphabetical buckets.
+    if (searching) {
+      return [{title: 'نتایج', data: filtered}];
+    }
     const groups = new Map<string, InstalledApp[]>();
     for (const app of filtered) {
       const key = sectionKeyFor(app.label);
@@ -107,7 +139,7 @@ export default function AppDrawer({visible, onClose}: Props) {
       title: k,
       data: groups.get(k)!,
     }));
-  }, [filtered]);
+  }, [filtered, searching]);
 
   const letters = useMemo(() => sections.map(s => s.title), [sections]);
 
@@ -216,28 +248,31 @@ export default function AppDrawer({visible, onClose}: Props) {
               />
             </View>
 
-            <View
-              style={styles.sidebar}
-              onLayout={e => {
-                sidebarHeight.current = e.nativeEvent.layout.height;
-              }}
-              onStartShouldSetResponder={() => true}
-              onMoveShouldSetResponder={() => true}
-              onResponderGrant={handleSidebarTouch}
-              onResponderMove={handleSidebarTouch}
-              onResponderRelease={() => setActiveLetter(null)}
-              onResponderTerminate={() => setActiveLetter(null)}>
-              {letters.map(letter => (
-                <AppText
-                  key={letter}
-                  style={[
-                    styles.sidebarLetter,
-                    letter === activeLetter && styles.sidebarLetterActive,
-                  ]}>
-                  {letter}
-                </AppText>
-              ))}
-            </View>
+            {/* The letter index only makes sense for the alphabetical list. */}
+            {!searching ? (
+              <View
+                style={styles.sidebar}
+                onLayout={e => {
+                  sidebarHeight.current = e.nativeEvent.layout.height;
+                }}
+                onStartShouldSetResponder={() => true}
+                onMoveShouldSetResponder={() => true}
+                onResponderGrant={handleSidebarTouch}
+                onResponderMove={handleSidebarTouch}
+                onResponderRelease={() => setActiveLetter(null)}
+                onResponderTerminate={() => setActiveLetter(null)}>
+                {letters.map(letter => (
+                  <AppText
+                    key={letter}
+                    style={[
+                      styles.sidebarLetter,
+                      letter === activeLetter && styles.sidebarLetterActive,
+                    ]}>
+                    {letter}
+                  </AppText>
+                ))}
+              </View>
+            ) : null}
 
             {activeLetter ? (
               <View pointerEvents="none" style={[styles.bubble, {top: bubbleY}]}>

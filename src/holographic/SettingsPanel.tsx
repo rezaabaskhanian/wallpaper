@@ -50,6 +50,7 @@ const GLOW_COLORS = [
   '#6ee7b7', // green
   '#f87171', // red
   '#7dd3fc', // blue
+  '#000000', // black
 ];
 
 /** Font colour swatches for the clock/quote text (Settings ▸ ویجت‌ها).
@@ -1230,6 +1231,18 @@ function RowChoices({
   );
 }
 
+/** Perceived brightness 0..255 of a #rrggbb colour (mid-grey for anything else). */
+function luminance(hex: string): number {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) {
+    return 128;
+  }
+  const r = parseInt(m[1].slice(0, 2), 16);
+  const g = parseInt(m[1].slice(2, 4), 16);
+  const b = parseInt(m[1].slice(4, 6), 16);
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
 function RowColors({
   label,
   colors,
@@ -1245,17 +1258,33 @@ function RowColors({
     <View style={styles.choicesRow}>
       <AppText style={styles.rowLabel}>{label}</AppText>
       <View style={styles.chips}>
-        {colors.map(c => (
-          <Pressable
-            key={c}
-            onPress={() => onSelect(c)}
-            style={[
-              styles.swatch,
-              {backgroundColor: c},
-              c.toLowerCase() === selected.toLowerCase() && styles.swatchActive,
-            ]}
-          />
-        ))}
+        {colors.map(c => {
+          const active = c.toLowerCase() === selected.toLowerCase();
+          return (
+            <Pressable
+              key={c}
+              onPress={() => onSelect(c)}
+              style={[
+                styles.swatch,
+                {backgroundColor: c},
+                // The settings sheet is near-black, so a black swatch needs a
+                // visible ring to be found at all.
+                luminance(c) < 40 && styles.swatchOnDark,
+                active && styles.swatchActive,
+              ]}>
+              {active ? (
+                <AppText
+                  style={[
+                    styles.swatchCheck,
+                    // near-white swatches (white, the pale gold) would hide a white tick
+                    luminance(c) > 220 && styles.swatchCheckDark,
+                  ]}>
+                  ✓
+                </AppText>
+              ) : null}
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
@@ -1424,13 +1453,24 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.15)',
   },
+  swatchOnDark: {borderColor: 'rgba(255,255,255,0.6)'},
   swatchActive: {
     borderColor: '#eafffb',
     borderWidth: 3,
   },
+  swatchCheck: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 18,
+    includeFontPadding: false,
+  },
+  swatchCheckDark: {color: '#000000'},
   galleryBtn: {
     marginTop: 12,
     backgroundColor: 'rgba(139, 92, 246, 0.12)',
