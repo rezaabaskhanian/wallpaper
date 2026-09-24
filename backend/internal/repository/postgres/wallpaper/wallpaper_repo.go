@@ -38,7 +38,7 @@ func (d DB) GetActiveWallpapers(ctx context.Context) ([]domain.Wallpaper, error)
 	       is_active, download_count, created_at, updated_at
 	FROM wallpapers
 	WHERE is_active = true
-	ORDER BY premium ASC, created_at ASC
+	ORDER BY created_at DESC
 `
 
 	rows, err := d.conn.Query(ctx, query)

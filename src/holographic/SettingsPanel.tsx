@@ -61,6 +61,7 @@ const TEXT_COLORS = [
   '#6ee7b7', // green
   '#f87171', // red
   '#7dd3fc', // blue
+  '#000000', // black
 ];
 
 /** Tabs that split the once-long settings list into focused categories. */
@@ -899,6 +900,12 @@ export default function SettingsPanel({
                 selected={settings.clockTextColor}
                 onSelect={c => update('clockTextColor', c)}
               />
+              <RowColors
+                label="رنگ تاریخ (متن کوچک)"
+                colors={TEXT_COLORS}
+                selected={settings.clockSmallTextColor}
+                onSelect={c => update('clockSmallTextColor', c)}
+              />
 
               <RowSwitch
                 label="نمایش هوا"
@@ -993,6 +1000,12 @@ export default function SettingsPanel({
                 colors={TEXT_COLORS}
                 selected={settings.quoteTextColor}
                 onSelect={c => update('quoteTextColor', c)}
+              />
+              <RowColors
+                label="رنگ خط کوچک متن پایین"
+                colors={TEXT_COLORS}
+                selected={settings.quoteSmallTextColor}
+                onSelect={c => update('quoteSmallTextColor', c)}
               />
 
               {/* <AppText style={styles.fieldLabel}>خط اول (کوچک)</AppText>

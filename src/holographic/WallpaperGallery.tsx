@@ -1,10 +1,12 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  I18nManager,
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -78,6 +80,35 @@ function LockedThumb({uri}: {uri: string}) {
         <Animated.Text style={[styles.lockIcon, lockStyle]}>🔒</Animated.Text>
       </View>
     </>
+  );
+}
+
+/**
+ * One horizontally-scrolling row of category chips, right-to-left ("همه" at the
+ * right edge). On an RTL device the native layout already flips the row and
+ * starts the scroll at the right; on an LTR device we reverse it ourselves and
+ * jump to the end so the first chip is the one visible.
+ */
+function ChipRow({children, style}: {children: React.ReactNode; style?: any}) {
+  const ref = useRef<ScrollView>(null);
+  return (
+    <View style={style}>
+      <ScrollView
+        ref={ref}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.chipRow,
+          !I18nManager.isRTL && styles.chipRowReverse,
+        ]}
+        onContentSizeChange={() => {
+          if (!I18nManager.isRTL) {
+            ref.current?.scrollToEnd({animated: false});
+          }
+        }}>
+        {children}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -249,7 +280,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
         ) : null}
 
         {/* Categories */}
-        <View style={styles.cats}>
+        <ChipRow style={styles.cats}>
           {categories.map(c => {
             const active = c.id === activeCat;
             return (
@@ -263,11 +294,11 @@ export default function WallpaperGallery({visible, onClose}: Props) {
               </Pressable>
             );
           })}
-        </View>
+        </ChipRow>
 
         {/* Subcategories (only when the active top category has children) */}
         {subCategories.length > 0 ? (
-          <View style={[styles.cats, styles.subCats]}>
+          <ChipRow style={styles.subCats}>
             {[{id: 'all', title: 'همه'}, ...subCategories].map(c => {
               const active = c.id === activeSubCat;
               return (
@@ -281,7 +312,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
                 </Pressable>
               );
             })}
-          </View>
+          </ChipRow>
         ) : null}
 
         {loading ? (
@@ -429,13 +460,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   unlockText: {color: '#f5e6b3', fontSize: 14, fontWeight: '700', writingDirection: 'rtl'},
-  cats: {
-    flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingTop: 12,
-  },
+  cats: {paddingTop: 12},
+  chipRow: {flexGrow: 1, flexDirection: 'row', gap: 8, paddingHorizontal: 12},
+  chipRowReverse: {flexDirection: 'row-reverse'},
   cat: {
     paddingHorizontal: 14,
     paddingVertical: 6,

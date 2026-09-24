@@ -115,8 +115,13 @@ export type WallpaperSettings = {
    * Independent of glowColor/dynamicColor, which only affect the glow behind
    * the text, not its fill colour. */
   clockTextColor: string;
+  /** Font colour (hex) for the clock's small text: the date lines and the
+   * AM/PM label. The Gregorian line renders at reduced opacity of it. */
+  clockSmallTextColor: string;
   /** Font colour (hex) for the bottom quote widget's main (large) line. */
   quoteTextColor: string;
+  /** Font colour (hex) for the bottom quote widget's small first line. */
+  quoteSmallTextColor: string;
   /** Selected on-screen font id (see FONTS in fonts.ts). */
   fontId: string;
   /** Size multiplier for the clock/date widget (0.7 .. 1.6). */
@@ -246,6 +251,8 @@ const DEFAULTS: WallpaperSettings = {
   clockLayout: 'inline',
   clockTextColor: '#f5e6b3',
   quoteTextColor: '#f5e6b3',
+  clockSmallTextColor: '#ffffff',
+  quoteSmallTextColor: '#ffffff',
   fontId: DEFAULT_FONT_ID,
   clockFontScale: 1,
   quoteFontScale: 1,

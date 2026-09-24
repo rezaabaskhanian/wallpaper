@@ -37,6 +37,7 @@ export default function ClockWidget() {
   const minuteStr = localize(pad(now.getMinutes()));
   const clock = `${hourStr}:${minuteStr}`;
   const scale = settings.clockFontScale;
+  const smallColor = settings.clockSmallTextColor;
   // Photo-matched glow instead of the fixed gold, when the user opted in
   // (Settings ▸ عمومی ▸ رنگ پویا هم روی نوشته‌ها) — see dynamicColorText's
   // doc comment in SettingsContext for why this is a separate, off-by-default
@@ -93,7 +94,11 @@ export default function ClockWidget() {
             {minuteStr}
           </AppText>
           {showAmpm ? (
-            <AppText style={[styles.bigAmpm, {fontSize: ampmFontSize}]}>
+            <AppText
+              style={[
+                styles.bigAmpm,
+                {fontSize: ampmFontSize, color: smallColor},
+              ]}>
               {ampm}
             </AppText>
           ) : null}
@@ -119,7 +124,8 @@ export default function ClockWidget() {
           {clock}
         </AppText>
         {showAmpm ? (
-          <AppText style={[styles.ampm, {fontSize: 16 * scale}]}>
+          <AppText
+            style={[styles.ampm, {fontSize: 16 * scale, color: smallColor}]}>
             {ampm}
           </AppText>
         ) : null}
@@ -127,10 +133,15 @@ export default function ClockWidget() {
 
       {settings.showDate ? (
         <>
-          <AppText style={[styles.dateFa, {fontSize: 15 * scale}]}>
+          <AppText
+            style={[styles.dateFa, {fontSize: 15 * scale, color: smallColor}]}>
             {formatJalali(now)}
           </AppText>
-          <AppText style={[styles.dateEn, {fontSize: 12 * scale}]}>
+          <AppText
+            style={[
+              styles.dateEn,
+              {fontSize: 12 * scale, color: withAlpha(smallColor, 0.6)},
+            ]}>
             {formatGregorian(now)}
           </AppText>
         </>

@@ -104,7 +104,14 @@ export default function QuoteWidget() {
       onCommit={o => update('quoteOffset', o)}
       label="متن پایین">
       {line1 ? (
-        <AppText style={[styles.line1, {fontSize: 15 * scale}]}>
+        <AppText
+          style={[
+            styles.line1,
+            {
+              fontSize: 15 * scale,
+              color: withAlpha(settings.quoteSmallTextColor, 0.85),
+            },
+          ]}>
           {line1}
         </AppText>
       ) : null}
