@@ -113,10 +113,11 @@ export function sampleSunFlare(hour: number, sun: SunTimes): SunFlareSample {
     edgeFade = (end - hour) / FLARE_EDGE_MARGIN;
   }
 
-  // Real low-sun flares read brighter/warmer than high-noon glare.
+  // Real low-sun flares read brighter/warmer than high-noon glare, but the
+  // sun must stay clearly visible all day, so noon still gets 0.6.
   const closeToHorizon = 1 - arc;
   const intensity =
-    Math.max(0, Math.min(1, edgeFade)) * (0.35 + 0.65 * closeToHorizon);
+    Math.max(0, Math.min(1, edgeFade)) * (0.6 + 0.4 * closeToHorizon);
 
   const horizonColor: Rgba = [255, 130, 70, 1];
   const noonColor: Rgba = [255, 250, 225, 1];

@@ -10,12 +10,36 @@ function pad(n: number): string {
   return n < 10 ? `0${n}` : `${n}`;
 }
 
+/** Base clock fontSize in the "big centered" layout at clockFontScale 1. */
+export const BIG_CLOCK_BASE_FONT_SIZE = 64;
+const BIG_CLOCK_LINE_HEIGHT_FACTOR = 1.22;
+
+/**
+ * Largest fontSize the "big centered" clock can render at without clipping:
+ * it has to fit both the screen width (2-digit line) and height (hour +
+ * minute stacked, plus AM/PM) with a safety margin. The settings slider uses
+ * this too, so its range stops where the clock stops growing.
+ */
+export function bigClockMaxFontSize(
+  screenW: number,
+  screenH: number,
+  showAmpm: boolean,
+): number {
+  // ~2 digits per line at this weight/letterSpacing; add a margin so
+  // widest digit pairs ("00".."88") never touch the screen edge.
+  const maxByWidth = (screenW * 0.86) / 1.3;
+  const ampmReserve = showAmpm ? 0.5 : 0;
+  const maxByHeight =
+    (screenH * 0.72) / (2 * BIG_CLOCK_LINE_HEIGHT_FACTOR + ampmReserve);
+  return Math.min(maxByWidth, maxByHeight);
+}
+
 /**
  * Top-left widget: a big clock and the date. Weather/temperature, settings and
  * battery live in the TopLeftBar row above this.
  */
 export default function ClockWidget() {
-  const {settings, update, resolvedGlowColor} = useSettings();
+  const {settings, update} = useSettings();
   const [now, setNow] = useState(() => new Date());
   const {width: screenW, height: screenH} = useWindowDimensions();
 
@@ -38,35 +62,20 @@ export default function ClockWidget() {
   const clock = `${hourStr}:${minuteStr}`;
   const scale = settings.clockFontScale;
   const smallColor = settings.clockSmallTextColor;
-  // Photo-matched glow instead of the fixed gold, when the user opted in
-  // (Settings ▸ عمومی ▸ رنگ پویا هم روی نوشته‌ها) — see dynamicColorText's
-  // doc comment in SettingsContext for why this is a separate, off-by-default
-  // switch rather than riding on dynamicColor alone.
-  const glowShadow =
-    settings.dynamicColor && settings.dynamicColorText
-      ? withAlpha(resolvedGlowColor, 0.5)
-      : undefined;
 
   if (settings.clockLayout === 'bigCentered') {
-    // The user can push clockFontScale far past what the inline clock
-    // allows (see SettingsPanel's maxClockScale), so the requested size can
-    // legitimately be bigger than the screen. Clamp the actually-rendered
-    // fontSize to whatever fits both the screen width (2-digit line) and
-    // height (hour + minute stacked, plus AM/PM) with a safety margin, so
-    // it grows up to "fills the screen" but never clips or overflows.
-    const requestedFontSize = 64 * scale;
-    // ~2 digits per line at this weight/letterSpacing; add a margin so
-    // widest digit pairs ("00".."88") never touch the screen edge.
-    const maxByWidth = (screenW * 0.86) / 1.3;
-    const lineHeightFactor = 1.22;
-    const ampmReserve = showAmpm ? 0.5 : 0;
-    const maxByHeight =
-      (screenH * 0.72) / (2 * lineHeightFactor + ampmReserve);
+    // The settings slider stops at the size that fills the screen, but a
+    // saved scale can still exceed it (e.g. after rotating or on a smaller
+    // screen), so clamp the rendered fontSize so it never clips or overflows.
+    const requestedFontSize = BIG_CLOCK_BASE_FONT_SIZE * scale;
     const fontSize = Math.max(
       24,
-      Math.min(requestedFontSize, maxByWidth, maxByHeight),
+      Math.min(
+        requestedFontSize,
+        bigClockMaxFontSize(screenW, screenH, showAmpm),
+      ),
     );
-    const lineHeight = fontSize * lineHeightFactor;
+    const lineHeight = fontSize * BIG_CLOCK_LINE_HEIGHT_FACTOR;
     const ampmFontSize = Math.max(14, fontSize * 0.28);
 
     return (
@@ -81,7 +90,6 @@ export default function ClockWidget() {
             style={[
               styles.bigHour,
               {fontSize, lineHeight, color: settings.clockTextColor},
-              glowShadow ? {textShadowColor: glowShadow} : null,
             ]}>
             {hourStr}
           </AppText>
@@ -89,7 +97,6 @@ export default function ClockWidget() {
             style={[
               styles.bigMinute,
               {fontSize, lineHeight, color: settings.clockTextColor},
-              glowShadow ? {textShadowColor: glowShadow} : null,
             ]}>
             {minuteStr}
           </AppText>
@@ -119,7 +126,6 @@ export default function ClockWidget() {
           style={[
             styles.clock,
             {fontSize: 25 * scale, color: settings.clockTextColor},
-            glowShadow ? {textShadowColor: glowShadow} : null,
           ]}>
           {clock}
         </AppText>

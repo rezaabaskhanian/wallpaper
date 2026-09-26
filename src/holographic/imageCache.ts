@@ -11,6 +11,8 @@ import {useEffect, useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CACHE_PREFIX = 'orbimg:';
+/** ~750 KB image as base64; orbit portraits are far smaller than this. */
+const MAX_PERSISTED_DATA_URI_LENGTH = 1_000_000;
 
 /** In-memory mirror of AsyncStorage so repeated renders don't re-hit it. */
 const memoryCache = new Map<string, string>();
@@ -35,9 +37,46 @@ async function downloadAndCache(url: string): Promise<string> {
   const dataUri = await blobToDataUri(blob);
   memoryCache.set(url, dataUri);
   // Best-effort persistence; a write failure shouldn't stop the image from
-  // being usable for the rest of this session.
-  AsyncStorage.setItem(CACHE_PREFIX + url, dataUri).catch(() => {});
+  // being usable for the rest of this session. Big photos (full-size
+  // wallpapers) are kept out of AsyncStorage: a few of them fill its storage,
+  // after which the settings themselves stop saving, and an oversized row
+  // can't even be read back. The native image loader's disk cache covers
+  // those instead.
+  if (dataUri.length <= MAX_PERSISTED_DATA_URI_LENGTH) {
+    AsyncStorage.setItem(CACHE_PREFIX + url, dataUri).catch(() => {});
+  }
   return dataUri;
+}
+
+const PRUNE_DONE_KEY = 'orbimgPrune:v1';
+
+/**
+ * One-time cleanup for installs that cached full-size wallpapers before the
+ * size cap above: drops any cached entry that's too big (or too big to even
+ * read back), freeing AsyncStorage so settings can be saved again.
+ */
+export async function pruneOversizedImageCache(): Promise<void> {
+  try {
+    if (await AsyncStorage.getItem(PRUNE_DONE_KEY)) return;
+    const keys = (await AsyncStorage.getAllKeys()).filter(k =>
+      k.startsWith(CACHE_PREFIX),
+    );
+    for (const key of keys) {
+      let tooBig: boolean;
+      try {
+        const value = await AsyncStorage.getItem(key);
+        tooBig = !!value && value.length > MAX_PERSISTED_DATA_URI_LENGTH;
+      } catch {
+        tooBig = true;
+      }
+      if (tooBig) {
+        await AsyncStorage.removeItem(key).catch(() => {});
+      }
+    }
+    await AsyncStorage.setItem(PRUNE_DONE_KEY, '1');
+  } catch {
+    // Retried on next launch.
+  }
 }
 
 /**

@@ -32,7 +32,7 @@ function pickRandom(quotes: QuoteItem[], excludeId?: string): QuoteItem | null {
  * quotes DB is empty.
  */
 export default function QuoteWidget() {
-  const {settings, update, resolvedGlowColor} = useSettings();
+  const {settings, update} = useSettings();
   const {quotes} = useStore();
   const activeCategoryId = useActiveQuoteCategoryId();
   const categoryQuotes = useMemo(
@@ -90,11 +90,6 @@ export default function QuoteWidget() {
   const line1 = hasDb ? quote?.line1 : settings.quoteLine1;
   const line2 = hasDb ? quote?.line2 : settings.quoteLine2;
   const scale = settings.quoteFontScale;
-  // See ClockWidget's matching comment — off by default, additive only.
-  const glowShadow =
-    settings.dynamicColor && settings.dynamicColorText
-      ? withAlpha(resolvedGlowColor, 0.55)
-      : undefined;
 
   return (
     <DraggableWidget
@@ -120,7 +115,6 @@ export default function QuoteWidget() {
           style={[
             styles.line2,
             {fontSize: 28 * scale, color: settings.quoteTextColor},
-            glowShadow ? {textShadowColor: glowShadow} : null,
           ]}>
           {line2}
         </AppText>

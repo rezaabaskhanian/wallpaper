@@ -1,6 +1,6 @@
 /**
  * Extracts a vivid accent colour from the current background photo, for
- * Settings ▸ عمومی ▸ رنگ پویا از عکس (off by default). Uses Skia — already a
+ * Settings ▸ جلوه‌ها ▸ رنگ پویا از عکس. Uses Skia — already a
  * dependency for the topographic background — to downsample the photo to a
  * handful of pixels, average them, then boost saturation/lightness into a
  * pleasant glow range (the same idea as Android's "Material You" wallpaper
@@ -69,9 +69,8 @@ function toAccentColor(r: number, g: number, b: number): string {
 /**
  * Re-wraps `color` (a `#rrggbb`/`#rgb` hex or an `rgb(...)`/`rgba(...)` string
  * — the two shapes resolvedGlowColor can be, see SettingsContext) as an
- * `rgba(...)` string with `alpha` — used to apply the same accent colour to a
- * text glow (Settings ▸ عمومی ▸ رنگ پویا هم روی نوشته‌ها) without hardcoding
- * a second colour format assumption at each call site.
+ * `rgba(...)` string with `alpha`, without hardcoding a second colour format
+ * assumption at each call site.
  */
 export function withAlpha(color: string, alpha: number): string {
   const hexMatch = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());

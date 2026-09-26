@@ -1,9 +1,10 @@
 import React, {createContext, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {BACKGROUNDS, COUNTDOWN, DEFAULT_BACKGROUND_ID, RINGS} from './config';
-import {DEFAULT_FONT_ID} from './fonts';
+import {DEFAULT_EN_FONT_ID, DEFAULT_FA_FONT_ID, getFont} from './fonts';
 import {syncLiveWallpaperRipple, syncLiveWallpaperSources} from './lockWallpaper';
-import {setAppFont} from './setupFonts';
+import {pruneOversizedImageCache} from './imageCache';
+import {setAppFonts} from './setupFonts';
 import {THEMES} from './themes';
 import {useDynamicAccentColor, type DynamicColorSource} from './dynamicColor';
 
@@ -66,6 +67,9 @@ export type WallpaperSettings = {
   /** Particle density/brightness/speed — each step up adds more dust motes
    * and makes them drift faster (see COUNTS/SPEED_FACTOR in ParticleField.tsx). */
   particleIntensity: 'low' | 'medium' | 'high' | 'extreme';
+  /** Shape of the rising light particles: small glowing dots, or small
+   * hearts (a bit larger than the dots) that tilt as they sway. */
+  particleShape: 'dot' | 'heart';
   /** Glow/accent colour for the orbs and particles (hex). Ignored in favour
    * of a colour sampled from the background photo when `dynamicColor` is on
    * (and sampling succeeds) — see `resolvedGlowColor` on the context. */
@@ -73,12 +77,6 @@ export type WallpaperSettings = {
   /** Derive the glow colour from the current background photo instead of the
    * manual swatch above. On by default. */
   dynamicColor: boolean;
-  /** Also apply that photo-sampled colour to the clock and bottom-quote text
-   * glow (see ClockWidget.tsx/QuoteWidget.tsx), instead of their fixed gold
-   * glow. Off by default — purely additive, so existing installs keep their
-   * current look until the user opts in; has no effect unless dynamicColor
-   * is also on. */
-  dynamicColorText: boolean;
   /** Cinematic dark-edge vignette overlay. */
   vignette: boolean;
   /** Ambient mist rolling in from an edge: off, bottom, top, or both. */
@@ -122,8 +120,10 @@ export type WallpaperSettings = {
   quoteTextColor: string;
   /** Font colour (hex) for the bottom quote widget's small first line. */
   quoteSmallTextColor: string;
-  /** Selected on-screen font id (see FONTS in fonts.ts). */
-  fontId: string;
+  /** Font id for Persian/Arabic text (see FONTS in fonts.ts). */
+  fontIdFa: string;
+  /** Font id for English (Latin) text (see FONTS in fonts.ts). */
+  fontIdEn: string;
   /** Size multiplier for the clock/date widget (0.7 .. 1.6). */
   clockFontScale: number;
   /** Size multiplier for the bottom quote widget (0.7 .. 1.6). */
@@ -230,9 +230,9 @@ const DEFAULTS: WallpaperSettings = {
   sunFlare: false,
   particleMode: 'auto',
   particleIntensity: 'medium',
+  particleShape: 'dot',
   glowColor: '#5eead4',
   dynamicColor: true,
-  dynamicColorText: false,
   vignette: false,
   fogMode: 'off',
   fogIntensity: 'medium',
@@ -253,7 +253,8 @@ const DEFAULTS: WallpaperSettings = {
   quoteTextColor: '#f5e6b3',
   clockSmallTextColor: '#ffffff',
   quoteSmallTextColor: '#ffffff',
-  fontId: DEFAULT_FONT_ID,
+  fontIdFa: DEFAULT_FA_FONT_ID,
+  fontIdEn: DEFAULT_EN_FONT_ID,
   clockFontScale: 1,
   quoteFontScale: 1,
   editLayout: false,
@@ -278,6 +279,20 @@ const DEFAULTS: WallpaperSettings = {
   widgetAutoRotateQuote: true,
 };
 
+/**
+ * Settings saved before the Persian/English font split carried a single
+ * `fontId`. Move it into the group it belongs to so the user's old pick
+ * survives; the other group keeps its default.
+ */
+function migrateLegacyFont(
+  saved: Partial<WallpaperSettings> & {fontId?: string},
+): Partial<WallpaperSettings> {
+  const {fontId, ...rest} = saved;
+  if (fontId === undefined) return rest;
+  const key = getFont(fontId).script === 'en' ? 'fontIdEn' : 'fontIdFa';
+  return {[key]: fontId, ...rest};
+}
+
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 export function SettingsProvider({children}: {children: React.ReactNode}) {
@@ -291,10 +306,11 @@ export function SettingsProvider({children}: {children: React.ReactNode}) {
   const presetsLoadedRef = useRef(false);
 
   useEffect(() => {
+    pruneOversizedImageCache();
     AsyncStorage.getItem(SETTINGS_STORAGE_KEY)
       .then(raw => {
         if (!raw) return;
-        const saved = JSON.parse(raw) as Partial<WallpaperSettings>;
+        const saved = migrateLegacyFont(JSON.parse(raw));
         // A background bundled at save-time can later be removed from
         // BACKGROUNDS (see config.ts) — without this, a device that had
         // picked it stays stuck pointing at a photo that no longer exists
@@ -360,7 +376,7 @@ export function SettingsProvider({children}: {children: React.ReactNode}) {
   // Keep the global font patch (setupFonts) in sync with the selection so every
   // re-rendered piece of text uses the chosen font. Done during render so the
   // children below read the correct font on the same pass.
-  setAppFont(settings.fontId);
+  setAppFonts(settings.fontIdFa, settings.fontIdEn);
 
   // Mirrors MainBackground's own source resolution so the sampled colour
   // always matches what's actually on screen. Skipped for a remote gallery
@@ -404,7 +420,7 @@ export function SettingsProvider({children}: {children: React.ReactNode}) {
       applyPreset: id => {
         const preset = userPresets.find(p => p.id === id);
         if (!preset) return;
-        setSettings(preset.snapshot);
+        setSettings({...DEFAULTS, ...migrateLegacyFont(preset.snapshot)});
       },
       deletePreset: id => {
         setUserPresets(prev => prev.filter(p => p.id !== id));

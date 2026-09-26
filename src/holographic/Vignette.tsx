@@ -1,6 +1,6 @@
 import React from 'react';
 import {useWindowDimensions} from 'react-native';
-import {Canvas, Rect, RadialGradient, vec} from '@shopify/react-native-skia';
+import {Canvas, Group, Rect, RadialGradient, vec} from '@shopify/react-native-skia';
 import {useSettings} from './SettingsContext';
 
 /**
@@ -15,27 +15,30 @@ export default function Vignette() {
     return null;
   }
 
-  const cx = width / 2;
-  const cy = height / 2;
-  const r = Math.hypot(width, height) * 0.62;
+  // Drawn as a circle in a height×height square, then squeezed to the screen
+  // width, so the fade is an oval that reaches every edge evenly. (A plain
+  // circle sized to the diagonal barely touched the side edges at all.)
+  const r = height * 0.56;
 
   return (
     <Canvas
       pointerEvents="none"
       style={{position: 'absolute', width, height}}>
-      <Rect x={0} y={0} width={width} height={height}>
-        <RadialGradient
-          c={vec(cx, cy)}
-          r={r}
-          colors={[
-            'rgba(0,0,0,0)',
-            'rgba(0,0,0,0)',
-            'rgba(0,0,0,0.35)',
-            'rgba(0,0,0,0.75)',
-          ]}
-          positions={[0, 0.5, 0.8, 1]}
-        />
-      </Rect>
+      <Group transform={[{scaleX: width / height}]}>
+        <Rect x={0} y={0} width={height} height={height}>
+          <RadialGradient
+            c={vec(height / 2, height / 2)}
+            r={r}
+            colors={[
+              'rgba(0,0,0,0)',
+              'rgba(0,0,0,0)',
+              'rgba(0,0,0,0.4)',
+              'rgba(0,0,0,0.8)',
+            ]}
+            positions={[0, 0.5, 0.8, 1]}
+          />
+        </Rect>
+      </Group>
     </Canvas>
   );
 }

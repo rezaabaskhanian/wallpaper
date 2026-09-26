@@ -3,22 +3,26 @@ import {
   Image,
   Linking,
   Modal,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import AppText from './AppText';
 import {showAlert} from './AppAlert';
 // import {launchImageLibrary} from 'react-native-image-picker';
+import {BIG_CLOCK_BASE_FONT_SIZE, bigClockMaxFontSize} from './ClockWidget';
 import {BACKGROUNDS, MAX_ORBS, RINGS} from './config';
-import {FONTS} from './fonts';
+import {fontsForScript, getScriptFont} from './fonts';
 import {setWidgetAutoRotateQuote} from './homeWidget';
 import type {WallpaperTarget} from './lockWallpaper';
 import {openLauncherSettings, openScreenSaverSettings} from './systemScreens';
 import {useSettings} from './SettingsContext';
+import SunDayPreview from './SunDayPreview';
 import {useStore} from './store/StoreContext';
 // «تم آماده» فعلاً از UI کامنت شده — این ایمپورت هم موقتاً غیرفعال است.
 // import {THEMES} from './themes';
@@ -66,10 +70,19 @@ const TEXT_COLORS = [
 ];
 
 /** Tabs that split the once-long settings list into focused categories. */
-type TabId = 'general' | 'background' | 'fonts' | 'widgets' | 'device';
+type TabId =
+  | 'general'
+  | 'sphere'
+  | 'background'
+  | 'effects'
+  | 'fonts'
+  | 'widgets'
+  | 'device';
 const TABS: {id: TabId; label: string}[] = [
   {id: 'general', label: 'عمومی'},
+  {id: 'sphere', label: 'کره'},
   {id: 'background', label: 'پس‌زمینه'},
+  {id: 'effects', label: 'جلوه‌ها'},
   {id: 'fonts', label: 'فونت'},
   {id: 'widgets', label: 'ویجت‌ها'},
   {id: 'device', label: 'دستگاه'},
@@ -120,16 +133,30 @@ export default function SettingsPanel({
   // Persists across opens/closes (the panel stays mounted, only `visible`
   // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('general');
+  // True while a finger is on a RowSlider, so the ScrollView doesn't take
+  // over a horizontal drag partway through.
+  const [sliderActive, setSliderActive] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const [promoInput, setPromoInput] = useState('');
   const [redeeming, setRedeeming] = useState(false);
   const [presetNameInput, setPresetNameInput] = useState('');
 
-  // In the "وسط صفحه" clock layout, allow a much higher nominal scale than
-  // the small inline clock — the actual on-screen size is clamped to fit the
-  // screen in ClockWidget.tsx, so this is just a generous request ceiling.
-  const maxClockScale = settings.clockLayout === 'bigCentered' ? 12 : 1.6;
-  const clockScaleStep = settings.clockLayout === 'bigCentered' ? 0.5 : 0.1;
+  // In the "وسط صفحه" clock layout the clock can grow until it fills the
+  // screen; the slider stops exactly there (same limit ClockWidget renders
+  // with), so every position along it visibly changes the size.
+  const {width: screenW, height: screenH} = useWindowDimensions();
+  const maxClockScale =
+    settings.clockLayout === 'bigCentered'
+      ? Math.floor(
+          (bigClockMaxFontSize(
+            screenW,
+            screenH,
+            settings.hourFormat === '12' && settings.showAmPm,
+          ) /
+            BIG_CLOCK_BASE_FONT_SIZE) *
+            10,
+        ) / 10
+      : 1.6;
 
   const confirmDeletePreset = (id: string, label: string) => {
     showAlert('حذف پرست', `«${label}» حذف شود؟`, {
@@ -215,6 +242,8 @@ export default function SettingsPanel({
                 onPress={() => selectTab(t.id)}>
                 <AppText
                   numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
                   style={[styles.tabBtnText, active && styles.tabBtnTextActive]}>
                   {t.label}
                 </AppText>
@@ -249,6 +278,7 @@ export default function SettingsPanel({
 
         <ScrollView
           ref={scrollRef}
+          scrollEnabled={!sliderActive}
           style={styles.scroll}
           contentContainerStyle={styles.content}>
           {tab === 'general' ? (
@@ -357,132 +387,6 @@ export default function SettingsPanel({
               <View style={styles.divider} />
 
               <RowSwitch
-                label="چرخش خودکار"
-                value={settings.autoRotate}
-                onChange={v => update('autoRotate', v)}
-              />
-
-              <RowStepper
-                label="سرعت چرخش"
-                value={`${settings.speed.toFixed(2)}×`}
-                onDec={() =>
-                  update(
-                    'speed',
-                    Math.max(0.25, +(settings.speed - 0.25).toFixed(2)),
-                  )
-                }
-                onInc={() =>
-                  update(
-                    'speed',
-                    Math.min(3, +(settings.speed + 0.25).toFixed(2)),
-                  )
-                }
-              />
-
-              <RowStepper
-                label="اندازه کره"
-                value={`${settings.ringCount}`}
-                onDec={() =>
-                  update('ringCount', Math.max(1, settings.ringCount - 1))
-                }
-                onInc={() =>
-                  update(
-                    'ringCount',
-                    Math.min(RINGS.length, settings.ringCount + 1),
-                  )
-                }
-              />
-
-              <RowSwitch
-                label="نمایش گوی‌ها"
-                value={settings.showOrbs}
-                onChange={v => update('showOrbs', v)}
-              />
-
-              {orbitCategories.length >= 2 ? (
-                <RowChoices
-                  label="تم اوربیت (شهدا/طبیعت/...)"
-                  options={orbitCategories.map(c => ({id: c.id, label: c.title}))}
-                  selected={settings.orbitCategoryId}
-                  onSelect={id => update('orbitCategoryId', id)}
-                />
-              ) : null}
-
-              <RowChoices
-                label="نمایش گوی‌ها (ثابت / پیدا و پنهان)"
-                options={[
-                  {id: 'steady', label: 'ثابت'},
-                  {id: 'flicker', label: '✨ پیدا و پنهان'},
-                ]}
-                selected={settings.orbVisibility}
-                onSelect={id =>
-                  update('orbVisibility', id as 'steady' | 'flicker')
-                }
-              />
-
-              <RowStepper
-                label="تعداد گوی‌ها"
-                value={`${settings.ballCount}`}
-                onDec={() =>
-                  update('ballCount', Math.max(1, settings.ballCount - 2))
-                }
-                onInc={() =>
-                  update(
-                    'ballCount',
-                    Math.min(maxBallCount, settings.ballCount + 2),
-                  )
-                }
-              />
-
-              <RowChoices
-                label="محور چرخش"
-                options={[
-                  {id: 'x', label: 'محور X'},
-                  {id: 'y', label: 'محور Y'},
-                  {id: 'z', label: 'محور Z'},
-                  {id: 'mixed', label: 'ناهمگون (اتمی)'},
-                ]}
-                selected={settings.rotationAxis}
-                onSelect={id =>
-                  update('rotationAxis', id as 'x' | 'y' | 'z' | 'mixed')
-                }
-              />
-
-              <View style={styles.divider} />
-
-              <RowSwitch
-                label="پارالاکس با حرکت گوشی (ژیروسکوپ)"
-                value={settings.gyroParallax}
-                onChange={v => update('gyroParallax', v)}
-              />
-              <AppText style={styles.hint}>
-                با کج‌کردن گوشی، پس‌زمینه و گوی‌ها کمی جابه‌جا می‌شوند — علاوه
-                بر کشیدن با انگشت.
-              </AppText>
-
-              <RowSwitch
-                label="پارالاکس سه‌بعدی (شبیه‌سازی عمق)"
-                value={settings.depthParallax}
-                onChange={v => update('depthParallax', v)}
-              />
-              <AppText style={styles.hint}>
-                عکس پس‌زمینه مثل یک صفحهٔ سه‌بعدی با کج‌شدن گوشی می‌چرخد؛
-                نیاز به روشن‌بودن «پارالاکس با حرکت گوشی» دارد. توجه: این
-                جداسازی واقعیِ سوژه از پس‌زمینه (که به هوش‌مصنوعی نیاز دارد)
-                نیست، فقط شبیه‌سازی بصری عمق است.
-              </AppText>
-
-              <RowSwitch
-                label="واکنش لمسی (حلقهٔ نور روی ضربه)"
-                value={settings.touchRipple}
-                onChange={v => update('touchRipple', v)}
-              />
-              <AppText style={styles.hint}>
-                با هر ضربه روی صفحه، یک حلقهٔ نور کوتاه از همان نقطه باز
-                می‌شود و محو می‌شود.
-              </AppText>
-
-              <RowSwitch
                 label="پیش‌نمایش متحرک والپیپرهای قفل‌شده (گالری)"
                 value={settings.animatedLockedPreview}
                 onChange={v => update('animatedLockedPreview', v)}
@@ -567,6 +471,7 @@ export default function SettingsPanel({
 
               <View style={styles.divider} />
 
+              <AppText style={styles.sectionTitle}>حرکت و لمس</AppText>
               <RowSwitch
                 label="زنده‌سازی پس‌زمینه (حرکت آرام)"
                 value={settings.livingWallpaper}
@@ -617,6 +522,140 @@ export default function SettingsPanel({
                 </>
               ) : null}
 
+
+              <RowSwitch
+                label="پارالاکس با حرکت گوشی (ژیروسکوپ)"
+                value={settings.gyroParallax}
+                onChange={v => update('gyroParallax', v)}
+              />
+              <AppText style={styles.hint}>
+                با کج‌کردن گوشی، پس‌زمینه و گوی‌ها کمی جابه‌جا می‌شوند — علاوه
+                بر کشیدن با انگشت.
+              </AppText>
+
+              <RowSwitch
+                label="پارالاکس سه‌بعدی (شبیه‌سازی عمق)"
+                value={settings.depthParallax}
+                onChange={v => update('depthParallax', v)}
+              />
+              <AppText style={styles.hint}>
+                عکس پس‌زمینه مثل یک صفحهٔ سه‌بعدی با کج‌شدن گوشی می‌چرخد؛
+                نیاز به روشن‌بودن «پارالاکس با حرکت گوشی» دارد. توجه: این
+                جداسازی واقعیِ سوژه از پس‌زمینه (که به هوش‌مصنوعی نیاز دارد)
+                نیست، فقط شبیه‌سازی بصری عمق است.
+              </AppText>
+
+              <RowSwitch
+                label="واکنش لمسی (حلقهٔ نور روی ضربه)"
+                value={settings.touchRipple}
+                onChange={v => update('touchRipple', v)}
+              />
+              <AppText style={styles.hint}>
+                با هر ضربه روی صفحه، یک حلقهٔ نور کوتاه از همان نقطه باز
+                می‌شود و محو می‌شود.
+              </AppText>
+
+            </>
+          ) : null}
+
+          {tab === 'sphere' ? (
+            <>
+              <RowSwitch
+                label="چرخش خودکار"
+                value={settings.autoRotate}
+                onChange={v => update('autoRotate', v)}
+              />
+
+              <RowStepper
+                label="سرعت چرخش"
+                value={`${settings.speed.toFixed(2)}×`}
+                onDec={() =>
+                  update(
+                    'speed',
+                    Math.max(0.25, +(settings.speed - 0.25).toFixed(2)),
+                  )
+                }
+                onInc={() =>
+                  update(
+                    'speed',
+                    Math.min(3, +(settings.speed + 0.25).toFixed(2)),
+                  )
+                }
+              />
+
+              <RowStepper
+                label="اندازه کره"
+                value={`${settings.ringCount}`}
+                onDec={() =>
+                  update('ringCount', Math.max(1, settings.ringCount - 1))
+                }
+                onInc={() =>
+                  update(
+                    'ringCount',
+                    Math.min(RINGS.length, settings.ringCount + 1),
+                  )
+                }
+              />
+
+              <RowSwitch
+                label="نمایش گوی‌ها"
+                value={settings.showOrbs}
+                onChange={v => update('showOrbs', v)}
+              />
+
+              {orbitCategories.length >= 2 ? (
+                <RowChoices
+                  label="تم اوربیت (شهدا/طبیعت/...)"
+                  options={orbitCategories.map(c => ({id: c.id, label: c.title}))}
+                  selected={settings.orbitCategoryId}
+                  onSelect={id => update('orbitCategoryId', id)}
+                />
+              ) : null}
+
+              <RowChoices
+                label="حالت نمایش گوی‌ها"
+                options={[
+                  {id: 'steady', label: 'ثابت'},
+                  {id: 'flicker', label: '✨ پیدا و پنهان'},
+                ]}
+                selected={settings.orbVisibility}
+                onSelect={id =>
+                  update('orbVisibility', id as 'steady' | 'flicker')
+                }
+              />
+
+              <RowStepper
+                label="تعداد گوی‌ها"
+                value={`${settings.ballCount}`}
+                onDec={() =>
+                  update('ballCount', Math.max(1, settings.ballCount - 2))
+                }
+                onInc={() =>
+                  update(
+                    'ballCount',
+                    Math.min(maxBallCount, settings.ballCount + 2),
+                  )
+                }
+              />
+
+              <RowChoices
+                label="محور چرخش"
+                options={[
+                  {id: 'x', label: 'محور X'},
+                  {id: 'y', label: 'محور Y'},
+                  {id: 'z', label: 'محور Z'},
+                  {id: 'mixed', label: 'ناهمگون (اتمی)'},
+                ]}
+                selected={settings.rotationAxis}
+                onSelect={id =>
+                  update('rotationAxis', id as 'x' | 'y' | 'z' | 'mixed')
+                }
+              />
+            </>
+          ) : null}
+
+          {tab === 'effects' ? (
+            <>
               <RowChoices
                 label="حالت روز/شب"
                 options={[
@@ -637,9 +676,27 @@ export default function SettingsPanel({
                 onChange={v => update('sunFlare', v)}
               />
               <AppText style={styles.hint}>
-                یک هالهٔ نور گرم که هماهنگ با طلوع/غروب واقعی روی آسمان
-                جابه‌جا می‌شود؛ شب خاموش است.
+                یک هالهٔ نور شبیه خورشید که همراه با ساعت واقعی روز روی آسمان
+                حرکت می‌کند و نورش عوض می‌شود: صبح از سمت چپ و پایین با نور
+                نارنجی طلوع می‌کند، ظهر بالای صفحه و سفید و ملایم است، و عصر
+                سمت راست با نور نارنجی غروب می‌کند؛ شب خاموش است. زمان طلوع و
+                غروب از موقعیت مکانی شما گرفته می‌شود.
               </AppText>
+              {settings.sunFlare ? (
+                <>
+                  <SunDayPreview />
+                  <AppText style={styles.hint}>
+                    پیش‌نمایش: یک روز کامل در چند ثانیه. نقطهٔ سفید جای خورشید
+                    در همین لحظه است.
+                  </AppText>
+                  {settings.dayNightMode !== 'auto' ? (
+                    <AppText style={styles.hint}>
+                      ⚠️ برای اینکه نور خورشید روی صفحه با ساعت روز حرکت کند،
+                      «حالت روز/شب» را روی «خودکار» بگذار.
+                    </AppText>
+                  ) : null}
+                </>
+              ) : null}
 
               <RowChoices
                 label="ذرات نور"
@@ -652,6 +709,16 @@ export default function SettingsPanel({
                 onSelect={id =>
                   update('particleMode', id as 'off' | 'on' | 'auto')
                 }
+              />
+
+              <RowChoices
+                label="شکل ذرات"
+                options={[
+                  {id: 'dot', label: '✦ نقطه'},
+                  {id: 'heart', label: '♥ قلب'},
+                ]}
+                selected={settings.particleShape}
+                onSelect={id => update('particleShape', id as 'dot' | 'heart')}
               />
 
               <RowChoices
@@ -685,20 +752,6 @@ export default function SettingsPanel({
                 استخراج می‌شود.
               </AppText>
 
-              {settings.dynamicColor ? (
-                <>
-                  <RowSwitch
-                    label="رنگ پویا هم روی نوشته‌ها"
-                    value={settings.dynamicColorText}
-                    onChange={v => update('dynamicColorText', v)}
-                  />
-                  <AppText style={styles.hint}>
-                    درخشش دور ساعت و متن پایین هم به‌جای طلایی ثابت، همرنگ
-                    عکس پس‌زمینه می‌شود — برای هماهنگی کامل‌تر بین کل صفحه و
-                    عکس.
-                  </AppText>
-                </>
-              ) : null}
 
               <RowColors
                 label="رنگ نور"
@@ -774,33 +827,49 @@ export default function SettingsPanel({
 
           {tab === 'fonts' ? (
             <>
-              <AppText style={styles.sectionTitle}>فونت نوشته‌ها</AppText>
-              <View style={styles.fontList}>
-                {FONTS.map(f => {
-                  const active = f.id === settings.fontId;
-                  return (
-                    <Pressable
-                      key={f.id}
-                      style={[styles.fontChip, active && styles.fontChipActive]}
-                      onPress={() => update('fontId', f.id)}>
-                      <AppText
-                        style={[
-                          styles.fontSample,
-                          {fontFamily: f.families.regular},
-                        ]}>
-                        {f.sample}
-                      </AppText>
-                      <AppText
-                        style={[
-                          styles.fontName,
-                          active && styles.fontNameActive,
-                        ]}>
-                        {f.label}
-                      </AppText>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              {(
+                [
+                  {script: 'fa', title: 'فونت فارسی', key: 'fontIdFa'},
+                  {script: 'en', title: 'فونت انگلیسی', key: 'fontIdEn'},
+                ] as const
+              ).map(group => (
+                <React.Fragment key={group.script}>
+                  <AppText
+                    style={[
+                      styles.sectionTitle,
+                      group.script === 'en' && styles.fontGroupGap,
+                    ]}>
+                    {group.title}
+                  </AppText>
+                  <View style={styles.fontList}>
+                    {fontsForScript(group.script).map(f => {
+                      const active =
+                        f.id === getScriptFont(group.script, settings[group.key]).id;
+                      return (
+                        <Pressable
+                          key={f.id}
+                          style={[styles.fontChip, active && styles.fontChipActive]}
+                          onPress={() => update(group.key, f.id)}>
+                          <AppText
+                            style={[
+                              styles.fontSample,
+                              {fontFamily: f.families.regular},
+                            ]}>
+                            {f.sample}
+                          </AppText>
+                          <AppText
+                            style={[
+                              styles.fontName,
+                              active && styles.fontNameActive,
+                            ]}>
+                            {f.label}
+                          </AppText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </React.Fragment>
+              ))}
             </>
           ) : null}
 
@@ -853,9 +922,14 @@ export default function SettingsPanel({
                   {id: 'bigCentered', label: 'وسط صفحه (بزرگ)'},
                 ]}
                 selected={settings.clockLayout}
-                onSelect={id =>
-                  update('clockLayout', id as 'inline' | 'bigCentered')
-                }
+                onSelect={id => {
+                  update('clockLayout', id as 'inline' | 'bigCentered');
+                  // The inline clock tops out at 1.6× (the big layout goes
+                  // much higher), so don't carry a huge scale back into it.
+                  if (id === 'inline' && settings.clockFontScale > 1.6) {
+                    update('clockFontScale', 1.6);
+                  }
+                }}
               />
               {settings.clockLayout === 'bigCentered' ? (
                 <AppText style={styles.hint}>
@@ -865,35 +939,16 @@ export default function SettingsPanel({
                 </AppText>
               ) : null}
 
-              <RowStepper
+              <RowSlider
                 label="اندازه فونت ساعت"
-                value={`${settings.clockFontScale.toFixed(1)}×`}
-                onDec={() =>
-                  update(
-                    'clockFontScale',
-                    Math.max(
-                      0.7,
-                      +(settings.clockFontScale - clockScaleStep).toFixed(1),
-                    ),
-                  )
-                }
-                onInc={() =>
-                  update(
-                    'clockFontScale',
-                    Math.min(
-                      maxClockScale,
-                      +(settings.clockFontScale + clockScaleStep).toFixed(1),
-                    ),
-                  )
-                }
+                value={Math.min(settings.clockFontScale, maxClockScale)}
+                min={0.7}
+                max={maxClockScale}
+                step={0.1}
+                format={v => `${v.toFixed(1)}×`}
+                onChange={v => update('clockFontScale', v)}
+                onDragActive={setSliderActive}
               />
-              {settings.clockLayout === 'bigCentered' ? (
-                <AppText style={styles.hint}>
-                  در چیدمان «وسط صفحه» اندازه تا هر عددی زیاد بشه، خودِ اپ آن
-                  را طوری کوچک می‌کند که دقیقاً داخل صفحه جا شود و بیرون نزند
-                  — یعنی این عدد فقط سقفِ درخواستی است، نه اندازهٔ قطعی.
-                </AppText>
-              ) : null}
 
               <RowColors
                 label="رنگ فونت ساعت"
@@ -979,21 +1034,15 @@ export default function SettingsPanel({
                 />
               ) : null}
 
-              <RowStepper
+              <RowSlider
                 label="اندازه فونت متن پایین"
-                value={`${settings.quoteFontScale.toFixed(1)}×`}
-                onDec={() =>
-                  update(
-                    'quoteFontScale',
-                    Math.max(0.7, +(settings.quoteFontScale - 0.1).toFixed(1)),
-                  )
-                }
-                onInc={() =>
-                  update(
-                    'quoteFontScale',
-                    Math.min(1.6, +(settings.quoteFontScale + 0.1).toFixed(1)),
-                  )
-                }
+                value={settings.quoteFontScale}
+                min={0.7}
+                max={1.6}
+                step={0.1}
+                format={v => `${v.toFixed(1)}×`}
+                onChange={v => update('quoteFontScale', v)}
+                onDragActive={setSliderActive}
               />
 
               <RowColors
@@ -1198,6 +1247,114 @@ function RowStepper({
   );
 }
 
+/**
+ * Drag (or tap) along the track to pick a value; smaller on the left, bigger
+ * on the right, with a small and a big "A" at the ends to make that obvious.
+ * While dragging only the slider itself re-renders; the value is committed
+ * via onChange once on release, because every settings update re-renders the
+ * whole wallpaper and doing that per move made the drag lag badly.
+ */
+function RowSlider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  format,
+  onChange,
+  onDragActive,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  format: (v: number) => string;
+  onChange: (v: number) => void;
+  /** Called with true when a finger lands on the slider and false when it
+   * lifts, so the parent can stop its ScrollView from stealing the drag. */
+  onDragActive?: (active: boolean) => void;
+}) {
+  const [trackWidth, setTrackWidth] = useState(0);
+  const [dragValue, setDragValue] = useState<number | null>(null);
+  // The responder is created once, so it reads the latest props via a ref.
+  const latest = useRef({value, min, max, step, onChange, onDragActive, trackWidth});
+  latest.current = {value, min, max, step, onChange, onDragActive, trackWidth};
+  const startX = useRef(0);
+  const dragRef = useRef<number | null>(null);
+
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      // Keep the drag even if the parent ScrollView wants to scroll.
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: e => {
+        startX.current = e.nativeEvent.locationX;
+        setFromX(startX.current);
+      },
+      onPanResponderMove: (_e, g) => setFromX(startX.current + g.dx),
+      onPanResponderRelease: commit,
+      onPanResponderTerminate: commit,
+    }),
+  ).current;
+
+  function setFromX(x: number) {
+    const cur = latest.current;
+    if (cur.trackWidth <= 0 || cur.max <= cur.min) return;
+    const ratio = Math.min(1, Math.max(0, x / cur.trackWidth));
+    const raw = cur.min + ratio * (cur.max - cur.min);
+    const next = +(
+      Math.min(cur.max, Math.max(cur.min, Math.round(raw / cur.step) * cur.step))
+    ).toFixed(2);
+    if (next !== dragRef.current) {
+      dragRef.current = next;
+      setDragValue(next);
+    }
+  }
+
+  function commit() {
+    const final = dragRef.current;
+    dragRef.current = null;
+    setDragValue(null);
+    latest.current.onDragActive?.(false);
+    if (final !== null && final !== latest.current.value) {
+      latest.current.onChange(final);
+    }
+  }
+
+  const shown = dragValue ?? value;
+  const ratio =
+    max > min ? Math.min(1, Math.max(0, (shown - min) / (max - min))) : 0;
+
+  return (
+    <View style={styles.sliderRow}>
+      <View style={styles.sliderHeader}>
+        <AppText style={styles.rowLabel}>{label}</AppText>
+        <AppText style={styles.stepValue}>{format(shown)}</AppText>
+      </View>
+      <View style={styles.sliderBody}>
+        <AppText style={styles.sliderIconSmall}>A</AppText>
+        <View
+          style={styles.sliderTouch}
+          onLayout={e => setTrackWidth(e.nativeEvent.layout.width)}
+          // Fires on touch-down, before the ScrollView could claim the move.
+          onTouchStart={() => onDragActive?.(true)}
+          {...responder.panHandlers}>
+          <View style={styles.sliderTrack} pointerEvents="none">
+            <View style={[styles.sliderFill, {width: `${ratio * 100}%`}]} />
+          </View>
+          <View
+            pointerEvents="none"
+            style={[styles.sliderThumb, {left: `${ratio * 100}%`}]}
+          />
+        </View>
+        <AppText style={styles.sliderIconBig}>A</AppText>
+      </View>
+    </View>
+  );
+}
+
 function RowChoices({
   label,
   options,
@@ -1372,6 +1529,56 @@ const styles = StyleSheet.create({
     color: '#d6f5ee',
     fontSize: 16,
     writingDirection: 'rtl',
+  },
+  sliderRow: {
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  sliderHeader: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sliderBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 10,
+  },
+  sliderIconSmall: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+  },
+  sliderIconBig: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 22,
+  },
+  // Taller than the visible track so the thumb is easy to grab.
+  sliderTouch: {
+    flex: 1,
+    height: 36,
+    justifyContent: 'center',
+  },
+  sliderTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
+  sliderFill: {
+    height: '100%',
+    backgroundColor: '#8b5cf6',
+  },
+  sliderThumb: {
+    position: 'absolute',
+    marginLeft: -11,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#eafffb',
+    borderWidth: 2,
+    borderColor: '#8b5cf6',
   },
   stepper: {
     flexDirection: 'row-reverse',
@@ -1629,6 +1836,9 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(139, 92, 246, 0.2)',
     marginVertical: 14,
+  },
+  fontGroupGap: {
+    marginTop: 18,
   },
   fontList: {
     flexDirection: 'row-reverse',

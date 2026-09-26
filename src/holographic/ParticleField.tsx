@@ -33,6 +33,59 @@ function edgeFade(p: number): number {
   return Math.max(0, Math.min(1, f));
 }
 
+/**
+ * A heart built from plain Views — a square with a circle on its top and left
+ * edges, turned 45° so the corner points down — so it always takes `color`.
+ * (The "♥" character renders as a fixed red emoji on many Android phones.)
+ */
+function HeartShape({size, color}: {size: number; color: string}) {
+  const a = size * 0.62;
+  const box = a * 1.5;
+  return (
+    <View
+      style={{
+        width: box,
+        height: box,
+        marginLeft: -box / 2,
+        marginTop: -box / 2,
+        transform: [{rotate: '45deg'}],
+      }}>
+      <View
+        style={[
+          styles.heartPart,
+          {left: a / 2, top: a / 2, width: a, height: a, backgroundColor: color},
+        ]}
+      />
+      <View
+        style={[
+          styles.heartPart,
+          styles.heartTop,
+          {
+            left: a / 2,
+            width: a,
+            height: a,
+            borderRadius: a / 2,
+            backgroundColor: color,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.heartPart,
+          styles.heartLeft,
+          {
+            top: a / 2,
+            width: a,
+            height: a,
+            borderRadius: a / 2,
+            backgroundColor: color,
+          },
+        ]}
+      />
+    </View>
+  );
+}
+
 function Dot({
   particle,
   clock,
@@ -40,6 +93,7 @@ function Dot({
   height,
   brightness,
   color,
+  shape,
   tiltX,
   tiltY,
 }: {
@@ -49,6 +103,7 @@ function Dot({
   height: number;
   brightness: number;
   color: string;
+  shape: 'dot' | 'heart';
   /** Gyroscope tilt offsets (see HolographicHome), so the dust drifts along
    * with the background/orbs instead of staying pinned in place. */
   tiltX?: SharedValue<number>;
@@ -69,10 +124,25 @@ function Dot({
     const tx = tiltX ? tiltX.value * 0.8 : 0;
     const ty = tiltY ? tiltY.value * 0.8 : 0;
     return {
-      transform: [{translateX: x + tx}, {translateY: y + ty}],
+      transform: [
+        {translateX: x + tx},
+        {translateY: y + ty},
+        // Hearts lean into their sway like a floating balloon; dots are
+        // round, so the rotation is invisible for them.
+        {rotate: `${(sway / 30) * 0.35}rad`},
+      ],
       opacity: particle.base * brightness * twinkle * edgeFade(p),
     };
   });
+
+  if (shape === 'heart') {
+    // A bit larger than the dots so the shape actually reads as a heart.
+    return (
+      <Animated.View style={[styles.heartWrap, style]}>
+        <HeartShape size={9 + particle.size * 1.4} color={color} />
+      </Animated.View>
+    );
+  }
 
   return (
     <Animated.View
@@ -154,6 +224,7 @@ export default function ParticleField({tiltX, tiltY}: Props) {
           height={height}
           brightness={brightness}
           color={resolvedGlowColor}
+          shape={settings.particleShape}
           tiltX={tiltX}
           tiltY={tiltY}
         />
@@ -163,6 +234,20 @@ export default function ParticleField({tiltX, tiltY}: Props) {
 }
 
 const styles = StyleSheet.create({
+  heartWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  heartPart: {
+    position: 'absolute',
+  },
+  heartTop: {
+    top: 0,
+  },
+  heartLeft: {
+    left: 0,
+  },
   dot: {
     position: 'absolute',
     top: 0,

@@ -16,13 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import {BACKGROUNDS} from './config';
 import {useSettings} from './SettingsContext';
-import {useCachedImage} from './imageCache';
 import WaterRippleLayer, {type WaterRippleHandle} from './WaterRippleLayer';
-
-/** True for a remote http(s) URL (a wallpaper picked from the app's own
- * gallery); false for a local device photo (content://, file://, ph://…)
- * picked straight from the phone's gallery, which needs no caching. */
-const isRemoteUrl = (uri: string) => /^https?:\/\//i.test(uri);
 
 /**
  * The full-screen background photo behind the orbiting avatars.
@@ -32,11 +26,11 @@ const isRemoteUrl = (uri: string) => /^https?:\/\//i.test(uri);
  * background. IDs with no photo of their own (e.g. 'black') render nothing
  * here on purpose, falling through to the root view's solid black fill.
  *
- * A custom background from the app's own wallpaper gallery is a remote URL,
- * so it's routed through the same download+cache used for orbit avatar
- * photos (see imageCache.ts) — otherwise it'd vanish the moment the device
- * goes offline. A photo picked straight from the phone's gallery is already
- * a local file and is used as-is.
+ * A custom background from the app's own wallpaper gallery is a remote URL
+ * and is loaded straight from it — the native image loader keeps its own disk
+ * cache, so it still shows offline. It must NOT go through imageCache.ts's
+ * base64 data uris: a full-size wallpaper as a multi-MB data uri fails to
+ * decode on Android and the screen just goes black.
  */
 const MainBackground = forwardRef<WaterRippleHandle>((_props, ref) => {
   const {settings} = useSettings();
@@ -178,19 +172,13 @@ const MainBackground = forwardRef<WaterRippleHandle>((_props, ref) => {
   );
 
   const customUri = settings.customBackgroundUri;
-  const customIsRemote = !!customUri && isRemoteUrl(customUri);
-  const cachedCustom = useCachedImage(customIsRemote ? customUri : undefined);
 
   const bundled = BACKGROUNDS.find(b => b.id === settings.backgroundId);
 
   const source =
     settings.backgroundId === 'custom'
       ? customUri
-        ? customIsRemote
-          ? cachedCustom.uri
-            ? {uri: cachedCustom.uri}
-            : undefined
-          : {uri: customUri}
+        ? {uri: customUri}
         : undefined
       : bundled?.source;
 
@@ -219,6 +207,9 @@ const MainBackground = forwardRef<WaterRippleHandle>((_props, ref) => {
         // one instead of being served from the previous decode.
         key={typeof source === 'number' ? `bundled-${source}` : source.uri}
         source={source}
+        // Downsample on decode: gallery wallpapers can be far larger than the
+        // screen, and a full-resolution bitmap is too big for Android to draw.
+        resizeMethod="resize"
         style={[
           StyleSheet.absoluteFill,
           fit === 'contain' && bundled?.letterboxColor

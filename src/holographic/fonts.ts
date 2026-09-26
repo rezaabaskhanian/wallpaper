@@ -18,7 +18,7 @@ export type FontOption = {
   label: string;
   /** Short text rendered in this font as a live preview. */
   sample: string;
-  /** Whether it's a Persian or Arabic typeface (just for grouping/label). */
+  /** Persian/Arabic fonts style Persian text; English fonts style Latin. */
   script: FontScript;
   /** ttf family names per weight. `regular` is required. */
   families: {
@@ -133,9 +133,67 @@ export const FONTS: FontOption[] = [
   },
 ];
 
-export const DEFAULT_FONT_ID = 'vazirmatn';
+/** Default font for Persian/Arabic text. */
+export const DEFAULT_FA_FONT_ID = 'vazirmatn';
+/** Default font for Latin (English) text. */
+export const DEFAULT_EN_FONT_ID = 'poppins';
 
-/** Look up a font by id, falling back to the default. */
+/** Which of the two user-selected fonts a piece of text should use. */
+export type TextScript = 'fa' | 'en';
+
+/** Fonts listed under a picker group: Arabic typefaces sit with Persian. */
+export function fontsForScript(script: TextScript): FontOption[] {
+  return FONTS.filter(f => (script === 'en' ? f.script === 'en' : f.script !== 'en'));
+}
+
+/** Resolve a stored id for a group, falling back to that group's default. */
+export function getScriptFont(script: TextScript, id: string): FontOption {
+  return (
+    fontsForScript(script).find(f => f.id === id) ??
+    getFont(script === 'en' ? DEFAULT_EN_FONT_ID : DEFAULT_FA_FONT_ID)
+  );
+}
+
+const PERSIAN_RE =
+  /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+const LATIN_RE = /[A-Za-z\u00C0-\u024F]/;
+
+function charScript(ch: string): TextScript | null {
+  if (PERSIAN_RE.test(ch)) return 'fa';
+  if (LATIN_RE.test(ch)) return 'en';
+  return null;
+}
+
+export type ScriptRun = {text: string; script: TextScript};
+
+/**
+ * Split text into runs of Persian and Latin script. Neutral characters
+ * (spaces, punctuation, Latin digits, emoji) join the run they follow, or the
+ * first run when they lead. Text with no letters at all counts as English
+ * when it has Latin digits (e.g. "12:30") and as Persian otherwise.
+ */
+export function splitByScript(text: string): ScriptRun[] {
+  const runs: ScriptRun[] = [];
+  let leading = '';
+  for (const ch of text) {
+    const script = charScript(ch);
+    const last = runs[runs.length - 1];
+    if (script === null) {
+      if (last) last.text += ch;
+      else leading += ch;
+    } else if (last && last.script === script) {
+      last.text += ch;
+    } else {
+      runs.push({text: (last ? '' : leading) + ch, script});
+    }
+  }
+  if (runs.length === 0) {
+    return [{text, script: /[0-9]/.test(text) ? 'en' : 'fa'}];
+  }
+  return runs;
+}
+
+/** Look up a font by id, falling back to the default Persian font. */
 export function getFont(id: string): FontOption {
   return FONTS.find(f => f.id === id) ?? FONTS[0];
 }
