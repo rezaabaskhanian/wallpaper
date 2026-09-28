@@ -171,7 +171,13 @@ export default function OrbitCategories() {
   const {data: items} = useOrbitItems();
   const del = useDeleteOrbitCategory();
   const [editing, setEditing] = useState<OrbitCategory | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpenState] = useState(false);
+  // هر بار باز شدن کلید تازه می‌گیرد تا دیالوگ ری‌مونت شود و فرم از مقدار قبلی پاک شود.
+  const [dialogKey, setDialogKey] = useState(0);
+  const setDialogOpen = (open: boolean) => {
+    if (open) setDialogKey(k => k + 1);
+    setDialogOpenState(open);
+  };
   const sel = useRowSelection(categories);
   const navigate = useNavigate();
   const itemCount = (id: string) => items?.filter(it => it.categoryId === id).length ?? 0;
@@ -297,7 +303,12 @@ export default function OrbitCategories() {
         </Table>
       </SpotlightCard>
 
-      <CategoryDialog category={editing} open={dialogOpen} onOpenChange={setDialogOpen} />
+      <CategoryDialog
+        key={dialogKey}
+        category={editing}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }

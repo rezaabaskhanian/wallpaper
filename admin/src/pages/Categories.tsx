@@ -147,7 +147,13 @@ export default function Categories() {
   const del = useDeleteCategory();
   const delMany = useDeleteManyCategories();
   const [editing, setEditing] = useState<Category | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpenState] = useState(false);
+  // هر بار باز شدن کلید تازه می‌گیرد تا دیالوگ ری‌مونت شود و فرم از مقدار قبلی پاک شود.
+  const [dialogKey, setDialogKey] = useState(0);
+  const setDialogOpen = (open: boolean) => {
+    if (open) setDialogKey(k => k + 1);
+    setDialogOpenState(open);
+  };
   const sel = useRowSelection(categories);
 
   // دسته‌های اصلی به همراه زیردسته‌هایشان بلافاصله بعدشان، برای نمایش سلسله‌مراتبی.
@@ -270,6 +276,7 @@ export default function Categories() {
       </SpotlightCard>
 
       <CategoryDialog
+        key={dialogKey}
         category={editing}
         categories={categories}
         open={dialogOpen}

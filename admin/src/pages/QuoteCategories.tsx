@@ -125,7 +125,13 @@ export default function QuoteCategories() {
   const {data: quotes} = useQuotes();
   const del = useDeleteQuoteCategory();
   const [editing, setEditing] = useState<QuoteCategory | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpenState] = useState(false);
+  // هر بار باز شدن کلید تازه می‌گیرد تا دیالوگ ری‌مونت شود و فرم از مقدار قبلی پاک شود.
+  const [dialogKey, setDialogKey] = useState(0);
+  const setDialogOpen = (open: boolean) => {
+    if (open) setDialogKey(k => k + 1);
+    setDialogOpenState(open);
+  };
   const sel = useRowSelection(categories);
   const navigate = useNavigate();
   const quoteCount = (id: string) => quotes?.filter(q => q.categoryId === id).length ?? 0;
@@ -240,7 +246,12 @@ export default function QuoteCategories() {
         </Table>
       </SpotlightCard>
 
-      <CategoryDialog category={editing} open={dialogOpen} onOpenChange={setDialogOpen} />
+      <CategoryDialog
+        key={dialogKey}
+        category={editing}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }

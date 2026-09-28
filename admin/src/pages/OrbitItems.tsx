@@ -174,7 +174,13 @@ export default function OrbitItems() {
   const del = useDeleteOrbitItem();
   const delMany = useDeleteManyOrbitItems();
   const [editing, setEditing] = useState<OrbitItem | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpenState] = useState(false);
+  // هر بار باز شدن کلید تازه می‌گیرد تا دیالوگ ری‌مونت شود و فرم از مقدار قبلی پاک شود.
+  const [dialogKey, setDialogKey] = useState(0);
+  const setDialogOpen = (open: boolean) => {
+    if (open) setDialogKey(k => k + 1);
+    setDialogOpenState(open);
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryFilter = searchParams.get('category') ?? '';
 
@@ -328,7 +334,7 @@ export default function OrbitItems() {
       </SpotlightCard>
 
       <OrbitItemDialog
-        key={editing?.id ?? `new:${categoryFilter}`}
+        key={dialogKey}
         item={editing}
         open={dialogOpen}
         onOpenChange={setDialogOpen}

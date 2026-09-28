@@ -202,7 +202,13 @@ export default function Wallpapers() {
   const del = useDeleteWallpaper();
   const delMany = useDeleteManyWallpapers();
   const [editing, setEditing] = useState<Wallpaper | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpenState] = useState(false);
+  // هر بار باز شدن کلید تازه می‌گیرد تا دیالوگ ری‌مونت شود و فرم از مقدار قبلی پاک شود.
+  const [dialogKey, setDialogKey] = useState(0);
+  const setDialogOpen = (open: boolean) => {
+    if (open) setDialogKey(k => k + 1);
+    setDialogOpenState(open);
+  };
   const [sortByDownloads, setSortByDownloads] = useState(false);
   const sel = useRowSelection(wallpapers);
 
@@ -340,7 +346,12 @@ export default function Wallpapers() {
         </Table>
       </SpotlightCard>
 
-      <WallpaperDialog wallpaper={editing} open={dialogOpen} onOpenChange={setDialogOpen} />
+      <WallpaperDialog
+        key={dialogKey}
+        wallpaper={editing}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }

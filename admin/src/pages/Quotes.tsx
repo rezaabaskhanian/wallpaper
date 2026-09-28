@@ -157,7 +157,13 @@ export default function Quotes() {
   const del = useDeleteQuote();
   const delMany = useDeleteManyQuotes();
   const [editing, setEditing] = useState<Quote | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpenState] = useState(false);
+  // هر بار باز شدن کلید تازه می‌گیرد تا دیالوگ ری‌مونت شود و فرم از مقدار قبلی پاک شود.
+  const [dialogKey, setDialogKey] = useState(0);
+  const setDialogOpen = (open: boolean) => {
+    if (open) setDialogKey(k => k + 1);
+    setDialogOpenState(open);
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryFilter = searchParams.get('category') ?? '';
 
@@ -298,6 +304,7 @@ export default function Quotes() {
       </SpotlightCard>
 
       <QuoteDialog
+        key={dialogKey}
         quote={editing}
         open={dialogOpen}
         onOpenChange={setDialogOpen}

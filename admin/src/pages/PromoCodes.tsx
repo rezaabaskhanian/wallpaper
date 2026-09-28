@@ -106,7 +106,13 @@ export default function PromoCodes() {
   const {data: promoCodes, isLoading} = usePromoCodes();
   const del = useDeletePromoCode();
   const [editing, setEditing] = useState<PromoCode | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpenState] = useState(false);
+  // هر بار باز شدن کلید تازه می‌گیرد تا دیالوگ ری‌مونت شود و فرم از مقدار قبلی پاک شود.
+  const [dialogKey, setDialogKey] = useState(0);
+  const setDialogOpen = (open: boolean) => {
+    if (open) setDialogKey(k => k + 1);
+    setDialogOpenState(open);
+  };
   const sel = useRowSelection(promoCodes);
 
   const bulkDelete = async () => {
@@ -210,7 +216,12 @@ export default function PromoCodes() {
         </Table>
       </SpotlightCard>
 
-      <PromoCodeDialog promoCode={editing} open={dialogOpen} onOpenChange={setDialogOpen} />
+      <PromoCodeDialog
+        key={dialogKey}
+        promoCode={editing}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }

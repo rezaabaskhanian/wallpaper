@@ -199,7 +199,13 @@ export default function Martyrs() {
   const del = useDeleteMartyr();
   const delMany = useDeleteManyMartyrs();
   const [editing, setEditing] = useState<Martyr | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpenState] = useState(false);
+  // هر بار باز شدن کلید تازه می‌گیرد تا دیالوگ ری‌مونت شود و فرم از مقدار قبلی پاک شود.
+  const [dialogKey, setDialogKey] = useState(0);
+  const setDialogOpen = (open: boolean) => {
+    if (open) setDialogKey(k => k + 1);
+    setDialogOpenState(open);
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryFilter = searchParams.get('category') ?? '';
 
@@ -353,7 +359,7 @@ export default function Martyrs() {
       </SpotlightCard>
 
       <MartyrDialog
-        key={editing?.id ?? `new:${categoryFilter}`}
+        key={dialogKey}
         martyr={editing}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
