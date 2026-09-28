@@ -59,6 +59,16 @@ export function useDeleteManyWallpapers() {
   });
 }
 
+// در هر دسته freePerCategory والپیپر فعالِ جدیدتر رایگان، بقیه پولی می‌شوند.
+export function useApplyFreeLimit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (freePerCategory: number) =>
+      api.post<{updated: number}>('/admin/wallpapers/apply-free-limit', {freePerCategory}),
+    onSuccess: () => qc.invalidateQueries({queryKey: ['admin', 'wallpapers']}),
+  });
+}
+
 export type CategoryInput = {
   id: string;
   title: string;

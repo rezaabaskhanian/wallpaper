@@ -23,6 +23,7 @@ type Repository interface {
 	SaveCategory(ctx context.Context, c domain.Category) (domain.Category, error)
 	DeleteCategory(ctx context.Context, id string) error
 	BumpCatalogVersion(ctx context.Context) error
+	ApplyFreeLimit(ctx context.Context, freePerCategory int) (int64, error)
 
 	// عمومی (اپ): شمارش دانلود واقعی — ببینید wallpaper.DownloadCount.
 	IncrementDownloadCount(ctx context.Context, id string) error

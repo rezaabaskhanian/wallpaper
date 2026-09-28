@@ -12,6 +12,7 @@ func (h Handler) SetWallpaperRoutes(api *echo.Group, admin *echo.Group) {
 
 	admin.GET("/wallpapers", h.AdminListWallpapers)
 	admin.POST("/wallpapers", h.CreateWallpaper)
+	admin.POST("/wallpapers/apply-free-limit", h.ApplyFreeLimit)
 	admin.PUT("/wallpapers/:id", h.UpdateWallpaper)
 	admin.DELETE("/wallpapers/:id", h.DeleteWallpaper)
 

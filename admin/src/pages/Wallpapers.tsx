@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
 import {toast} from 'sonner';
-import {ArrowDown01, Plus} from 'lucide-react';
+import {ArrowDown01, Plus, WandSparkles} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
@@ -29,6 +29,7 @@ import StatusBadge from '@/components/StatusBadge';
 import {useRowSelection} from '@/hooks/useRowSelection';
 import {ApiError} from '@/lib/api';
 import {
+  useApplyFreeLimit,
   useCategories,
   useDeleteManyWallpapers,
   useDeleteWallpaper,
@@ -197,6 +198,61 @@ function WallpaperDialog({
   );
 }
 
+function FreeLimitDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [count, setCount] = useState(10);
+  const apply = useApplyFreeLimit();
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const {updated} = await apply.mutateAsync(count);
+      toast.success(updated ? `${updated} والپیپر به‌روزرسانی شد` : 'همه از قبل درست بودند');
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'اعمال ناموفق بود');
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="glass-panel max-w-md">
+        <DialogHeader>
+          <DialogTitle>رایگان/پولی خودکار</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            در هر دسته، جدیدترین والپیپرهای فعال به این تعداد رایگان و بقیه پولی می‌شوند.
+            والپیپرهای غیرفعال تغییری نمی‌کنند.
+          </p>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="free-count">تعداد رایگان در هر دسته</Label>
+            <Input
+              id="free-count"
+              type="number"
+              min={0}
+              className="font-mono"
+              value={count}
+              onChange={e => setCount(Math.max(0, Number(e.target.value)))}
+              required
+            />
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={apply.isPending} className="glow-primary">
+              اعمال
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function Wallpapers() {
   const {data: wallpapers, isLoading} = useWallpapers();
   const del = useDeleteWallpaper();
@@ -210,6 +266,7 @@ export default function Wallpapers() {
     setDialogOpenState(open);
   };
   const [sortByDownloads, setSortByDownloads] = useState(false);
+  const [freeLimitOpen, setFreeLimitOpen] = useState(false);
   const sel = useRowSelection(wallpapers);
 
   // کمترین‌دانلود اول، تا والپیپرهای بی‌استفاده برای پاک‌سازی راحت پیدا شوند.
@@ -243,6 +300,10 @@ export default function Wallpapers() {
             title="کم‌دانلودترین‌ها اول — برای پیدا کردن والپیپرهای بی‌استفاده">
             <ArrowDown01 className="size-4" />
             مرتب‌سازی بر اساس دانلود
+          </Button>
+          <Button variant="outline" onClick={() => setFreeLimitOpen(true)}>
+            <WandSparkles className="size-4" />
+            رایگان/پولی خودکار
           </Button>
           <Button
             className="glow-primary"
@@ -352,6 +413,7 @@ export default function Wallpapers() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />
+      <FreeLimitDialog open={freeLimitOpen} onOpenChange={setFreeLimitOpen} />
     </div>
   );
 }

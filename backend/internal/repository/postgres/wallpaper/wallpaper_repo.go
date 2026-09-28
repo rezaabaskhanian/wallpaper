@@ -223,3 +223,27 @@ func (d DB) BumpCatalogVersion(ctx context.Context) error {
 	}
 	return nil
 }
+
+// ApplyFreeLimit در هر دسته، freePerCategory والپیپر فعالِ جدیدتر را رایگان و
+// بقیه‌ی فعال‌ها را پولی می‌کند (غیرفعال‌ها دست نمی‌خورند). فقط ردیف‌هایی که
+// وضعیتشان واقعاً عوض می‌شود آپدیت می‌شوند؛ تعداد آن‌ها برگردانده می‌شود.
+func (d DB) ApplyFreeLimit(ctx context.Context, freePerCategory int) (int64, error) {
+	const op = "postgreswallpaper.ApplyFreeLimit"
+
+	query := `
+	UPDATE wallpapers w
+	SET premium = r.rn > $1, updated_at = NOW()
+	FROM (
+		SELECT id, ROW_NUMBER() OVER (PARTITION BY category ORDER BY created_at DESC, id) AS rn
+		FROM wallpapers
+		WHERE is_active = true
+	) r
+	WHERE w.id = r.id AND w.premium <> (r.rn > $1)
+`
+
+	tag, err := d.conn.Exec(ctx, query, freePerCategory)
+	if err != nil {
+		return 0, richerror.New(op).WithErr(err).WithMessage("failed to apply free limit")
+	}
+	return tag.RowsAffected(), nil
+}
