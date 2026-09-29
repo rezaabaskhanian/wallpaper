@@ -27,6 +27,7 @@ import {useSettings} from './SettingsContext';
 import {useStore} from './store/StoreContext';
 import type {WallpaperItem} from './store/types';
 import {trackWallpaperDownload} from './store/wallpaperDownload';
+import {announceWallpaperSet} from './oneTapWallpaper';
 
 type Props = {
   visible: boolean;
@@ -126,6 +127,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
     loading,
     error,
     premiumUnlocked,
+    hasPremiumWallpapers,
     billingAvailable,
     reload,
     buyUnlock,
@@ -233,9 +235,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
     try {
       await setWallpaperFromUrl(item.full, target);
       trackWallpaperDownload(item.id);
-      const where =
-        target === 'home' ? 'صفحهٔ اصلی' : target === 'both' ? 'اصلی و قفل' : 'صفحهٔ قفل';
-      showAlert('انجام شد', `والپیپر ${where} تنظیم شد.`);
+      announceWallpaperSet(target, 'gallery');
       setSelected(null);
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e);
@@ -265,8 +265,8 @@ export default function WallpaperGallery({visible, onClose}: Props) {
           </Pressable>
         </View>
 
-        {/* Unlock banner */}
-        {!premiumUnlocked ? (
+        {/* Unlock banner — hidden while every wallpaper is free. */}
+        {!premiumUnlocked && hasPremiumWallpapers ? (
           <Pressable
             style={styles.unlockBanner}
             onPress={startPurchase}

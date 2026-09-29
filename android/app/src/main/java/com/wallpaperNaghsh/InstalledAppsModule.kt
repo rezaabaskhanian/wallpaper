@@ -1,6 +1,11 @@
 package com.wallpaperNaghsh
 
+import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
@@ -22,14 +27,34 @@ import java.io.FileOutputStream
 class InstalledAppsModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
+  companion object {
+    /** True when this app is the one Android opens for the Home button. */
+    fun isDefaultLauncher(context: Context): Boolean {
+      val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+      val resolved =
+          context.packageManager.resolveActivity(home, PackageManager.MATCH_DEFAULT_ONLY)
+      return resolved?.activityInfo?.packageName == context.packageName
+    }
+  }
+
   override fun getName(): String = "InstalledApps"
+
+  /** Lets Settings offer "back to the previous launcher" only when it applies. */
+  @ReactMethod
+  fun isDefaultLauncher(promise: Promise) {
+    try {
+      promise.resolve(isDefaultLauncher(reactApplicationContext))
+    } catch (e: Exception) {
+      promise.reject("resolve_failed", e.message, e)
+    }
+  }
 
   private val iconCacheDir: File by lazy {
     File(reactApplicationContext.cacheDir, "app_icons").apply { mkdirs() }
   }
 
   /**
-   * Returns [{label, packageName, icon}] for every app with a launcher entry,
+   * Returns [{label, packageName, icon, isSystem}] for every app with a launcher entry,
    * sorted by label. `icon` is a file:// URI to a cached PNG (128x128) —
    * cheaper to hand to <Image> than base64 over the bridge for a full app list.
    * Runs off the main thread since querying + decoding 100+ icons is slow.
@@ -67,6 +92,14 @@ class InstalledAppsModule(reactContext: ReactApplicationContext) :
           app.putString("label", label)
           app.putString("packageName", packageName)
           app.putString("icon", iconUri ?: "")
+          // Preinstalled apps can't be uninstalled (only an update of one can
+          // be rolled back), so the drawer hides «حذف» for them.
+          val flags = info.activityInfo.applicationInfo.flags
+          app.putBoolean(
+              "isSystem",
+              flags and ApplicationInfo.FLAG_SYSTEM != 0 &&
+                  flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP == 0,
+          )
           result.pushMap(app)
         }
 
@@ -87,6 +120,39 @@ class InstalledAppsModule(reactContext: ReactApplicationContext) :
         return
       }
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      reactApplicationContext.startActivity(intent)
+      promise.resolve(true)
+    } catch (e: Exception) {
+      promise.reject("launch_failed", e.message, e)
+    }
+  }
+
+  /** Opens Android's own "App info" screen for the package. */
+  @ReactMethod
+  fun openAppInfo(packageName: String, promise: Promise) {
+    try {
+      val intent =
+          Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
+              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      reactApplicationContext.startActivity(intent)
+      promise.resolve(true)
+    } catch (e: Exception) {
+      promise.reject("launch_failed", e.message, e)
+    }
+  }
+
+  /**
+   * Asks Android to uninstall the package via the standard system intent, so
+   * the OS shows its own confirmation — nothing is removed without it. Needs
+   * REQUEST_DELETE_PACKAGES on Android 9+.
+   */
+  @ReactMethod
+  fun uninstallApp(packageName: String, promise: Promise) {
+    try {
+      @Suppress("DEPRECATION")
+      val intent =
+          Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.parse("package:$packageName"))
+              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       reactApplicationContext.startActivity(intent)
       promise.resolve(true)
     } catch (e: Exception) {

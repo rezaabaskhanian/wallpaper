@@ -146,3 +146,42 @@ export type AIGenerationLogsResponse = {
   totalCostToman: number;
   totalTokens: number;
 };
+
+// GET /admin/analytics — see backend's analyticsservice/dto.
+export type AnalyticsDaily = {
+  date: string;
+  opens: number;
+  activeDevices: number;
+  newDevices: number;
+  wallpaperSets: number;
+  wallpaperSetters: number;
+};
+
+// ماندگاری یک گروه از کاربران جدید؛ درصد = Retained / Eligible.
+export type AnalyticsCohort = {
+  label: string;
+  newDevices: number;
+  setWallpaperDay0: number;
+  d1Eligible: number;
+  d1Retained: number;
+  d7Eligible: number;
+  d7Retained: number;
+};
+
+export type AnalyticsSource = {
+  source: string;
+  method: string;
+  sets: number;
+  devices: number;
+};
+
+export type AnalyticsSummary = {
+  days: number;
+  daily: AnalyticsDaily[];
+  versions: AnalyticsCohort[];
+  setters: AnalyticsCohort;
+  nonSetters: AnalyticsCohort;
+  sources: AnalyticsSource[];
+  // دستگاه‌های یکتا در هر مرحله‌ی قیف لانچر.
+  launcher: {shown: number; accepted: number; enabled: number};
+};

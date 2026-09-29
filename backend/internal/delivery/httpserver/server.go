@@ -11,6 +11,7 @@ import (
 	aigeneratehandler "wallpaperstore/internal/delivery/httpserver/aigenerate"
 	aiproxyhandler "wallpaperstore/internal/delivery/httpserver/aiproxy"
 	aisettingshandler "wallpaperstore/internal/delivery/httpserver/aisettings"
+	analyticshandler "wallpaperstore/internal/delivery/httpserver/analytics"
 	dailyquotehandler "wallpaperstore/internal/delivery/httpserver/dailyquote"
 	herohandler "wallpaperstore/internal/delivery/httpserver/hero"
 	martyrhandler "wallpaperstore/internal/delivery/httpserver/martyr"
@@ -23,6 +24,7 @@ import (
 	aigenerateservice "wallpaperstore/internal/service/aigenerate"
 	aiproxyservice "wallpaperstore/internal/service/aiproxy"
 	aisettingsservice "wallpaperstore/internal/service/aisettings"
+	analyticsservice "wallpaperstore/internal/service/analytics"
 	dailyquoteservice "wallpaperstore/internal/service/dailyquote"
 	heroservice "wallpaperstore/internal/service/hero"
 	martyrservice "wallpaperstore/internal/service/martyr"
@@ -49,6 +51,7 @@ type Service struct {
 	aiSettingsHandler aisettingshandler.Handler
 	aiProxyHandler    aiproxyhandler.Handler
 	aiGenerateHandler aigeneratehandler.Handler
+	analyticsHandler  analyticshandler.Handler
 }
 
 func New(
@@ -64,6 +67,7 @@ func New(
 	aiSettingsSvc aisettingsservice.Service,
 	aiProxySvc aiproxyservice.Service,
 	aiGenerateSvc aigenerateservice.Service,
+	analyticsSvc analyticsservice.Service,
 ) Service {
 	return Service{
 		cfg:               cfg,
@@ -78,6 +82,7 @@ func New(
 		aiSettingsHandler: aisettingshandler.New(aiSettingsSvc),
 		aiProxyHandler:    aiproxyhandler.New(aiProxySvc),
 		aiGenerateHandler: aigeneratehandler.New(aiGenerateSvc),
+		analyticsHandler:  analyticshandler.New(analyticsSvc),
 	}
 }
 
@@ -142,6 +147,7 @@ func (s Service) Server() {
 	s.aiProxyHandler.SetRoutes(admin)
 	s.aiGenerateHandler.SetRoutes(api)
 	s.aiGenerateHandler.SetAdminRoutes(admin)
+	s.analyticsHandler.SetRoutes(api, admin)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", s.cfg.HttpServer.Port)))
 }

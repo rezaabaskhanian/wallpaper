@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {NavLink, Outlet} from 'react-router-dom';
 import {
+  BarChart3,
   BrainCircuit,
   FolderTree,
   Image,
@@ -33,6 +34,7 @@ import {useTheme} from '@/hooks/useTheme';
 
 const NAV_ITEMS = [
   {to: '/', label: 'داشبورد', icon: LayoutDashboard, end: true},
+  {to: '/analytics', label: 'آمار', icon: BarChart3},
   {to: '/wallpapers', label: 'والپیپرها', icon: Image},
   {to: '/categories', label: 'دسته‌ها', icon: Tags},
   {to: '/martyrs', label: 'شهدا', icon: Users},

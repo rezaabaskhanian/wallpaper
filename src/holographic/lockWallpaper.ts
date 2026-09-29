@@ -16,6 +16,8 @@ type LockWallpaperNative = {
   /** Opens Android's own "set live wallpaper" screen for this app's live
    * wallpaper — the user still taps "Set wallpaper" there. */
   requestSetLiveWallpaper: () => Promise<boolean>;
+  /** True when this app's live wallpaper is the current home wallpaper. */
+  isLiveWallpaperActive: () => Promise<boolean>;
   /** Mirrors the water-ripple switches into the live wallpaper service. */
   setLiveWallpaperRipple: (
     enabled: boolean,
@@ -92,6 +94,22 @@ export async function setLiveWallpaperFromUrl(url: string): Promise<void> {
   }
   await LockWallpaper.setLiveWallpaperSourceFromUrl(url);
   await LockWallpaper.requestSetLiveWallpaper();
+}
+
+/**
+ * Whether the user actually confirmed our live wallpaper in Android's picker
+ * (the picker itself reports nothing back). False on an older build without
+ * the native method, or if the OS won't say.
+ */
+export async function isLiveWallpaperActive(): Promise<boolean> {
+  if (!LockWallpaper?.isLiveWallpaperActive) {
+    return false;
+  }
+  try {
+    return await LockWallpaper.isLiveWallpaperActive();
+  } catch {
+    return false;
+  }
 }
 
 /**

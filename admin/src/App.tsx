@@ -15,6 +15,7 @@ import QuoteCategories from '@/pages/QuoteCategories';
 import Hero from '@/pages/Hero';
 import PromoCodes from '@/pages/PromoCodes';
 import AISettings from '@/pages/AISettings';
+import Analytics from '@/pages/Analytics';
 
 function RequireAuth({children}: {children: React.ReactNode}) {
   const {isAuthed} = useAuth();
@@ -37,6 +38,7 @@ export default function App() {
             </RequireAuth>
           }>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/wallpapers" element={<Wallpapers />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/martyrs" element={<Martyrs />} />

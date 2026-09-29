@@ -1,53 +1,44 @@
 import React from 'react';
 import {Modal, Pressable, StyleSheet, View} from 'react-native';
 import AppText from './AppText';
-import {openLauncherSettings} from './systemScreens';
 
 type Props = {
   visible: boolean;
-  onClose: () => void;
-  /** Opens the app drawer right away, so the user can try the gesture immediately. */
-  onTryNow: () => void;
+  /** «امتحان می‌کنم» — the caller opens Android's Home-app chooser. */
+  onAccept: () => void;
+  /** «بعداً», the backdrop, or Back. */
+  onLater: () => void;
 };
 
 /**
- * One-time (then periodic — see appDrawerIntro.ts) tip explaining the app's
- * most easily-missed feature: swiping up from the bottom handle opens a
- * drawer of every installed app, and this app can even replace the phone's
- * launcher so that drawer becomes the real home screen. Replaces the old
- * animated finger/handle-bounce hint, which too many users never noticed.
+ * Suggests making this app the phone's launcher. Shown only after the user
+ * has already set a wallpaper and come back a few times — see launcherIntro.ts
+ * for exactly when, and how often "later" lets it come back.
  */
-export default function AppDrawerIntroModal({visible, onClose, onTryNow}: Props) {
+export default function LauncherIntroModal({visible, onAccept, onLater}: Props) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onLater}>
+      <Pressable style={styles.backdrop} onPress={onLater} />
       <View style={styles.centering} pointerEvents="box-none">
         <View style={styles.card}>
-          <AppText style={styles.emoji}>👆</AppText>
-          <AppText style={styles.title}>اپ‌های گوشیت همین‌جاست</AppText>
+          <AppText style={styles.emoji}>🏠</AppText>
+          <AppText style={styles.title}>ریحان رو صفحه اصلی گوشیت کن</AppText>
           <AppText style={styles.message}>
-            از پایین اپ بکش بالا، می‌تونی لیست اپ‌هاتو ببینی — بدون بستن این
-            صحنه‌ی زنده.
+            صحنه زنده همیشه پشت صفحه اصلی می‌مونه و با کشیدن به بالا همه
+            اپ‌هات رو می‌بینی.
           </AppText>
           <AppText style={styles.message}>
-            حتی می‌تونی این اپ رو جایگزین لانچر گوشیت کنی تا همیشه پشت
-            آیکون‌های صفحه‌ی اصلی در حال اجرا باشه.
+            هر وقت خواستی، از تنظیمات به لانچر قبلی برمی‌گردی.
           </AppText>
 
           <View style={styles.buttonRow}>
-            <Pressable style={styles.secondaryButton} onPress={onClose}>
-              <AppText style={styles.secondaryText}>باشه، متوجه شدم</AppText>
+            <Pressable style={styles.secondaryButton} onPress={onLater}>
+              <AppText style={styles.secondaryText}>بعداً</AppText>
             </Pressable>
-            <Pressable style={styles.primaryButton} onPress={onTryNow}>
-              <AppText style={styles.primaryText}>الان امتحان کن</AppText>
+            <Pressable style={styles.primaryButton} onPress={onAccept}>
+              <AppText style={styles.primaryText}>امتحان می‌کنم</AppText>
             </Pressable>
           </View>
-
-          <Pressable style={styles.launcherLink} onPress={openLauncherSettings}>
-            <AppText style={styles.launcherLinkText}>
-              تنظیم به‌عنوان لانچر پیش‌فرض
-            </AppText>
-          </Pressable>
         </View>
       </View>
     </Modal>
@@ -132,16 +123,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
     fontWeight: '600',
-    writingDirection: 'rtl',
-  },
-  launcherLink: {
-    marginTop: 14,
-    paddingVertical: 4,
-  },
-  launcherLinkText: {
-    color: '#c4b5fd',
-    fontSize: 13,
-    textDecorationLine: 'underline',
     writingDirection: 'rtl',
   },
 });

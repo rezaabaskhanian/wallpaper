@@ -373,6 +373,26 @@ class LockWallpaperModule(reactContext: ReactApplicationContext) :
   }
 
   /**
+   * True when HolographicWallpaperService is the home screen's current live
+   * wallpaper. The picker opened by requestSetLiveWallpaper reports nothing
+   * back, so JS calls this when the app returns to the foreground to learn
+   * whether the user actually tapped "Set wallpaper" or just backed out.
+   */
+  @ReactMethod
+  fun isLiveWallpaperActive(promise: Promise) {
+    try {
+      val info = WallpaperManager.getInstance(reactApplicationContext).wallpaperInfo
+      promise.resolve(
+          info != null &&
+              info.packageName == reactApplicationContext.packageName &&
+              info.serviceName == HolographicWallpaperService::class.java.name,
+      )
+    } catch (e: Exception) {
+      promise.reject("wallpaper_info_failed", e.message, e)
+    }
+  }
+
+  /**
    * Fills the live wallpaper's random rotation pool from the starred gallery
    * photos, so the home screen picks a different one on every unlock instead
    * of being frozen on whatever was set once.

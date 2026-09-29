@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
   AppState,
+  DeviceEventEmitter,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -43,11 +44,31 @@ import type {OrbitItem} from './data';
 import WallpaperGallery from './WallpaperGallery';
 import AppDrawer from './AppDrawer';
 import HelpGuide from './HelpGuide';
-import AppDrawerIntroModal from './AppDrawerIntroModal';
-import {shouldShowAppDrawerIntro, markAppDrawerIntroShown} from './appDrawerIntro';
+import LauncherIntroModal from './LauncherIntroModal';
+import OneTapWallpaperButton from './OneTapWallpaperButton';
+import {
+  announceWallpaperSet,
+  markOneTapWallpaperShown,
+  shouldShowOneTapWallpaper,
+} from './oneTapWallpaper';
+import {
+  trackAppOpen,
+  trackLauncherEvent,
+  type WallpaperSetSource,
+} from './analytics';
+import {
+  isLauncherIntroDue,
+  markLauncherIntroAccepted,
+  markLauncherIntroShown,
+  noteLauncherIntroAppOpen,
+  snoozeLauncherIntro,
+} from './launcherIntro';
+import {isDefaultLauncher} from './installedApps';
+import {openLauncherSettings} from './systemScreens';
 import {BASE_TURN_SECONDS} from './config';
 import {setWidgetBackgroundImage} from './homeWidget';
 import {
+  isLiveWallpaperActive,
   setDeviceWallpaper,
   setLiveWallpaperFromCurrentScreen,
   type WallpaperTarget,
@@ -131,19 +152,54 @@ export default function HolographicHome({dream = false}: Props) {
   const [helpOpen, setHelpOpen] = useState(false);
   // const [aiGenerateOpen, setAiGenerateOpen] = useState(false); // [AI disabled for this version]
   const [drawerOpen, setDrawerOpen] = useState(false);
-  // Shown once on first launch (and again after a long absence — see
-  // appDrawerIntro.ts) to teach the swipe-up-for-your-apps gesture, since
-  // the old animated hint too often went unnoticed.
-  const [introVisible, setIntroVisible] = useState(false);
+  // Suggests making the app the launcher — wallpaper first, so only after a
+  // wallpaper was set and the app opened a few times (see launcherIntro.ts).
+  const [launcherIntroVisible, setLauncherIntroVisible] = useState(false);
+  // Set after «امتحان می‌کنم»: on the next return we check whether the user
+  // really picked this app in Android's Home chooser.
+  const launcherPendingRef = useRef(false);
+  // First launch only: one big "make this my wallpaper" button at the bottom
+  // (OneTapWallpaperButton).
+  const [oneTapVisible, setOneTapVisible] = useState(false);
+
+  // Every counted open (trackAppOpen throttles the launcher case, where the
+  // app is foregrounded on each Home press) feeds analytics and the launcher
+  // intro's open count. Not counted while dreaming.
+  useEffect(() => {
+    if (dream) return;
+    const onOpen = async () => {
+      if (!(await trackAppOpen())) return;
+      const state = await noteLauncherIntroAppOpen();
+      if (isLauncherIntroDue(state) && !(await isDefaultLauncher())) {
+        setLauncherIntroVisible(true);
+        markLauncherIntroShown();
+        trackLauncherEvent('launcher_intro_shown');
+      }
+    };
+    onOpen();
+    const sub = AppState.addEventListener('change', async state => {
+      if (state !== 'active') return;
+      if (launcherPendingRef.current) {
+        launcherPendingRef.current = false;
+        if (await isDefaultLauncher()) {
+          trackLauncherEvent('launcher_enabled');
+        }
+      }
+      onOpen();
+    });
+    return () => sub.remove();
+  }, [dream]);
+
   useEffect(() => {
     if (dream) return;
     let cancelled = false;
-    shouldShowAppDrawerIntro().then(show => {
-      if (show && !cancelled) {
-        setIntroVisible(true);
-        markAppDrawerIntroShown();
-      }
-    });
+    (async () => {
+      const firstRun =
+        (await shouldShowOneTapWallpaper()) && !(await isLiveWallpaperActive());
+      if (cancelled || !firstRun) return;
+      setOneTapVisible(true);
+      markOneTapWallpaperShown();
+    })();
     return () => {
       cancelled = true;
     };
@@ -159,13 +215,7 @@ export default function HolographicHome({dream = false}: Props) {
     await new Promise<void>(resolve => setTimeout(() => resolve(), 550));
     try {
       await setDeviceWallpaper(target);
-      const where =
-        target === 'home'
-          ? 'صفحهٔ اصلی'
-          : target === 'both'
-          ? 'صفحهٔ اصلی و قفل'
-          : 'صفحهٔ قفل';
-      showAlert('انجام شد', `والپیپر ${where} تنظیم شد.`);
+      announceWallpaperSet(target, 'settings');
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e);
       showAlert('خطا', `تنظیم والپیپر ممکن نشد: ${detail}`);
@@ -174,12 +224,30 @@ export default function HolographicHome({dream = false}: Props) {
     }
   };
 
-  const setLiveWallpaper = async () => {
+  // Android's live-wallpaper picker reports nothing back, so after opening it
+  // we check on the next return to the foreground whether our wallpaper is
+  // now the active one — only then is it announced (and tracked) as a success.
+  // Holds where the attempt started, null when none is pending.
+  const liveWallpaperPendingRef = useRef<WallpaperSetSource | null>(null);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', async state => {
+      const source = liveWallpaperPendingRef.current;
+      if (state !== 'active' || !source) return;
+      liveWallpaperPendingRef.current = null;
+      if (!(await isLiveWallpaperActive())) return;
+      setOneTapVisible(false);
+      announceWallpaperSet('live', source);
+    });
+    return () => sub.remove();
+  }, []);
+
+  const setLiveWallpaper = async (source: WallpaperSetSource) => {
     setSettingsOpen(false);
     setCapturing(true);
     await new Promise<void>(resolve => setTimeout(() => resolve(), 550));
     try {
       await setLiveWallpaperFromCurrentScreen();
+      liveWallpaperPendingRef.current = source;
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e);
       showAlert('خطا', `تنظیم لایو ولپیپر ممکن نشد: ${detail}`);
@@ -189,6 +257,19 @@ export default function HolographicHome({dream = false}: Props) {
   };
   // Which orbit item's info modal is open (null = closed).
   const [activeOrbitItem, setActiveOrbitItem] = useState<OrbitItem | null>(null);
+
+  // Home pressed while this app is already the running launcher (see
+  // MainActivity.onNewIntent): back to the bare scene, like any launcher.
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('homePressed', () => {
+      setDrawerOpen(false);
+      setSettingsOpen(false);
+      setGalleryOpen(false);
+      setHelpOpen(false);
+      setActiveOrbitItem(null);
+    });
+    return () => sub.remove();
+  }, []);
 
   // Imperative handle for spawning tap ripples (see below) without
   // re-rendering this whole component on every touch.
@@ -468,7 +549,17 @@ export default function HolographicHome({dream = false}: Props) {
             visible={settingsOpen}
             onClose={() => setSettingsOpen(false)}
             onSetWallpaper={setWallpaper}
-            onSetLiveWallpaper={setLiveWallpaper}
+            onSetLiveWallpaper={() => {
+              // The first-launch button carries this line under itself; from
+              // settings it's shown right before Android's screen opens.
+              setSettingsOpen(false);
+              showAlert('در صفحه بعد دکمه Set wallpaper رو بزن', undefined, {
+                confirmText: 'باشه',
+                onConfirm: () => {
+                  setLiveWallpaper('settings');
+                },
+              });
+            }}
             onOpenGallery={() => {
               setSettingsOpen(false);
               setGalleryOpen(true);
@@ -502,12 +593,26 @@ export default function HolographicHome({dream = false}: Props) {
 
           <AppDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
-          <AppDrawerIntroModal
-            visible={introVisible}
-            onClose={() => setIntroVisible(false)}
-            onTryNow={() => {
-              setIntroVisible(false);
-              setDrawerOpen(true);
+          {oneTapVisible && !capturing && !settings.editLayout ? (
+            <OneTapWallpaperButton
+              bottom={insets.bottom + 64}
+              onPress={() => setLiveWallpaper('onetap')}
+              onDismiss={() => setOneTapVisible(false)}
+            />
+          ) : null}
+
+          <LauncherIntroModal
+            visible={launcherIntroVisible}
+            onAccept={() => {
+              setLauncherIntroVisible(false);
+              markLauncherIntroAccepted();
+              trackLauncherEvent('launcher_intro_accepted');
+              launcherPendingRef.current = true;
+              openLauncherSettings();
+            }}
+            onLater={() => {
+              setLauncherIntroVisible(false);
+              snoozeLauncherIntro();
             }}
           />
 

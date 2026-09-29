@@ -7,6 +7,8 @@ type AlertOptions = {
   confirmText?: string;
   onConfirm?: () => void;
   cancelText?: string;
+  /** Runs after the alert goes away by any route (button, backdrop, back). */
+  onDismiss?: () => void;
 };
 
 type AlertState = ({title: string; message?: string} & AlertOptions) | null;
@@ -38,11 +40,17 @@ export default function AppAlertHost() {
     };
   }, []);
 
-  const close = () => setAlert(null);
+  const close = () => {
+    const dismissed = alert?.onDismiss;
+    setAlert(null);
+    dismissed?.();
+  };
   const confirm = () => {
     const action = alert?.onConfirm;
+    const dismissed = alert?.onDismiss;
     setAlert(null);
     action?.();
+    dismissed?.();
   };
 
   const hasConfirm = !!alert?.confirmText;

@@ -20,6 +20,7 @@ import {BACKGROUNDS, MAX_ORBS, RINGS} from './config';
 import {fontsForScript, getScriptFont} from './fonts';
 import {setWidgetAutoRotateQuote} from './homeWidget';
 import type {WallpaperTarget} from './lockWallpaper';
+import {isDefaultLauncher} from './installedApps';
 import {openLauncherSettings, openScreenSaverSettings} from './systemScreens';
 import {useSettings} from './SettingsContext';
 import SunDayPreview from './SunDayPreview';
@@ -79,13 +80,13 @@ type TabId =
   | 'widgets'
   | 'device';
 const TABS: {id: TabId; label: string}[] = [
+  {id: 'device', label: 'روی گوشیم بذار'},
   {id: 'general', label: 'عمومی'},
   {id: 'sphere', label: 'کره'},
   {id: 'background', label: 'پس‌زمینه'},
   {id: 'effects', label: 'جلوه‌ها'},
   {id: 'fonts', label: 'فونت'},
   {id: 'widgets', label: 'ویجت‌ها'},
-  {id: 'device', label: 'دستگاه'},
 ];
 
 /** Bottom-sheet style settings panel for the wallpaper. */
@@ -102,8 +103,14 @@ export default function SettingsPanel({
   // آماده» بالا کامنت شده — با برگرداندن آن UI، اینجا هم برگردانده شود.
   const {settings, update, userPresets, savePreset, applyPreset, deletePreset} =
     useSettings();
-  const {premiumUnlocked, redeemCode, orbitItems, orbitCategories, quoteCategories} =
-    useStore();
+  const {
+    premiumUnlocked,
+    hasPremiumWallpapers,
+    redeemCode,
+    orbitItems,
+    orbitCategories,
+    quoteCategories,
+  } = useStore();
   // Upper bound for the ballCount stepper: never more than MAX_ORBS, and
   // never more than the active orbit theme actually has (so the user can
   // only dial the count *down* from its natural size, not pad it out).
@@ -132,13 +139,21 @@ export default function SettingsPanel({
   }, [settings.orbitCategoryId, maxBallCount, settings.ballCount, update]);
   // Persists across opens/closes (the panel stays mounted, only `visible`
   // toggles) so reopening Settings picks up on the same tab the user left.
-  const [tab, setTab] = useState<TabId>('general');
+  const [tab, setTab] = useState<TabId>('device');
   // True while a finger is on a RowSlider, so the ScrollView doesn't take
   // over a horizontal drag partway through.
   const [sliderActive, setSliderActive] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const [promoInput, setPromoInput] = useState('');
   const [redeeming, setRedeeming] = useState(false);
+  // Re-checked on every open: the user may have switched launchers in
+  // Android's settings since the panel was last shown.
+  const [isLauncher, setIsLauncher] = useState(false);
+  useEffect(() => {
+    if (visible) {
+      isDefaultLauncher().then(setIsLauncher);
+    }
+  }, [visible]);
   const [presetNameInput, setPresetNameInput] = useState('');
 
   // In the "وسط صفحه" clock layout the clock can grow until it fills the
@@ -283,7 +298,7 @@ export default function SettingsPanel({
           contentContainerStyle={styles.content}>
           {tab === 'general' ? (
             <>
-              {!premiumUnlocked ? (
+              {!premiumUnlocked && hasPremiumWallpapers ? (
                 <>
                   <AppText style={styles.sectionTitle}>کد تخفیف</AppText>
                   <View style={styles.promoRow}>
@@ -407,6 +422,35 @@ export default function SettingsPanel({
                 اطلاع‌رسانی دفتر حفظ و نشر آثار حضرت آیت‌الله العظمی
                 خامنه‌ای (khamenei.ir) است.
               </AppText>
+
+              <View style={styles.divider} />
+              <AppText style={styles.sectionTitle}>پیشرفته</AppText>
+              {/* Both open Android's own "Home app" chooser — the only place a
+                  launcher can be switched — so the way back is always one tap. */}
+              {isLauncher ? (
+                <>
+                  <Pressable style={styles.galleryBtn} onPress={openLauncherSettings}>
+                    <AppText style={styles.galleryBtnText}>
+                      ↩️ بازگشت به لانچر قبلی
+                    </AppText>
+                  </Pressable>
+                  <AppText style={styles.hint}>
+                    در صفحه بعد، لانچر قبلی گوشیت رو انتخاب کن.
+                  </AppText>
+                </>
+              ) : (
+                <>
+                  <Pressable style={styles.galleryBtn} onPress={openLauncherSettings}>
+                    <AppText style={styles.galleryBtnText}>
+                      🏠 تنظیم به‌عنوان لانچر
+                    </AppText>
+                  </Pressable>
+                  <AppText style={styles.hint}>
+                    صحنه زنده می‌شه صفحه اصلی گوشیت؛ هر وقت خواستی، از همین‌جا
+                    به لانچر قبلی برمی‌گردی.
+                  </AppText>
+                </>
+              )}
             </>
           ) : null}
 
@@ -1102,73 +1146,6 @@ export default function SettingsPanel({
                 نمونه: ۲۰۴۰-۰۱-۰۱T۰۰:۰۰:۰۰ — تاریخ و عنوان دلخواه خودت را وارد کن.
               </AppText>
               ------------------------------------------------------------------ */}
-            </>
-          ) : null}
-
-          {tab === 'device' ? (
-            <>
-              <AppText style={styles.sectionTitle}>نمایش روی گوشی</AppText>
-
-              <AppText style={styles.fieldLabel}>
-                والپیپر (تصویر ثابت از پس‌زمینهٔ فعلی)
-              </AppText>
-              <View style={styles.btnRow}>
-                <Pressable
-                  style={styles.smallBtn}
-                  onPress={() => onSetWallpaper?.('lock')}>
-                  <AppText style={styles.smallBtnText}>🔒 قفل</AppText>
-                </Pressable>
-                <Pressable
-                  style={styles.smallBtn}
-                  onPress={() => onSetWallpaper?.('home')}>
-                  <AppText style={styles.smallBtnText}>🏠 اصلی</AppText>
-                </Pressable>
-                <Pressable
-                  style={styles.smallBtn}
-                  onPress={() => onSetWallpaper?.('both')}>
-                  <AppText style={styles.smallBtnText}>🔒🏠 هردو</AppText>
-                </Pressable>
-              </View>
-              <AppText style={styles.hint}>
-                ساعت و متن حذف می‌شوند و فقط پس‌زمینه ذخیره می‌شود. تصویر ثابت
-                است (اندروید انیمیشن زنده روی صفحهٔ قفل نمی‌دهد).
-              </AppText>
-
-              <Pressable
-                style={styles.galleryBtn}
-                onPress={() => onSetLiveWallpaper?.()}>
-                <AppText style={styles.galleryBtnText}>
-                  ✨ ست کردن لایو ولپیپر (فقط صفحهٔ اصلی)
-                </AppText>
-              </Pressable>
-              <AppText style={styles.hint}>
-                این یکی واقعاً زنده است — عکس فعلی ذخیره و صفحهٔ «تنظیم ولپیپر
-                زنده» اندروید باز می‌شود؛ آنجا «Set wallpaper» را بزن. پشت
-                آیکون‌های صفحهٔ اصلی اجرا می‌شود، نه پشت صفحهٔ قفل (محدودیت
-                خودِ اندروید از نسخهٔ ۷ به بعد).
-              </AppText>
-
-              <Pressable
-                style={styles.galleryBtn}
-                onPress={openScreenSaverSettings}>
-                <AppText style={styles.galleryBtnText}>
-                  🖥️ انتخاب به‌عنوان محافظ صفحه
-                </AppText>
-              </Pressable>
-              <AppText style={styles.hint}>
-                هنگام بی‌کاری یا شارژ، صحنهٔ زنده به‌جای محافظ صفحه اجرا می‌شود.
-              </AppText>
-
-              <Pressable style={styles.galleryBtn} onPress={openLauncherSettings}>
-                <AppText style={styles.galleryBtnText}>
-                  🏠 تنظیم به‌عنوان صفحهٔ خانه (لانچر)
-                </AppText>
-              </Pressable>
-              <AppText style={styles.hint}>
-                صحنهٔ زنده پشت آیکون‌های خانه اجرا می‌شود. توجه: این اپ فعلاً
-                مدیریت اپ‌ها/آیکون‌ها را ندارد؛ برای بازگشت، لانچر پیش‌فرض گوشی
-                را عوض کن.
-              </AppText>
 
               <View style={styles.divider} />
               <AppText style={styles.sectionTitle}>ویجت صفحهٔ اصلی</AppText>
@@ -1182,9 +1159,39 @@ export default function SettingsPanel({
                 }}
               />
               <AppText style={styles.hint}>
-                ویجت ساعت و نقل‌قول را با انگشت روی صفحهٔ اصلی نگه‌دار و از
-                فهرست ویجت‌ها، «Wallpaper» را اضافه کن. این سوییچ مشخص می‌کند
-                نقل‌قول هر بار تغییر کند یا ثابت بماند.
+                روی صفحه اصلی انگشت نگه دار و ویجت «Wallpaper» رو اضافه کن.
+              </AppText>
+            </>
+          ) : null}
+
+          {tab === 'device' ? (
+            <>
+              <Pressable
+                style={({pressed}) => [styles.liveBtn, pressed && styles.liveBtnPressed]}
+                onPress={() => onSetLiveWallpaper?.()}>
+                <AppText style={styles.liveBtnTitle}>✨ والپیپر زنده روی گوشیم</AppText>
+                <AppText style={styles.liveBtnSub}>صفحه اصلی گوشیت زنده می‌شه</AppText>
+              </Pressable>
+
+              <AppText style={styles.otherOptionsTitle}>گزینه‌های دیگر</AppText>
+
+              <Pressable
+                style={styles.galleryBtn}
+                onPress={() => onSetWallpaper?.('lock')}>
+                <AppText style={styles.galleryBtnText}>🔒 عکس ثابت برای صفحه قفل</AppText>
+              </Pressable>
+              <AppText style={styles.hint}>
+                اندروید اجازه والپیپر زنده روی صفحه قفل نمی‌ده، برای همین اینجا
+                عکس ثابت گذاشته می‌شه.
+              </AppText>
+
+              <Pressable style={styles.galleryBtn} onPress={openScreenSaverSettings}>
+                <AppText style={styles.galleryBtnText}>
+                  🖥️ نمایش هنگام شارژ (محافظ صفحه)
+                </AppText>
+              </Pressable>
+              <AppText style={styles.hint}>
+                موقع شارژ، صحنه زنده به‌جای محافظ صفحه پخش می‌شه.
               </AppText>
             </>
           ) : null}
@@ -1678,6 +1685,39 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   swatchCheckDark: {color: '#000000'},
+  liveBtn: {
+    marginTop: 4,
+    backgroundColor: '#8b5cf6',
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  liveBtnPressed: {
+    opacity: 0.85,
+  },
+  liveBtnTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+    writingDirection: 'rtl',
+  },
+  liveBtnSub: {
+    marginTop: 4,
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
+    writingDirection: 'rtl',
+  },
+  otherOptionsTitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'right',
+    marginTop: 24,
+    writingDirection: 'rtl',
+  },
   galleryBtn: {
     marginTop: 12,
     backgroundColor: 'rgba(139, 92, 246, 0.12)',

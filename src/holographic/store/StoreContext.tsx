@@ -53,6 +53,9 @@ type StoreValue = {
   owned: string[];
   /** True once the premium unlock is owned. */
   premiumUnlocked: boolean;
+  /** True when the catalog has at least one premium wallpaper. While every
+   * wallpaper is free, the purchase/promo UI has nothing to sell and hides. */
+  hasPremiumWallpapers: boolean;
   /** Whether native billing is wired up. */
   billingAvailable: boolean;
   /** Re-fetch the catalog. */
@@ -132,6 +135,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   }, [reload, refreshEntitlements]);
 
   const premiumUnlocked = owned.includes(PREMIUM_SKU) || codeUnlocked;
+  const hasPremiumWallpapers = !!catalog?.wallpapers.some(w => w.premium);
 
   const isUnlocked = useCallback(
     (item: WallpaperItem) => !item.premium || premiumUnlocked,
@@ -198,6 +202,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       error,
       owned,
       premiumUnlocked,
+      hasPremiumWallpapers,
       billingAvailable: isBillingAvailable(),
       reload,
       refreshEntitlements,
@@ -219,6 +224,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       error,
       owned,
       premiumUnlocked,
+      hasPremiumWallpapers,
       reload,
       refreshEntitlements,
       buyUnlock,
