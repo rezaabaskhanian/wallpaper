@@ -45,7 +45,7 @@ import WallpaperGallery from './WallpaperGallery';
 import AppDrawer from './AppDrawer';
 import HelpGuide from './HelpGuide';
 import LauncherIntroModal from './LauncherIntroModal';
-import OneTapWallpaperButton from './OneTapWallpaperButton';
+import OneTapWallpaperButton, {SET_WALLPAPER_LABEL} from './OneTapWallpaperButton';
 import {
   announceWallpaperSet,
   markOneTapWallpaperShown,
@@ -553,7 +553,7 @@ export default function HolographicHome({dream = false}: Props) {
               // The first-launch button carries this line under itself; from
               // settings it's shown right before Android's screen opens.
               setSettingsOpen(false);
-              showAlert('در صفحه بعد دکمه Set wallpaper رو بزن', undefined, {
+              showAlert(`در صفحه بعد دکمه ${SET_WALLPAPER_LABEL} رو بزن`, undefined, {
                 confirmText: 'باشه',
                 onConfirm: () => {
                   setLiveWallpaper('settings');

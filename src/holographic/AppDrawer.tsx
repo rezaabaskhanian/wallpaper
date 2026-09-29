@@ -23,8 +23,10 @@ import {
 import {
   getHiddenApps,
   getRecentApps,
+  markLongPressHintSeen,
   noteAppLaunched,
   setAppHidden,
+  shouldShowLongPressHint,
 } from './launcherPrefs';
 
 type Props = {
@@ -124,12 +126,27 @@ export default function AppDrawer({visible, onClose}: Props) {
   const [showHidden, setShowHidden] = useState(false);
   // The app whose long-press menu is open.
   const [menuApp, setMenuApp] = useState<InstalledApp | null>(null);
+  // One-time tip that long-pressing an app opens that menu — otherwise
+  // nothing on screen hints it exists.
+  const [longPressHint, setLongPressHint] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
     getRecentApps().then(setRecent);
     getHiddenApps().then(setHidden);
+    shouldShowLongPressHint().then(setLongPressHint);
   }, [visible]);
+
+  const dismissLongPressHint = () => {
+    setLongPressHint(false);
+    markLongPressHintSeen();
+  };
+
+  const openMenu = (app: InstalledApp) => {
+    // Found it on their own — the tip has done its job.
+    if (longPressHint) dismissLongPressHint();
+    setMenuApp(app);
+  };
 
   // Coming back from the system uninstall dialog (or from installing
   // something) while the drawer is open should update the list too.
@@ -257,7 +274,7 @@ export default function AppDrawer({visible, onClose}: Props) {
   const renderRow = (item: InstalledApp) => (
     <Pressable
       onPress={() => onPressApp(item)}
-      onLongPress={() => setMenuApp(item)}
+      onLongPress={() => openMenu(item)}
       style={styles.row}>
       {item.icon ? (
         <Image source={{uri: item.icon}} style={styles.icon} />
@@ -316,6 +333,18 @@ export default function AppDrawer({visible, onClose}: Props) {
           textAlign="right"
         />
 
+        {longPressHint && apps && apps.length > 0 ? (
+          <View style={styles.hintCard}>
+            <AppText style={styles.hintText}>
+              💡 انگشتت رو روی هر اپ نگه دار تا گزینه‌های «اطلاعات اپ»،
+              «حذف» و «پنهان کردن» بیاد.
+            </AppText>
+            <Pressable style={styles.hintBtn} onPress={dismissLongPressHint} hitSlop={8}>
+              <AppText style={styles.hintBtnText}>فهمیدم</AppText>
+            </Pressable>
+          </View>
+        ) : null}
+
         {error ? (
           <View style={styles.center}>
             <AppText style={styles.muted}>خطا: {error}</AppText>
@@ -363,7 +392,7 @@ export default function AppDrawer({visible, onClose}: Props) {
                             key={app.packageName}
                             style={styles.recentItem}
                             onPress={() => onPressApp(app)}
-                            onLongPress={() => setMenuApp(app)}>
+                            onLongPress={() => openMenu(app)}>
                             {app.icon ? (
                               <Image source={{uri: app.icon}} style={styles.icon} />
                             ) : (
@@ -557,6 +586,38 @@ const styles = StyleSheet.create({
   sidebarLetterActive: {
     color: '#f5e6b3',
     fontSize: 13,
+  },
+  hintCard: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(139, 92, 246, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.4)',
+  },
+  hintText: {
+    flex: 1,
+    color: '#eafffb',
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  hintBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: 'rgba(139, 92, 246, 0.35)',
+  },
+  hintBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   recentWrap: {
     paddingHorizontal: 16,

@@ -82,11 +82,11 @@ type TabId =
 const TABS: {id: TabId; label: string}[] = [
   {id: 'device', label: 'روی گوشیم بذار'},
   {id: 'general', label: 'عمومی'},
-  {id: 'sphere', label: 'کره'},
   {id: 'background', label: 'پس‌زمینه'},
   {id: 'effects', label: 'جلوه‌ها'},
   {id: 'fonts', label: 'فونت'},
   {id: 'widgets', label: 'ویجت‌ها'},
+  {id: 'sphere', label: 'مذهبی'},
 ];
 
 /** Bottom-sheet style settings panel for the wallpaper. */
@@ -236,6 +236,21 @@ export default function SettingsPanel({
   //   }
   // };
 
+  const entryRow = (
+    <View style={styles.entryRow}>
+      <Pressable
+        style={[styles.galleryEntry, styles.entryRowItem]}
+        onPress={() => onOpenGallery?.()}>
+        <AppText style={styles.galleryEntryText}>🖼️ گالری والپیپرها</AppText>
+      </Pressable>
+      <Pressable
+        style={[styles.helpEntry, styles.entryRowItem]}
+        onPress={() => onOpenHelp?.()}>
+        <AppText style={styles.helpEntryText}>📖 راهنمای کار با اپ</AppText>
+      </Pressable>
+    </View>
+  );
+
   return (
     <Modal
       visible={visible}
@@ -268,18 +283,9 @@ export default function SettingsPanel({
           })}
         </View>
 
-        <View style={styles.entryRow}>
-          <Pressable
-            style={[styles.galleryEntry, styles.entryRowItem]}
-            onPress={() => onOpenGallery?.()}>
-            <AppText style={styles.galleryEntryText}>🖼️ گالری والپیپرها</AppText>
-          </Pressable>
-          <Pressable
-            style={[styles.helpEntry, styles.entryRowItem]}
-            onPress={() => onOpenHelp?.()}>
-            <AppText style={styles.helpEntryText}>📖 راهنمای کار با اپ</AppText>
-          </Pressable>
-        </View>
+        {/* In «روی گوشیم بذار» this row moves below the main live-wallpaper
+            button (see that tab) so nothing competes with it for attention. */}
+        {tab !== 'device' ? entryRow : null}
 
         {/* [AI disabled for this version] entry point for AI wallpaper
             generation — styles.aiEntry/aiEntryText are kept below.
@@ -1173,6 +1179,8 @@ export default function SettingsPanel({
                 <AppText style={styles.liveBtnSub}>صفحه اصلی گوشیت زنده می‌شه</AppText>
               </Pressable>
 
+              <View style={styles.deviceEntryRow}>{entryRow}</View>
+
               <AppText style={styles.otherOptionsTitle}>گزینه‌های دیگر</AppText>
 
               <Pressable
@@ -1694,6 +1702,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
+  },
+  deviceEntryRow: {
+    marginTop: 12,
   },
   liveBtnPressed: {
     opacity: 0.85,

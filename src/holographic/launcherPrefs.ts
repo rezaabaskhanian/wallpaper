@@ -54,3 +54,23 @@ export async function setAppHidden(
   await writeList(HIDDEN_KEY, next);
   return next;
 }
+
+const LONG_PRESS_HINT_KEY = 'appDrawer:longPressHintSeen';
+
+/** The drawer's one-time "hold an app for more options" hint. Storage errors
+ * count as seen, so it never nags on every open. */
+export async function shouldShowLongPressHint(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(LONG_PRESS_HINT_KEY)) !== '1';
+  } catch {
+    return false;
+  }
+}
+
+export async function markLongPressHintSeen(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(LONG_PRESS_HINT_KEY, '1');
+  } catch {
+    // Best-effort.
+  }
+}
