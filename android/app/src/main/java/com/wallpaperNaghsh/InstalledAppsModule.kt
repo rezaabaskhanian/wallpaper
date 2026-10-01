@@ -143,15 +143,16 @@ class InstalledAppsModule(reactContext: ReactApplicationContext) :
 
   /**
    * Asks Android to uninstall the package via the standard system intent, so
-   * the OS shows its own confirmation — nothing is removed without it. Needs
-   * REQUEST_DELETE_PACKAGES on Android 9+.
+   * the OS shows its own confirmation — nothing is removed without it. Uses
+   * ACTION_DELETE because ACTION_UNINSTALL_PACKAGE needs REQUEST_DELETE_PACKAGES
+   * on Android 9+, which Bazaar rejects.
    */
   @ReactMethod
   fun uninstallApp(packageName: String, promise: Promise) {
     try {
       @Suppress("DEPRECATION")
       val intent =
-          Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.parse("package:$packageName"))
+          Intent(Intent.ACTION_DELETE, Uri.parse("package:$packageName"))
               .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       reactApplicationContext.startActivity(intent)
       promise.resolve(true)
