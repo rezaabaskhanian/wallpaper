@@ -332,8 +332,9 @@ export default function WallpaperGallery({visible, onClose}: Props) {
   /** Category card: cover photo, name, count, and the mood emoji if any. */
   const renderCategoryCard = (c: WallpaperCategory) => {
     const list = itemsByTopCat.get(c.id) ?? [];
-    // Prefer a free wallpaper as the cover so the card isn't a lock icon.
-    const cover = list.find(w => !w.premium) ?? list[0];
+    // Server-picked cover (most-set, free first); fall back to the same rule
+    // locally for a catalog cached before covers existed.
+    const cover = c.cover ?? (list.find(w => !w.premium) ?? list[0])?.thumb;
     return (
       <Pressable
         key={c.id}
@@ -346,7 +347,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
           pressed && styles.catCardPressed,
         ]}>
         {cover ? (
-          <Image source={{uri: cover.thumb}} style={styles.thumb} resizeMode="cover" />
+          <Image source={{uri: cover}} style={styles.thumb} resizeMode="cover" />
         ) : null}
         <View style={styles.catShade} />
         {c.mood ? <AppText style={styles.catMood}>{c.mood}</AppText> : null}

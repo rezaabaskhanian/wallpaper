@@ -28,9 +28,12 @@ func (s Service) GetCatalog(ctx context.Context) (dto.CatalogResponse, error) {
 		return dto.CatalogResponse{}, richerror.New(op).WithErr(err)
 	}
 
+	covers := categoryCovers(cats, wps)
 	catDTOs := make([]dto.CategoryDTO, 0, len(cats))
 	for _, c := range nonEmptyCategories(cats, wps) {
-		catDTOs = append(catDTOs, toCategoryDTO(c))
+		d := toCategoryDTO(c)
+		d.Cover = covers[c.ID]
+		catDTOs = append(catDTOs, d)
 	}
 
 	wpDTOs := make([]dto.WallpaperDTO, 0, len(wps))
@@ -65,6 +68,47 @@ func nonEmptyCategories(cats []domain.Category, wps []domain.Wallpaper) []domain
 		if hasItems[c.ID] {
 			out = append(out, c)
 		}
+	}
+	return out
+}
+
+// categoryCovers برای هر دسته thumb والپیپر کاورش را برمی‌گرداند: پرانلودترین
+// والپیپر فعال خود دسته و زیردسته‌هایش. رایگان‌ها بر پریمیوم‌ها مقدم‌اند تا کارت
+// در اپ قفل‌دار به نظر نرسد؛ در تساوی، جدیدتر برنده است.
+func categoryCovers(cats []domain.Category, wps []domain.Wallpaper) map[string]string {
+	parent := make(map[string]string, len(cats))
+	for _, c := range cats {
+		if c.ParentID != nil {
+			parent[c.ID] = *c.ParentID
+		}
+	}
+
+	better := func(a, b domain.Wallpaper) bool {
+		if a.Premium != b.Premium {
+			return !a.Premium
+		}
+		if a.DownloadCount != b.DownloadCount {
+			return a.DownloadCount > b.DownloadCount
+		}
+		return a.CreatedAt.After(b.CreatedAt)
+	}
+
+	best := make(map[string]domain.Wallpaper, len(cats))
+	consider := func(catID string, w domain.Wallpaper) {
+		if cur, ok := best[catID]; !ok || better(w, cur) {
+			best[catID] = w
+		}
+	}
+	for _, w := range wps {
+		consider(w.Category, w)
+		if p, ok := parent[w.Category]; ok {
+			consider(p, w)
+		}
+	}
+
+	out := make(map[string]string, len(best))
+	for id, w := range best {
+		out[id] = w.Thumb
 	}
 	return out
 }

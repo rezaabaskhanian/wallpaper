@@ -6,6 +6,9 @@ export type WallpaperCategory = {
   parentId?: string | null;
   /** Mood emoji; set means this category is a home-screen mood card. */
   mood?: string;
+  /** Cover thumbnail chosen by the server (most-set wallpaper of the
+   * category, free first) — shown on mood and gallery category cards. */
+  cover?: string;
 };
 
 /** One downloadable wallpaper from the catalog server. */

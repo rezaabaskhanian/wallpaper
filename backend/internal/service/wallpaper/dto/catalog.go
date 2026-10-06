@@ -9,6 +9,9 @@ type CategoryDTO struct {
 	Sort     int     `json:"sort"`
 	ParentID *string `json:"parentId,omitempty"`
 	Mood     string  `json:"mood,omitempty"`
+	// Cover تصویر کوچک کارت دسته/مود در اپ: محبوب‌ترین والپیپر فعال دسته
+	// (با زیردسته‌ها)، ترجیحاً رایگان. سمت سرور حساب می‌شود تا بدون آپدیت اپ عوض شود.
+	Cover string `json:"cover,omitempty"`
 }
 
 // WallpaperDTO خروجی یک والپیپر در کاتالوگ (دقیقاً مطابق چیزی که کلاینت انتظار دارد).

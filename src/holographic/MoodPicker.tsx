@@ -24,6 +24,9 @@ import {useStore} from './store/StoreContext';
 import type {WallpaperCategory, WallpaperItem} from './store/types';
 import {trackWallpaperDownload} from './store/wallpaperDownload';
 
+/** Width of a mood card; the cover is a portrait 1:1.4 like a phone screen. */
+const CARD_W = 68;
+
 const STORE_URL = 'https://cafebazaar.ir/app/com.wallpaperNaghsh';
 
 /** Shares the wallpaper link plus the app's store page — every share is a
@@ -44,8 +47,8 @@ function shuffled<T>(list: T[]): T[] {
 }
 
 /**
- * Home-screen "mood" picker. Categories the admin gave a mood emoji show up as
- * chips; tapping one opens a full-screen random wallpaper from that mood with
+ * Home-screen "mood" picker. Categories the admin marked as a mood (mood
+ * emoji set) show up as cards with a real wallpaper cover and the name; tapping one opens a full-screen random wallpaper from that mood with
  * two actions only — set it, or show another. Premium wallpapers are included
  * (locked ones offer the unlock instead of "set").
  */
@@ -195,16 +198,29 @@ export default function MoodPicker({bottom}: {bottom: number}) {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chips}>
-          {moods.map(c => (
-            <Pressable
-              key={c.id}
-              style={({pressed}) => [styles.chip, pressed && styles.chipPressed]}
-              onPress={() => open(c)}
-              accessibilityRole="button">
-              <AppText style={styles.chipEmoji}>{c.mood}</AppText>
-              <AppText style={styles.chipText}>{c.title}</AppText>
-            </Pressable>
-          ))}
+          {moods.map(c => {
+            // Server-picked cover; fall back to the mood's first free
+            // wallpaper for a catalog cached before covers existed.
+            const pool = poolFor(c);
+            const cover = c.cover ?? (pool.find(w => !w.premium) ?? pool[0])?.thumb;
+            return (
+              <Pressable
+                key={c.id}
+                style={({pressed}) => [styles.card, pressed && styles.cardPressed]}
+                onPress={() => open(c)}
+                accessibilityRole="button"
+                accessibilityLabel={c.title}>
+                <View style={styles.cardImageWrap}>
+                  {cover ? (
+                    <Image source={{uri: cover}} style={styles.cardImage} resizeMode="cover" />
+                  ) : null}
+                </View>
+                <AppText style={styles.cardText} numberOfLines={1}>
+                  {c.title}
+                </AppText>
+              </Pressable>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -289,20 +305,28 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowRadius: 6,
   },
-  chips: {flexGrow: 1, justifyContent: 'center', gap: 10, paddingHorizontal: 14},
-  chip: {
-    alignItems: 'center',
-    minWidth: 76,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 18,
-    backgroundColor: 'rgba(23,11,40,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(139,92,246,0.5)',
+  chips: {flexGrow: 1, justifyContent: 'center', gap: 12, paddingHorizontal: 16},
+  card: {width: CARD_W, alignItems: 'center'},
+  cardPressed: {opacity: 0.75, transform: [{scale: 0.96}]},
+  cardImageWrap: {
+    width: CARD_W,
+    height: CARD_W * 1.4,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(23,11,40,0.7)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
-  chipPressed: {backgroundColor: 'rgba(139,92,246,0.5)'},
-  chipEmoji: {fontSize: 26},
-  chipText: {color: '#eafffb', fontSize: 13, marginTop: 2, writingDirection: 'rtl'},
+  cardImage: {width: '100%', height: '100%'},
+  cardText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 6,
+    writingDirection: 'rtl',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowRadius: 6,
+  },
   full: {flex: 1, backgroundColor: '#000'},
   spinner: {...(StyleSheet.absoluteFill as object)},
   lockedShade: {...(StyleSheet.absoluteFill as object), backgroundColor: 'rgba(0,0,0,0.45)'},
