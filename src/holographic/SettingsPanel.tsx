@@ -589,14 +589,14 @@ export default function SettingsPanel({
                   info="به‌جای رنگ دستی زیر، رنگ ذرات نور از خودِ عکس پس‌زمینهٔ فعلی استخراج می‌شود."                />
 
 
-                <RowColors
-                  label="رنگ نور"
-                  colors={GLOW_COLORS}
-                  selected={settings.glowColor}
-                  onSelect={c => update('glowColor', c)}
-                />
-                {settings.dynamicColor ? (
-                  <HintLine>تا وقتی «رنگ پویا» روشن است، این انتخاب نادیده گرفته می‌شود.</HintLine>
+                {/* The manual colour is ignored while dynamicColor is on. */}
+                {!settings.dynamicColor ? (
+                  <RowColors
+                    label="رنگ نور"
+                    colors={GLOW_COLORS}
+                    selected={settings.glowColor}
+                    onSelect={c => update('glowColor', c)}
+                  />
                 ) : null}
 
                 <RowSwitch
@@ -883,12 +883,14 @@ export default function SettingsPanel({
                   selected={settings.clockTextColor}
                   onSelect={c => update('clockTextColor', c)}
                 />
-                <RowColors
-                  label="رنگ تاریخ (متن کوچک)"
-                  colors={TEXT_COLORS}
-                  selected={settings.clockSmallTextColor}
-                  onSelect={c => update('clockSmallTextColor', c)}
-                />
+                <Disclosure title="رنگ‌های بیشتر">
+                  <RowColors
+                    label="رنگ تاریخ (متن کوچک)"
+                    colors={TEXT_COLORS}
+                    selected={settings.clockSmallTextColor}
+                    onSelect={c => update('clockSmallTextColor', c)}
+                  />
+                </Disclosure>
               </SettingsGroup>
               <SettingsGroup
                 title="فونت"
@@ -984,12 +986,14 @@ export default function SettingsPanel({
                   selected={settings.quoteTextColor}
                   onSelect={c => update('quoteTextColor', c)}
                 />
-                <RowColors
-                  label="رنگ خط کوچک متن پایین"
-                  colors={TEXT_COLORS}
-                  selected={settings.quoteSmallTextColor}
-                  onSelect={c => update('quoteSmallTextColor', c)}
-                />
+                <Disclosure title="رنگ‌های بیشتر">
+                  <RowColors
+                    label="رنگ خط کوچک متن پایین"
+                    colors={TEXT_COLORS}
+                    selected={settings.quoteSmallTextColor}
+                    onSelect={c => update('quoteSmallTextColor', c)}
+                  />
+                </Disclosure>
 
                 {/* <AppText style={styles.fieldLabel}>خط اول (کوچک)</AppText>
                 <TextInput
@@ -1171,6 +1175,25 @@ function HintLine({children, info}: {children: React.ReactNode; info?: string}) 
         {children}
       </AppText>
       {info ? <InfoButton title="توضیح" info={info} /> : null}
+    </View>
+  );
+}
+
+/** A closed-by-default row inside a group («رنگ‌های بیشتر», «پیشرفته»)
+ * that tucks away settings most people never need. */
+function Disclosure({title, children}: {title: string; children: React.ReactNode}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View>
+      <Pressable
+        style={styles.disclosureHeader}
+        onPress={() => setOpen(o => !o)}
+        accessibilityRole="button"
+        accessibilityState={{expanded: open}}>
+        <AppText style={styles.disclosureTitle}>{title}</AppText>
+        <AppText style={styles.disclosureArrow}>{open ? '▴' : '▾'}</AppText>
+      </Pressable>
+      {open ? children : null}
     </View>
   );
 }
@@ -1709,6 +1732,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     writingDirection: 'rtl',
   },
+  disclosureHeader: {
+    minHeight: 48,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  disclosureTitle: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 15,
+    writingDirection: 'rtl',
+  },
+  disclosureArrow: {color: 'rgba(255,255,255,0.7)', fontSize: 14},
   group: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(139, 92, 246, 0.25)',
