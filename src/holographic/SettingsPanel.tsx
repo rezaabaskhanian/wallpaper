@@ -342,37 +342,53 @@ export default function SettingsPanel({
           contentContainerStyle={[styles.content, {paddingBottom: insets.bottom + 24}]}>
           {tab === 'more' ? (
             <>
+              {/* Both open Android's own "Home app" chooser — the only place a
+                  launcher can be switched — so the way back is always one tap. */}
+              {isLauncher ? (
+                <>
+                  <Pressable style={styles.galleryBtn} onPress={openLauncherSettings}>
+                    <AppText style={styles.galleryBtnText}>
+                      ↩️ بازگشت به لانچر قبلی
+                    </AppText>
+                  </Pressable>
+                  <HintLine>در صفحه بعد، لانچر قبلی گوشیت رو انتخاب کن.</HintLine>
+                </>
+              ) : (
+                <>
+                  <Pressable style={styles.galleryBtn} onPress={openLauncherSettings}>
+                    <AppText style={styles.galleryBtnText}>
+                      🏠 تنظیم به‌عنوان لانچر
+                    </AppText>
+                  </Pressable>
+                  <HintLine info="صحنه زنده می‌شه صفحه اصلی گوشیت؛ هر وقت خواستی، از همین‌جا به لانچر قبلی برمی‌گردی.">
+                    صحنه زنده می‌شه صفحه اصلی گوشیت
+                  </HintLine>
+                </>
+              )}
+
+              <View style={styles.divider} />
               <Pressable style={styles.helpEntry} onPress={() => onOpenHelp?.()}>
                 <AppText style={styles.helpEntryText}>📖 راهنمای کار با اپ</AppText>
               </Pressable>
-              <View style={styles.divider} />
 
-              {!premiumUnlocked && hasPremiumWallpapers ? (
-                <>
-                  <AppText style={styles.sectionTitle}>کد تخفیف</AppText>
-                  <View style={styles.promoRow}>
-                    <TextInput
-                      style={styles.promoInput}
-                      value={promoInput}
-                      onChangeText={setPromoInput}
-                      placeholder="کد تخفیف را وارد کن"
-                      placeholderTextColor="rgba(255,255,255,0.35)"
-                      autoCapitalize="characters"
-                      autoCorrect={false}
-                    />
-                    <Pressable
-                      style={[styles.promoBtn, redeeming && styles.promoBtnDisabled]}
-                      disabled={redeeming}
-                      onPress={submitPromoCode}>
-                      <AppText style={styles.promoBtnText}>
-                        {redeeming ? '...' : 'فعال‌سازی'}
-                      </AppText>
-                    </Pressable>
-                  </View>
-                  <HintLine>با وارد کردن کد معتبر، همهٔ والپیپرهای پرمیوم باز می‌شوند.</HintLine>
-                  <View style={styles.divider} />
-                </>
-              ) : null}
+              <View style={styles.divider} />
+              <RowSwitch
+                label="پیش‌نمایش متحرک والپیپرهای قفل‌شده (گالری)"
+                value={settings.animatedLockedPreview}
+                onChange={v => update('animatedLockedPreview', v)}
+              />
+
+              <View style={styles.divider} />
+              <AppText style={styles.sectionTitle}>ارتباط با سازنده</AppText>
+              <Pressable style={styles.galleryBtn} onPress={openDeveloperTelegram}>
+                <AppText style={styles.galleryBtnText}>
+                  💬 تلگرام: @{DEVELOPER_TELEGRAM_USERNAME}
+                </AppText>
+              </Pressable>
+
+              <View style={styles.divider} />
+              <AppText style={styles.sectionTitle}>منبع محتوا</AppText>
+              <AppText style={styles.hint}>جملات نمایش داده‌شده در برنامه برگرفته و خلاصه‌شده از پایگاه اطلاع‌رسانی دفتر حفظ و نشر آثار حضرت آیت‌الله العظمی خامنه‌ای (khamenei.ir) است.</AppText>
 
               {/* «تم آماده» فعلاً کامنت شده — نیاز به اصلاح دارد، شاید بعداً
                   برگردانده شود. See THEMES in ./themes.ts and applyTheme in
@@ -399,49 +415,34 @@ export default function SettingsPanel({
               </View>
               */}
 
-              <RowSwitch
-                label="پیش‌نمایش متحرک والپیپرهای قفل‌شده (گالری)"
-                value={settings.animatedLockedPreview}
-                onChange={v => update('animatedLockedPreview', v)}
-              />
-
-              <View style={styles.divider} />
-              <AppText style={styles.sectionTitle}>ارتباط با سازنده</AppText>
-              <Pressable style={styles.galleryBtn} onPress={openDeveloperTelegram}>
-                <AppText style={styles.galleryBtnText}>
-                  💬 تلگرام: @{DEVELOPER_TELEGRAM_USERNAME}
-                </AppText>
-              </Pressable>
-
-              <View style={styles.divider} />
-              <AppText style={styles.sectionTitle}>منبع محتوا</AppText>
-              <AppText style={styles.hint}>جملات نمایش داده‌شده در برنامه برگرفته و خلاصه‌شده از پایگاه اطلاع‌رسانی دفتر حفظ و نشر آثار حضرت آیت‌الله العظمی خامنه‌ای (khamenei.ir) است.</AppText>
-
-              <View style={styles.divider} />
-              <AppText style={styles.sectionTitle}>پیشرفته</AppText>
-              {/* Both open Android's own "Home app" chooser — the only place a
-                  launcher can be switched — so the way back is always one tap. */}
-              {isLauncher ? (
-                <>
-                  <Pressable style={styles.galleryBtn} onPress={openLauncherSettings}>
-                    <AppText style={styles.galleryBtnText}>
-                      ↩️ بازگشت به لانچر قبلی
-                    </AppText>
-                  </Pressable>
-                  <HintLine>در صفحه بعد، لانچر قبلی گوشیت رو انتخاب کن.</HintLine>
-                </>
-              ) : (
-                <>
-                  <Pressable style={styles.galleryBtn} onPress={openLauncherSettings}>
-                    <AppText style={styles.galleryBtnText}>
-                      🏠 تنظیم به‌عنوان لانچر
-                    </AppText>
-                  </Pressable>
-                  <HintLine info="صحنه زنده می‌شه صفحه اصلی گوشیت؛ هر وقت خواستی، از همین‌جا به لانچر قبلی برمی‌گردی.">
-                    صحنه زنده می‌شه صفحه اصلی گوشیت
-                  </HintLine>
-                </>
-              )}
+              {/* Rarely needed: kept last, behind a closed row. */}
+              {!premiumUnlocked && hasPremiumWallpapers ? (
+                <Disclosure title="پیشرفته">
+                  <>
+                    <AppText style={styles.sectionTitle}>کد تخفیف</AppText>
+                    <View style={styles.promoRow}>
+                      <TextInput
+                        style={styles.promoInput}
+                        value={promoInput}
+                        onChangeText={setPromoInput}
+                        placeholder="کد تخفیف را وارد کن"
+                        placeholderTextColor="rgba(255,255,255,0.35)"
+                        autoCapitalize="characters"
+                        autoCorrect={false}
+                      />
+                      <Pressable
+                        style={[styles.promoBtn, redeeming && styles.promoBtnDisabled]}
+                        disabled={redeeming}
+                        onPress={submitPromoCode}>
+                        <AppText style={styles.promoBtnText}>
+                          {redeeming ? '...' : 'فعال‌سازی'}
+                        </AppText>
+                      </Pressable>
+                    </View>
+                    <HintLine>با وارد کردن کد معتبر، همهٔ والپیپرهای پرمیوم باز می‌شوند.</HintLine>
+                  </>
+                </Disclosure>
+              ) : null}
             </>
           ) : null}
 
