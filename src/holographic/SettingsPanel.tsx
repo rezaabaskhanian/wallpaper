@@ -70,23 +70,13 @@ const TEXT_COLORS = [
   '#000000', // black
 ];
 
-/** Tabs that split the once-long settings list into focused categories. */
-type TabId =
-  | 'general'
-  | 'sphere'
-  | 'background'
-  | 'effects'
-  | 'fonts'
-  | 'widgets'
-  | 'device';
+/** Four tabs, always visible; the sheet always opens on «خانه». */
+type TabId = 'home' | 'look' | 'text' | 'more';
 const TABS: {id: TabId; label: string}[] = [
-  {id: 'device', label: 'روی گوشیم بذار'},
-  {id: 'general', label: 'عمومی'},
-  {id: 'background', label: 'پس‌زمینه'},
-  {id: 'effects', label: 'جلوه‌ها'},
-  {id: 'fonts', label: 'فونت'},
-  {id: 'widgets', label: 'ویجت‌ها'},
-  {id: 'sphere', label: 'مذهبی'},
+  {id: 'home', label: 'خانه'},
+  {id: 'look', label: 'ظاهر'},
+  {id: 'text', label: 'ساعت و متن'},
+  {id: 'more', label: 'بیشتر'},
 ];
 
 /** Bottom-sheet style settings panel for the wallpaper. */
@@ -139,11 +129,7 @@ export default function SettingsPanel({
   }, [settings.orbitCategoryId, maxBallCount, settings.ballCount, update]);
   // Persists across opens/closes (the panel stays mounted, only `visible`
   // toggles) so reopening Settings picks up on the same tab the user left.
-  const [tab, setTab] = useState<TabId>('device');
-  // Simple mode shows only «روی گوشیم بذار»; the other tabs (look, widgets,
-  // effects…) sit behind one «تنظیمات بیشتر» button so a new user isn't met
-  // with seven tabs. Resets to simple every time the panel opens.
-  const [advanced, setAdvanced] = useState(false);
+  const [tab, setTab] = useState<TabId>('home');
   // True while a finger is on a RowSlider, so the ScrollView doesn't take
   // over a horizontal drag partway through.
   const [sliderActive, setSliderActive] = useState(false);
@@ -156,8 +142,7 @@ export default function SettingsPanel({
   useEffect(() => {
     if (visible) {
       isDefaultLauncher().then(setIsLauncher);
-      setAdvanced(false);
-      setTab('device');
+      setTab('home');
     }
   }, [visible]);
   const [presetNameInput, setPresetNameInput] = useState('');
@@ -268,30 +253,18 @@ export default function SettingsPanel({
         <View style={styles.handle} />
 
         {/* تب‌بار دسته‌ها: اولین چیزی که دیده می‌شود، بالای مودال. */}
-        {advanced ? (
         <View style={styles.tabBar}>
-          <Pressable
-            style={styles.tabBtn}
-            onPress={() => {
-              setAdvanced(false);
-              selectTab('device');
-            }}>
-            <AppText numberOfLines={1} style={styles.tabBtnText}>
-              ‹ ساده
-            </AppText>
-            <View style={styles.tabIndicator} />
-          </Pressable>
           {TABS.map(t => {
             const active = t.id === tab;
             return (
               <Pressable
                 key={t.id}
                 style={styles.tabBtn}
+                accessibilityRole="tab"
+                accessibilityState={{selected: active}}
                 onPress={() => selectTab(t.id)}>
                 <AppText
                   numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.8}
                   style={[styles.tabBtnText, active && styles.tabBtnTextActive]}>
                   {t.label}
                 </AppText>
@@ -300,11 +273,10 @@ export default function SettingsPanel({
             );
           })}
         </View>
-        ) : null}
 
         {/* In «روی گوشیم بذار» this row moves below the main live-wallpaper
             button (see that tab) so nothing competes with it for attention. */}
-        {advanced && tab !== 'device' ? entryRow : null}
+        {tab !== 'home' ? entryRow : null}
 
         {/* [AI disabled for this version] entry point for AI wallpaper
             generation — styles.aiEntry/aiEntryText are kept below.
@@ -321,7 +293,7 @@ export default function SettingsPanel({
           scrollEnabled={!sliderActive}
           style={styles.scroll}
           contentContainerStyle={styles.content}>
-          {tab === 'general' ? (
+          {tab === 'more' ? (
             <>
               {!premiumUnlocked && hasPremiumWallpapers ? (
                 <>
@@ -479,7 +451,7 @@ export default function SettingsPanel({
             </>
           ) : null}
 
-          {tab === 'background' ? (
+          {tab === 'look' ? (
             <>
               <RowChoices
                 label="پس‌زمینه"
@@ -627,7 +599,7 @@ export default function SettingsPanel({
             </>
           ) : null}
 
-          {tab === 'sphere' ? (
+          {tab === 'look' ? (
             <>
               <RowSwitch
                 label="چرخش خودکار"
@@ -723,7 +695,7 @@ export default function SettingsPanel({
             </>
           ) : null}
 
-          {tab === 'effects' ? (
+          {tab === 'look' ? (
             <>
               <RowChoices
                 label="حالت روز/شب"
@@ -894,7 +866,7 @@ export default function SettingsPanel({
             </>
           ) : null}
 
-          {tab === 'fonts' ? (
+          {tab === 'text' ? (
             <>
               {(
                 [
@@ -942,7 +914,7 @@ export default function SettingsPanel({
             </>
           ) : null}
 
-          {tab === 'widgets' ? (
+          {tab === 'text' ? (
             <>
               <RowSwitch
                 label="نمایش ساعت"
@@ -1189,7 +1161,7 @@ export default function SettingsPanel({
             </>
           ) : null}
 
-          {tab === 'device' ? (
+          {tab === 'home' ? (
             <>
               <Pressable
                 style={({pressed}) => [styles.liveBtn, pressed && styles.liveBtnPressed]}
@@ -1220,14 +1192,6 @@ export default function SettingsPanel({
               <AppText style={styles.hint}>
                 موقع شارژ، صحنه زنده به‌جای محافظ صفحه پخش می‌شه.
               </AppText>
-
-              <Pressable
-                style={styles.galleryBtn}
-                onPress={() => setAdvanced(true)}>
-                <AppText style={styles.galleryBtnText}>
-                  ⚙️ تنظیمات بیشتر (پس‌زمینه، جلوه‌ها، ویجت، فونت…)
-                </AppText>
-              </Pressable>
             </>
           ) : null}
         </ScrollView>
@@ -1529,19 +1493,20 @@ const styles = StyleSheet.create({
   },
   tabBtn: {
     flex: 1,
+    minHeight: 48,
     alignItems: 'center',
-    paddingVertical: 10,
+    justifyContent: 'flex-end',
+    paddingTop: 10,
     gap: 8,
   },
   tabBtnText: {
     color: 'rgba(255,255,255,0.55)',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     writingDirection: 'rtl',
   },
   tabBtnTextActive: {
     color: '#eafffb',
-    fontWeight: '700',
   },
   tabIndicator: {
     height: 3,
