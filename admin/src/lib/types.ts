@@ -3,6 +3,8 @@ export type Category = {
   title: string;
   sort: number;
   parentId?: string | null;
+  /** ایموجی مود؛ خالی = مود نیست. */
+  mood?: string;
 };
 
 export type Wallpaper = {

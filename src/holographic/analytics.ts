@@ -13,7 +13,7 @@ const API_BASE_URL = CATALOG_URL.replace(/\/catalog$/, '');
 
 /** How the wallpaper was set and from where — see backend's appevent domain. */
 export type WallpaperSetMethod = 'live' | 'home' | 'lock' | 'both';
-export type WallpaperSetSource = 'onetap' | 'settings' | 'gallery';
+export type WallpaperSetSource = 'onetap' | 'settings' | 'gallery' | 'mood';
 
 async function send(body: Record<string, string>): Promise<void> {
   try {

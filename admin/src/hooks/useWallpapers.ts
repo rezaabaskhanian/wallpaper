@@ -74,6 +74,7 @@ export type CategoryInput = {
   title: string;
   sort: number;
   parentId: string | null;
+  mood: string;
 };
 
 export function useSaveCategory(isNew: boolean) {

@@ -4,6 +4,8 @@ export type WallpaperCategory = {
   title: string;
   /** Id of the parent category; undefined/null for a top-level category. */
   parentId?: string | null;
+  /** Mood emoji; set means this category is a home-screen mood card. */
+  mood?: string;
 };
 
 /** One downloadable wallpaper from the catalog server. */

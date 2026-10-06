@@ -18,6 +18,7 @@ const SOURCE_LABELS: Record<string, string> = {
   onetap: 'دکمه‌ی اولین اجرا',
   settings: 'تنظیمات',
   gallery: 'گالری',
+  mood: 'مود (صفحهٔ اصلی)',
 };
 const METHOD_LABELS: Record<string, string> = {
   live: 'زنده',

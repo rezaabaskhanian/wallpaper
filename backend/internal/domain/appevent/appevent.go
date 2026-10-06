@@ -23,7 +23,7 @@ const maxFieldLen = 64
 
 var (
 	validMethods = map[string]bool{"live": true, "home": true, "lock": true, "both": true}
-	validSources = map[string]bool{"onetap": true, "settings": true, "gallery": true}
+	validSources = map[string]bool{"onetap": true, "settings": true, "gallery": true, "mood": true}
 )
 
 type Event struct {

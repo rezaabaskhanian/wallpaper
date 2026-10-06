@@ -35,6 +35,9 @@ type Category struct {
 	Title    string
 	Sort     int
 	ParentID *string // شناسه‌ی دسته‌ی والد؛ nil یعنی دسته‌ی اصلی (سطح اول)
+	// Mood ایموجی مود؛ خالی = دسته مود نیست. دسته‌های دارای مود در صفحهٔ اصلی اپ
+	// به‌صورت کارت «حال‌وهوا» نشان داده می‌شوند.
+	Mood string
 }
 
 // خطاهای دامنه‌ی والپیپر
@@ -90,7 +93,7 @@ func NewWallpaper(
 }
 
 // NewCategory ساخت دسته‌بندی جدید. parentID برای دستهٔ اصلی nil است.
-func NewCategory(id string, title string, sort int, parentID *string) (Category, error) {
+func NewCategory(id string, title string, sort int, parentID *string, mood string) (Category, error) {
 	if id == "" {
 		return Category{}, ErrEmptyCategory
 	}
@@ -100,5 +103,5 @@ func NewCategory(id string, title string, sort int, parentID *string) (Category,
 	if parentID != nil && *parentID == id {
 		return Category{}, ErrCategorySelfRef
 	}
-	return Category{ID: id, Title: title, Sort: sort, ParentID: parentID}, nil
+	return Category{ID: id, Title: title, Sort: sort, ParentID: parentID, Mood: mood}, nil
 }

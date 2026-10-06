@@ -34,11 +34,11 @@ import {
 } from '@/hooks/useWallpapers';
 import type {Category} from '@/lib/types';
 
-const EMPTY: CategoryInput = {id: '', title: '', sort: 0, parentId: null};
+const EMPTY: CategoryInput = {id: '', title: '', sort: 0, parentId: null, mood: ''};
 
 function toInput(category: Category | null): CategoryInput {
   return category
-    ? {id: category.id, title: category.title, sort: category.sort, parentId: category.parentId ?? null}
+    ? {id: category.id, title: category.title, sort: category.sort, parentId: category.parentId ?? null, mood: category.mood ?? ''}
     : EMPTY;
 }
 
@@ -120,6 +120,16 @@ function CategoryDialog({
                 </option>
               ))}
             </select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="cat-mood">مود (ایموجی)</Label>
+            <Input
+              id="cat-mood"
+              value={form.mood}
+              maxLength={4}
+              onChange={e => setForm({...form, mood: e.target.value.trim()})}
+              placeholder="مثل 😊 — خالی = در صفحهٔ اصلی اپ کارت مود نمی‌شود"
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="cat-sort">ترتیب</Label>
@@ -243,6 +253,7 @@ export default function Categories() {
                   </TableCell>
                   <TableCell className="font-medium">
                     {isChild ? <span className="text-muted-foreground">└ </span> : null}
+                    {c.mood ? <span className="me-2">{c.mood}</span> : null}
                     {c.title}
                   </TableCell>
                   <TableCell className="font-mono">{c.sort}</TableCell>

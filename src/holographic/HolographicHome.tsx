@@ -42,6 +42,7 @@ import {useWeather} from './useWeather';
 import OrbitItemModal from './OrbitItemModal';
 import type {OrbitItem} from './data';
 import WallpaperGallery from './WallpaperGallery';
+import MoodPicker from './MoodPicker';
 import AppDrawer from './AppDrawer';
 import HelpGuide from './HelpGuide';
 import LauncherIntroModal from './LauncherIntroModal';
@@ -575,6 +576,12 @@ export default function HolographicHome({dream = false}: Props) {
             //   setAiGenerateOpen(true);
             // }}
           />
+
+          {/* Mood cards: the simple main flow. The first-launch button owns the
+              bottom edge while it is up, so the strip waits for it. */}
+          {!oneTapVisible && !capturing && !settings.editLayout ? (
+            <MoodPicker bottom={insets.bottom + 90} />
+          ) : null}
 
           <WallpaperGallery
             visible={galleryOpen}

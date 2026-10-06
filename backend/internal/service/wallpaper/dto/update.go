@@ -22,6 +22,7 @@ type UpdateCategoryRequest struct {
 	Title    string  `json:"title"`
 	Sort     int     `json:"sort"`
 	ParentID *string `json:"parentId"`
+	Mood     string  `json:"mood"`
 }
 
 type UpdateCategoryResponse struct {

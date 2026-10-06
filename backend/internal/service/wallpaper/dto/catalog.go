@@ -6,6 +6,7 @@ type CategoryDTO struct {
 	Title    string  `json:"title"`
 	Sort     int     `json:"sort"`
 	ParentID *string `json:"parentId,omitempty"`
+	Mood     string  `json:"mood,omitempty"`
 }
 
 // WallpaperDTO خروجی یک والپیپر در کاتالوگ (دقیقاً مطابق چیزی که کلاینت انتظار دارد).
