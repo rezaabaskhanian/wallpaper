@@ -369,9 +369,7 @@ export default function SettingsPanel({
                       </AppText>
                     </Pressable>
                   </View>
-                  <AppText style={styles.hint}>
-                    با وارد کردن کد معتبر، همهٔ والپیپرهای پرمیوم باز می‌شوند.
-                  </AppText>
+                  <HintLine>با وارد کردن کد معتبر، همهٔ والپیپرهای پرمیوم باز می‌شوند.</HintLine>
                   <View style={styles.divider} />
                 </>
               ) : null}
@@ -418,11 +416,7 @@ export default function SettingsPanel({
 
               <View style={styles.divider} />
               <AppText style={styles.sectionTitle}>منبع محتوا</AppText>
-              <AppText style={styles.hint}>
-                جملات نمایش داده‌شده در برنامه برگرفته و خلاصه‌شده از پایگاه
-                اطلاع‌رسانی دفتر حفظ و نشر آثار حضرت آیت‌الله العظمی
-                خامنه‌ای (khamenei.ir) است.
-              </AppText>
+              <AppText style={styles.hint}>جملات نمایش داده‌شده در برنامه برگرفته و خلاصه‌شده از پایگاه اطلاع‌رسانی دفتر حفظ و نشر آثار حضرت آیت‌الله العظمی خامنه‌ای (khamenei.ir) است.</AppText>
 
               <View style={styles.divider} />
               <AppText style={styles.sectionTitle}>پیشرفته</AppText>
@@ -435,9 +429,7 @@ export default function SettingsPanel({
                       ↩️ بازگشت به لانچر قبلی
                     </AppText>
                   </Pressable>
-                  <AppText style={styles.hint}>
-                    در صفحه بعد، لانچر قبلی گوشیت رو انتخاب کن.
-                  </AppText>
+                  <HintLine>در صفحه بعد، لانچر قبلی گوشیت رو انتخاب کن.</HintLine>
                 </>
               ) : (
                 <>
@@ -446,10 +438,9 @@ export default function SettingsPanel({
                       🏠 تنظیم به‌عنوان لانچر
                     </AppText>
                   </Pressable>
-                  <AppText style={styles.hint}>
-                    صحنه زنده می‌شه صفحه اصلی گوشیت؛ هر وقت خواستی، از همین‌جا
-                    به لانچر قبلی برمی‌گردی.
-                  </AppText>
+                  <HintLine info="صحنه زنده می‌شه صفحه اصلی گوشیت؛ هر وقت خواستی، از همین‌جا به لانچر قبلی برمی‌گردی.">
+                    صحنه زنده می‌شه صفحه اصلی گوشیت
+                  </HintLine>
                 </>
               )}
             </>
@@ -474,9 +465,7 @@ export default function SettingsPanel({
                   </AppText>
                 </Pressable> */}
                 {settings.customBackgroundUri ? (
-                  <AppText style={styles.hint}>
-                    یک عکس از گالری انتخاب شده — گزینهٔ «گالری» را در بالا بزن.
-                  </AppText>
+                  <HintLine>یک عکس از گالری انتخاب شده — گزینهٔ «گالری» را در بالا بزن.</HintLine>
                 ) : null}
 
                 <View style={styles.divider} />
@@ -486,12 +475,8 @@ export default function SettingsPanel({
                   label="نمایش رندوم عکس‌های ستاره‌دار"
                   value={settings.randomBackgroundEnabled}
                   onChange={v => update('randomBackgroundEnabled', v)}
+                  info="هر بار که اپ باز می‌شود، یکی از عکس‌های زیر رندوم به‌عنوان پس‌زمینه انتخاب می‌شود. از «گالری والپیپر» یک عکس را باز کن و «☆ افزودن به چرخش رندوم» را بزن (حداکثر ۵ عکس)."
                 />
-                <AppText style={styles.hint}>
-                  هر بار که اپ باز می‌شود، یکی از عکس‌های زیر رندوم به‌عنوان
-                  پس‌زمینه انتخاب می‌شود. از «گالری والپیپر» یک عکس را باز کن و
-                  «☆ افزودن به چرخش رندوم» را بزن (حداکثر ۵ عکس).
-                </AppText>
 
                 {settings.randomBackgroundUris.length > 0 ? (
                   <ScrollView
@@ -515,7 +500,7 @@ export default function SettingsPanel({
                     ))}
                   </ScrollView>
                 ) : (
-                  <AppText style={styles.hint}>هنوز عکسی اضافه نشده.</AppText>
+                  <HintLine>هنوز عکسی اضافه نشده.</HintLine>
                 )}
               </SettingsGroup>
               <SettingsGroup
@@ -540,26 +525,18 @@ export default function SettingsPanel({
                   label="نور خورشید (Lens Flare)"
                   value={settings.sunFlare}
                   onChange={v => update('sunFlare', v)}
+                  info="یک هالهٔ نور شبیه خورشید که همراه با ساعت واقعی روز روی آسمان حرکت می‌کند و نورش عوض می‌شود: صبح از سمت چپ و پایین با نور نارنجی طلوع می‌کند، ظهر بالای صفحه و سفید و ملایم است، و عصر سمت راست با نور نارنجی غروب می‌کند؛ شب خاموش است. زمان طلوع و غروب از موقعیت مکانی شما گرفته می‌شود."
                 />
-                <AppText style={styles.hint}>
-                  یک هالهٔ نور شبیه خورشید که همراه با ساعت واقعی روز روی آسمان
-                  حرکت می‌کند و نورش عوض می‌شود: صبح از سمت چپ و پایین با نور
-                  نارنجی طلوع می‌کند، ظهر بالای صفحه و سفید و ملایم است، و عصر
-                  سمت راست با نور نارنجی غروب می‌کند؛ شب خاموش است. زمان طلوع و
-                  غروب از موقعیت مکانی شما گرفته می‌شود.
-                </AppText>
                 {settings.sunFlare ? (
                   <>
                     <SunDayPreview />
-                    <AppText style={styles.hint}>
-                      پیش‌نمایش: یک روز کامل در چند ثانیه. نقطهٔ سفید جای خورشید
-                      در همین لحظه است.
-                    </AppText>
+                    <HintLine info="پیش‌نمایش: یک روز کامل در چند ثانیه. نقطهٔ سفید جای خورشید در همین لحظه است.">
+                      پیش‌نمایش یک روز کامل
+                    </HintLine>
                     {settings.dayNightMode !== 'auto' ? (
-                      <AppText style={styles.hint}>
-                        ⚠️ برای اینکه نور خورشید روی صفحه با ساعت روز حرکت کند،
-                        «حالت روز/شب» را روی «خودکار» بگذار.
-                      </AppText>
+                      <HintLine info="برای اینکه نور خورشید روی صفحه با ساعت روز حرکت کند، «حالت روز/شب» را روی «خودکار» بگذار.">
+                        حالت روز/شب را روی «خودکار» بگذار
+                      </HintLine>
                     ) : null}
                   </>
                 ) : null}
@@ -602,21 +579,14 @@ export default function SettingsPanel({
                       id as 'low' | 'medium' | 'high' | 'extreme',
                     )
                   }
+                  info="هرچه شدت بیشتر باشد، هم تعداد ذرات نور بیشتر می‌شود و هم سرعت حرکتشان."
                 />
-                <AppText style={styles.hint}>
-                  هرچه شدت بیشتر باشد، هم تعداد ذرات نور بیشتر می‌شود و هم
-                  سرعت حرکتشان.
-                </AppText>
 
                 <RowSwitch
                   label="رنگ پویا از عکس پس‌زمینه"
                   value={settings.dynamicColor}
                   onChange={v => update('dynamicColor', v)}
-                />
-                <AppText style={styles.hint}>
-                  به‌جای رنگ دستی زیر، رنگ ذرات نور از خودِ عکس پس‌زمینهٔ فعلی
-                  استخراج می‌شود.
-                </AppText>
+                  info="به‌جای رنگ دستی زیر، رنگ ذرات نور از خودِ عکس پس‌زمینهٔ فعلی استخراج می‌شود."                />
 
 
                 <RowColors
@@ -626,10 +596,7 @@ export default function SettingsPanel({
                   onSelect={c => update('glowColor', c)}
                 />
                 {settings.dynamicColor ? (
-                  <AppText style={styles.hint}>
-                    تا وقتی «رنگ پویا» روشن است، این انتخاب نادیده گرفته
-                    می‌شود.
-                  </AppText>
+                  <HintLine>تا وقتی «رنگ پویا» روشن است، این انتخاب نادیده گرفته می‌شود.</HintLine>
                 ) : null}
 
                 <RowSwitch
@@ -664,14 +631,8 @@ export default function SettingsPanel({
                   onSelect={id =>
                     update('weatherEffects', id as 'off' | 'rain' | 'snow' | 'auto')
                   }
+                  info="حالت خودکار به گرفتن موفق وضعیت هوا از GPS و API نیاز دارد؛ اگر دسترسی موقعیت مکانی داده نشود یا اینترنت نباشد، فعال نمی‌شود."
                 />
-                {settings.weatherEffects === 'auto' ? (
-                  <AppText style={styles.hint}>
-                    حالت خودکار به گرفتن موفق وضعیت هوا از GPS و API نیاز دارد؛
-                    اگر دسترسی موقعیت مکانی داده نشود یا اینترنت نباشد، فعال
-                    نمی‌شود.
-                  </AppText>
-                ) : null}
 
                 {/* [combat mode disabled for now — planned for a future
                     version] Re-enable by uncommenting this switch + the
@@ -683,10 +644,7 @@ export default function SettingsPanel({
                   onChange={v => update('combatMode', v)}
                 />
                 {settings.combatMode ? (
-                  <AppText style={styles.hint}>
-                    مه و متن پایین صفحه خاموش می‌شود و هر ۸ ثانیه یک موشک یا
-                    پهباد از یک گوشهٔ صفحه رد می‌شود.
-                  </AppText>
+                  <HintLine>مه و متن پایین صفحه خاموش می‌شود و هر ۸ ثانیه یک موشک یا پهباد از یک گوشهٔ صفحه رد می‌شود.</HintLine>
                 ) : null} */}
               </SettingsGroup>
               <SettingsGroup
@@ -697,11 +655,8 @@ export default function SettingsPanel({
                   label="زنده‌سازی پس‌زمینه (حرکت آرام)"
                   value={settings.livingWallpaper}
                   onChange={v => update('livingWallpaper', v)}
+                  info="عکس پس‌زمینه به‌آرامی زوم و جابه‌جا می‌شود؛ هر بار که اپ باز می‌شود هم یک حرکت شروع (بیدار شدن) دارد."
                 />
-                <AppText style={styles.hint}>
-                  عکس پس‌زمینه به‌آرامی زوم و جابه‌جا می‌شود؛ هر بار که اپ باز
-                  می‌شود هم یک حرکت شروع (بیدار شدن) دارد.
-                </AppText>
 
                 {settings.livingWallpaper ? (
                   <>
@@ -709,10 +664,7 @@ export default function SettingsPanel({
                       label="لرزش آرام پس‌زمینه"
                       value={settings.wallpaperShake}
                       onChange={v => update('wallpaperShake', v)}
-                    />
-                    <AppText style={styles.hint}>
-                      یک لرزش بسیار ریز و ملایم روی حرکت آرام بالا اضافه می‌شود.
-                    </AppText>
+                      info="یک لرزش بسیار ریز و ملایم روی حرکت آرام بالا اضافه می‌شود."                    />
                   </>
                 ) : null}
 
@@ -720,14 +672,7 @@ export default function SettingsPanel({
                   label="موج آب با لمس صفحه"
                   value={settings.waterRipple}
                   onChange={v => update('waterRipple', v)}
-                />
-                <AppText style={styles.hint}>
-                  با هر لمس، مثل افتادن سنگ در آب، موج روی خودِ عکس پخش می‌شود؛
-                  هر بار که اپ باز می‌شود هم یک موج از وسط صفحه شروع می‌شود.
-                  اگر لایو ولپیپر را هم ست کرده باشید، روی صفحهٔ اصلی گوشی هم کار
-                  می‌کند (اندروید ۱۳ به بالا). ⚡ با این قابلیت مصرف باتری کمی
-                  بیشتر می‌شود.
-                </AppText>
+                  info="با هر لمس، مثل افتادن سنگ در آب، موج روی خودِ عکس پخش می‌شود؛ هر بار که اپ باز می‌شود هم یک موج از وسط صفحه شروع می‌شود. اگر لایو ولپیپر را هم ست کرده باشید، روی صفحهٔ اصلی گوشی هم کار می‌کند (اندروید ۱۳ به بالا). ⚡ با این قابلیت مصرف باتری کمی بیشتر می‌شود."                />
 
                 {settings.waterRipple ? (
                   <>
@@ -735,11 +680,7 @@ export default function SettingsPanel({
                       label="موج خودکار (هر ۱۰ ثانیه)"
                       value={settings.waterRippleAuto}
                       onChange={v => update('waterRippleAuto', v)}
-                    />
-                    <AppText style={styles.hint}>
-                      بدون لمس هم هر ۱۰ ثانیه یک موج از یک نقطهٔ تصادفی شروع
-                      می‌شود. فقط وقتی اپ باز است اجرا می‌شود تا باتری مصرف نکند.
-                    </AppText>
+                      info="بدون لمس هم هر ۱۰ ثانیه یک موج از یک نقطهٔ تصادفی شروع می‌شود. فقط وقتی اپ باز است اجرا می‌شود تا باتری مصرف نکند."                    />
                   </>
                 ) : null}
 
@@ -748,33 +689,19 @@ export default function SettingsPanel({
                   label="پارالاکس با حرکت گوشی (ژیروسکوپ)"
                   value={settings.gyroParallax}
                   onChange={v => update('gyroParallax', v)}
-                />
-                <AppText style={styles.hint}>
-                  با کج‌کردن گوشی، پس‌زمینه و گوی‌ها کمی جابه‌جا می‌شوند — علاوه
-                  بر کشیدن با انگشت.
-                </AppText>
+                  info="با کج‌کردن گوشی، پس‌زمینه و گوی‌ها کمی جابه‌جا می‌شوند — علاوه بر کشیدن با انگشت."                />
 
                 <RowSwitch
                   label="پارالاکس سه‌بعدی (شبیه‌سازی عمق)"
                   value={settings.depthParallax}
                   onChange={v => update('depthParallax', v)}
-                />
-                <AppText style={styles.hint}>
-                  عکس پس‌زمینه مثل یک صفحهٔ سه‌بعدی با کج‌شدن گوشی می‌چرخد؛
-                  نیاز به روشن‌بودن «پارالاکس با حرکت گوشی» دارد. توجه: این
-                  جداسازی واقعیِ سوژه از پس‌زمینه (که به هوش‌مصنوعی نیاز دارد)
-                  نیست، فقط شبیه‌سازی بصری عمق است.
-                </AppText>
+                  info="عکس پس‌زمینه مثل یک صفحهٔ سه‌بعدی با کج‌شدن گوشی می‌چرخد؛ نیاز به روشن‌بودن «پارالاکس با حرکت گوشی» دارد. توجه: این جداسازی واقعیِ سوژه از پس‌زمینه (که به هوش‌مصنوعی نیاز دارد) نیست، فقط شبیه‌سازی بصری عمق است."                />
 
                 <RowSwitch
                   label="واکنش لمسی (حلقهٔ نور روی ضربه)"
                   value={settings.touchRipple}
                   onChange={v => update('touchRipple', v)}
-                />
-                <AppText style={styles.hint}>
-                  با هر ضربه روی صفحه، یک حلقهٔ نور کوتاه از همان نقطه باز
-                  می‌شود و محو می‌شود.
-                </AppText>
+                  info="با هر ضربه روی صفحه، یک حلقهٔ نور کوتاه از همان نقطه باز می‌شود و محو می‌شود."                />
               </SettingsGroup>
               <SettingsGroup
                 title="کره و گوی‌ها"
@@ -936,14 +863,8 @@ export default function SettingsPanel({
                       update('clockFontScale', 1.6);
                     }
                   }}
+                  info="در حالت «وسط صفحه» فقط ساعت وسط صفحه و بزرگ نمایش داده می‌شود — ساعت‌شمار بالا، دقیقه پایین — و تاریخ زیر آن نشان داده نمی‌شود."
                 />
-                {settings.clockLayout === 'bigCentered' ? (
-                  <AppText style={styles.hint}>
-                    در این حالت فقط ساعت وسط صفحه و بزرگ نمایش داده می‌شود —
-                    ساعت‌شمار بالا، دقیقه پایین — و تاریخ زیر آن نشان داده
-                    نمی‌شود.
-                  </AppText>
-                ) : null}
 
                 <RowSlider
                   label="اندازه فونت ساعت"
@@ -1034,12 +955,8 @@ export default function SettingsPanel({
                   label="جملهٔ روزانه با هوش مصنوعی ✨"
                   value={settings.dailyAiQuote}
                   onChange={v => update('dailyAiQuote', v)}
+                  info="هر روز یک جملهٔ تازه (ساخته‌شده با هوش مصنوعی) به‌جای دسته‌ی زیر نمایش داده می‌شود. اگر این فیچر روی سرور فعال نباشد، خودکار به دسته‌ی انتخابی برمی‌گردد."
                 />
-                <AppText style={styles.hint}>
-                  هر روز یک جملهٔ تازه (ساخته‌شده با هوش مصنوعی) به‌جای دسته‌ی
-                  زیر نمایش داده می‌شود. اگر این فیچر روی سرور فعال نباشد،
-                  خودکار به دسته‌ی انتخابی برمی‌گردد.
-                </AppText> */}
 
                 {quoteCategories.length > 1 ? (
                   <RowChoices
@@ -1114,9 +1031,7 @@ export default function SettingsPanel({
                   placeholderTextColor="rgba(255,255,255,0.35)"
                   autoCapitalize="none"
                 />
-                <AppText style={styles.hint}>
-                  نمونه: ۲۰۴۰-۰۱-۰۱T۰۰:۰۰:۰۰ — تاریخ و عنوان دلخواه خودت را وارد کن.
-                </AppText>
+                <HintLine>نمونه: ۲۰۴۰-۰۱-۰۱T۰۰:۰۰:۰۰ — تاریخ و عنوان دلخواه خودت را وارد کن.</HintLine>
                 ------------------------------------------------------------------ */}
 
                 <View style={styles.divider} />
@@ -1129,10 +1044,7 @@ export default function SettingsPanel({
                     update('widgetAutoRotateQuote', v);
                     setWidgetAutoRotateQuote(v).catch(() => {});
                   }}
-                />
-                <AppText style={styles.hint}>
-                  روی صفحه اصلی انگشت نگه دار و ویجت «Wallpaper» رو اضافه کن.
-                </AppText>
+                  info="روی صفحه اصلی انگشت نگه دار و ویجت «Wallpaper» رو اضافه کن."                />
               </SettingsGroup>
               <SettingsGroup
                 title="هوا و چیدمان"
@@ -1142,11 +1054,7 @@ export default function SettingsPanel({
                   label="نمایش هوا"
                   value={settings.showWeather}
                   onChange={v => update('showWeather', v)}
-                />
-                <AppText style={styles.hint}>
-                  دما همیشه زنده از طریق GPS و API آب‌وهوا گرفته می‌شود؛ تا وقتی
-                  گرفتن آن موفق نشود چیزی نمایش داده نمی‌شود.
-                </AppText>
+                  info="دما همیشه زنده از طریق GPS و API آب‌وهوا گرفته می‌شود؛ تا وقتی گرفتن آن موفق نشود چیزی نمایش داده نمی‌شود."                />
 
 
                 <RowSwitch
@@ -1158,11 +1066,7 @@ export default function SettingsPanel({
                       onClose();
                     }
                   }}
-                />
-                <AppText style={styles.hint}>
-                  روشن کن و پنجره را ببند، سپس ساعت، دما یا متن پایین را با انگشت
-                  بکش تا جابه‌جا شود.
-                </AppText>
+                  info="روشن کن و پنجره را ببند، سپس ساعت، دما یا متن پایین را با انگشت بکش تا جابه‌جا شود."                />
                 <Pressable
                   style={styles.galleryBtn}
                   onPress={() => {
@@ -1205,19 +1109,16 @@ export default function SettingsPanel({
                 onPress={() => onSetWallpaper?.('lock')}>
                 <AppText style={styles.galleryBtnText}>🔒 عکس ثابت برای صفحه قفل</AppText>
               </Pressable>
-              <AppText style={styles.hint}>
-                اندروید اجازه والپیپر زنده روی صفحه قفل نمی‌ده، برای همین اینجا
-                عکس ثابت گذاشته می‌شه.
-              </AppText>
+              <HintLine info="اندروید اجازه والپیپر زنده روی صفحه قفل نمی‌ده، برای همین اینجا عکس ثابت گذاشته می‌شه.">
+                روی صفحه قفل فقط عکس ثابت می‌شه
+              </HintLine>
 
               <Pressable style={styles.galleryBtn} onPress={openScreenSaverSettings}>
                 <AppText style={styles.galleryBtnText}>
                   🖥️ نمایش هنگام شارژ (محافظ صفحه)
                 </AppText>
               </Pressable>
-              <AppText style={styles.hint}>
-                موقع شارژ، صحنه زنده به‌جای محافظ صفحه پخش می‌شه.
-              </AppText>
+              <HintLine>موقع شارژ، صحنه زنده به‌جای محافظ صفحه پخش می‌شه.</HintLine>
             </>
           ) : null}
         </ScrollView>
@@ -1234,6 +1135,43 @@ export default function SettingsPanel({
         ) : null}
       </Animated.View>
     </Modal>
+  );
+}
+
+/** «؟» next to a setting: shows the full explanation on tap. */
+function InfoButton({title, info}: {title: string; info: string}) {
+  return (
+    <Pressable
+      style={styles.infoBtn}
+      hitSlop={12}
+      accessibilityRole="button"
+      accessibilityLabel={`توضیح ${title}`}
+      onPress={() => showAlert(title, info)}>
+      <AppText style={styles.infoBtnText}>؟</AppText>
+    </Pressable>
+  );
+}
+
+/** Setting label, with a «؟» when there is a longer explanation. */
+function RowLabel({label, info}: {label: string; info?: string}) {
+  return (
+    <View style={styles.labelWrap}>
+      <AppText style={styles.rowLabel}>{label}</AppText>
+      {info ? <InfoButton title={label} info={info} /> : null}
+    </View>
+  );
+}
+
+/** At most one line of explanation under a setting; anything longer goes
+ * behind the «؟» via `info`. */
+function HintLine({children, info}: {children: React.ReactNode; info?: string}) {
+  return (
+    <View style={styles.hintRow}>
+      <AppText style={[styles.hint, styles.hintText]} numberOfLines={1}>
+        {children}
+      </AppText>
+      {info ? <InfoButton title="توضیح" info={info} /> : null}
+    </View>
   );
 }
 
@@ -1269,8 +1207,11 @@ function RowSwitch({
   label,
   value,
   onChange,
+  info,
 }: {
   label: string;
+  /** Full explanation shown behind a «؟» next to the label. */
+  info?: string;
   value: boolean;
   onChange: (v: boolean) => void;
 }) {
@@ -1282,7 +1223,7 @@ function RowSwitch({
         trackColor={{true: '#8b5cf6', false: '#334155'}}
         thumbColor="#eafffb"
       />
-      <AppText style={styles.rowLabel}>{label}</AppText>
+      <RowLabel label={label} info={info} />
     </View>
   );
 }
@@ -1292,8 +1233,11 @@ function RowStepper({
   value,
   onDec,
   onInc,
+  info,
 }: {
   label: string;
+  /** Full explanation shown behind a «؟» next to the label. */
+  info?: string;
   value: string;
   onDec: () => void;
   onInc: () => void;
@@ -1309,7 +1253,7 @@ function RowStepper({
           <AppText style={styles.stepText}>+</AppText>
         </Pressable>
       </View>
-      <AppText style={styles.rowLabel}>{label}</AppText>
+      <RowLabel label={label} info={info} />
     </View>
   );
 }
@@ -1427,15 +1371,18 @@ function RowChoices({
   options,
   selected,
   onSelect,
+  info,
 }: {
   label: string;
+  /** Full explanation shown behind a «؟» next to the label. */
+  info?: string;
   options: {id: string; label: string}[];
   selected: string;
   onSelect: (id: string) => void;
 }) {
   return (
     <View style={styles.choicesRow}>
-      <AppText style={styles.rowLabel}>{label}</AppText>
+      <RowLabel label={label} info={info} />
       <View style={styles.chips}>
         {options.map(opt => {
           const active = opt.id === selected;
@@ -1472,15 +1419,18 @@ function RowColors({
   colors,
   selected,
   onSelect,
+  info,
 }: {
   label: string;
+  /** Full explanation shown behind a «؟» next to the label. */
+  info?: string;
   colors: string[];
   selected: string;
   onSelect: (color: string) => void;
 }) {
   return (
     <View style={styles.choicesRow}>
-      <AppText style={styles.rowLabel}>{label}</AppText>
+      <RowLabel label={label} info={info} />
       <View style={styles.chips}>
         {colors.map(c => {
           const active = c.toLowerCase() === selected.toLowerCase();
@@ -2014,6 +1964,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(139, 92, 246, 0.2)',
   },
+  labelWrap: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+  infoBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(196,181,253,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoBtnText: {color: '#c4b5fd', fontSize: 13, fontWeight: '700'},
+  hintRow: {flexDirection: 'row-reverse', alignItems: 'center', gap: 8},
+  hintText: {flexShrink: 1},
   hint: {
     color: 'rgba(255,255,255,0.4)',
     fontSize: 12,
