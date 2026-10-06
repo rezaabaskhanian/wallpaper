@@ -1209,14 +1209,16 @@ function ListRow({
   );
 }
 
-/** The sheet's on/off switch. */
+/** The sheet's on/off switch. Off shows a grey thumb on a dark track so it
+ * can't be mistaken for on (white thumb on purple). */
 function SettingSwitch({value, onChange}: {value: boolean; onChange: (v: boolean) => void}) {
   return (
     <Switch
       value={value}
       onValueChange={onChange}
-      trackColor={{true: '#8b5cf6', false: '#334155'}}
-      thumbColor="#eafffb"
+      trackColor={{true: '#7c3aed', false: '#3b3150'}}
+      thumbColor={value ? '#ffffff' : '#9a93ad'}
+      ios_backgroundColor="#3b3150"
     />
   );
 }
