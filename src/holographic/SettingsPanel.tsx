@@ -26,6 +26,8 @@ import {isDefaultLauncher} from './installedApps';
 import {openLauncherSettings, openScreenSaverSettings} from './systemScreens';
 import {useSettings} from './SettingsContext';
 import SunDayPreview from './SunDayPreview';
+import PresetRow from './PresetRow';
+import type {WallpaperSettings} from './SettingsContext';
 import {useStore} from './store/StoreContext';
 // «تم آماده» فعلاً از UI کامنت شده — این ایمپورت هم موقتاً غیرفعال است.
 // import {THEMES} from './themes';
@@ -72,6 +74,9 @@ const TEXT_COLORS = [
   '#000000', // black
 ];
 
+/** How long the «برگردان» bar stays after applying a preset. */
+const UNDO_MS = 5000;
+
 /** How far (dp) the handle must be dragged down to close the sheet. */
 const CLOSE_DRAG = 120;
 
@@ -96,8 +101,7 @@ export default function SettingsPanel({
 }: Props) {
   // applyTheme از useSettings() اینجا موقتاً استفاده نمی‌شود چون بخش «تم
   // آماده» بالا کامنت شده — با برگرداندن آن UI، اینجا هم برگردانده شود.
-  const {settings, update, userPresets, savePreset, applyPreset, deletePreset} =
-    useSettings();
+  const {settings, update, deletePreset} = useSettings();
   const {
     premiumUnlocked,
     hasPremiumWallpapers,
@@ -151,7 +155,25 @@ export default function SettingsPanel({
       setTab('home');
     }
   }, [visible]);
-  const [presetNameInput, setPresetNameInput] = useState('');
+  // «حالت X فعال شد / برگردان» bar shown for UNDO_MS after a preset is applied.
+  const [undo, setUndo] = useState<{label: string; previous: WallpaperSettings} | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!undo) return;
+    const t = setTimeout(() => setUndo(null), UNDO_MS);
+    return () => clearTimeout(t);
+  }, [undo]);
+  useEffect(() => {
+    if (!visible) setUndo(null);
+  }, [visible]);
+  const revertPreset = () => {
+    if (!undo) return;
+    (Object.keys(undo.previous) as (keyof WallpaperSettings)[]).forEach(k => {
+      if (settings[k] !== undo.previous[k]) update(k, undo.previous[k] as never);
+    });
+    setUndo(null);
+  };
 
   // Drag the handle down to close. The sheet follows the finger; past
   // CLOSE_DRAG (or on a quick flick) it closes, otherwise it springs back.
@@ -1146,53 +1168,10 @@ export default function SettingsPanel({
               </Pressable>
 
               <View style={styles.homeSection}>
-              <AppText style={styles.sectionTitle}>پرست‌های من</AppText>
-              {userPresets.length > 0 ? (
-                <View style={styles.chips}>
-                  {userPresets.map(p => (
-                    <View key={p.id} style={styles.presetChipWrap}>
-                      <Pressable style={styles.chip} onPress={() => applyPreset(p.id)}>
-                        <AppText style={styles.chipText}>{p.label}</AppText>
-                      </Pressable>
-                      <Pressable
-                        style={styles.presetDeleteBtn}
-                        hitSlop={8}
-                        onPress={() => confirmDeletePreset(p.id, p.label)}>
-                        <AppText style={styles.presetDeleteText}>✕</AppText>
-                      </Pressable>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <AppText style={styles.hint}>هنوز پرستی ذخیره نکرده‌ای.</AppText>
-              )}
-
-              <View style={styles.promoRow}>
-                <TextInput
-                  style={styles.promoInput}
-                  value={presetNameInput}
-                  onChangeText={setPresetNameInput}
-                  placeholder="نام پرست جدید"
-                  placeholderTextColor="rgba(255,255,255,0.35)"
+                <PresetRow
+                  onApplied={(label, previous) => setUndo({label, previous})}
+                  onDeleteUserPreset={confirmDeletePreset}
                 />
-                <Pressable
-                  style={[
-                    styles.promoBtn,
-                    !presetNameInput.trim() && styles.promoBtnDisabled,
-                  ]}
-                  disabled={!presetNameInput.trim()}
-                  onPress={() => {
-                    savePreset(presetNameInput.trim());
-                    setPresetNameInput('');
-                  }}>
-                  <AppText style={styles.promoBtnText}>ذخیره</AppText>
-                </Pressable>
-              </View>
-              <AppText style={styles.hint}>
-                تنظیمات فعلی (رنگ، ذرات، چرخش، پس‌زمینه و…) را با یک نام
-                دلخواه ذخیره کن تا بعداً با یک لمس به همین حالت برگردی.
-              </AppText>
-
               </View>
 
               <Pressable
@@ -1222,6 +1201,17 @@ export default function SettingsPanel({
             </>
           ) : null}
         </ScrollView>
+
+        {undo ? (
+          <View style={[styles.undoBar, {bottom: insets.bottom + 12}]}>
+            <AppText style={styles.undoText} numberOfLines={1}>
+              حالت {undo.label} فعال شد
+            </AppText>
+            <Pressable style={styles.undoBtn} onPress={revertPreset} hitSlop={6}>
+              <AppText style={styles.undoBtnText}>برگردان</AppText>
+            </Pressable>
+          </View>
+        ) : null}
       </Animated.View>
     </Modal>
   );
@@ -1671,26 +1661,6 @@ const styles = StyleSheet.create({
     color: '#eafffb',
     fontWeight: '700',
   },
-  presetChipWrap: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    gap: 4,
-  },
-  presetDeleteBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(248,113,113,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.4)',
-  },
-  presetDeleteText: {
-    color: '#fca5a5',
-    fontSize: 12,
-    fontWeight: '700',
-  },
   swatch: {
     width: 30,
     height: 30,
@@ -1741,6 +1711,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     writingDirection: 'rtl',
   },
+  undoBar: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    minHeight: 52,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: '#2a1748',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.5)',
+  },
+  undoText: {color: '#eafffb', fontSize: 14, flex: 1, writingDirection: 'rtl'},
+  undoBtn: {minHeight: 48, justifyContent: 'center', paddingHorizontal: 8},
+  undoBtnText: {color: '#c4b5fd', fontSize: 15, fontWeight: '700'},
   homeSection: {
     marginTop: 20,
   },
