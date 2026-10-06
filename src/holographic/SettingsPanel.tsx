@@ -372,54 +372,6 @@ export default function SettingsPanel({
               </View>
               */}
 
-              <AppText style={styles.sectionTitle}>پرست‌های من</AppText>
-              {userPresets.length > 0 ? (
-                <View style={styles.chips}>
-                  {userPresets.map(p => (
-                    <View key={p.id} style={styles.presetChipWrap}>
-                      <Pressable style={styles.chip} onPress={() => applyPreset(p.id)}>
-                        <AppText style={styles.chipText}>{p.label}</AppText>
-                      </Pressable>
-                      <Pressable
-                        style={styles.presetDeleteBtn}
-                        hitSlop={8}
-                        onPress={() => confirmDeletePreset(p.id, p.label)}>
-                        <AppText style={styles.presetDeleteText}>✕</AppText>
-                      </Pressable>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <AppText style={styles.hint}>هنوز پرستی ذخیره نکرده‌ای.</AppText>
-              )}
-
-              <View style={styles.promoRow}>
-                <TextInput
-                  style={styles.promoInput}
-                  value={presetNameInput}
-                  onChangeText={setPresetNameInput}
-                  placeholder="نام پرست جدید"
-                  placeholderTextColor="rgba(255,255,255,0.35)"
-                />
-                <Pressable
-                  style={[
-                    styles.promoBtn,
-                    !presetNameInput.trim() && styles.promoBtnDisabled,
-                  ]}
-                  disabled={!presetNameInput.trim()}
-                  onPress={() => {
-                    savePreset(presetNameInput.trim());
-                    setPresetNameInput('');
-                  }}>
-                  <AppText style={styles.promoBtnText}>ذخیره</AppText>
-                </Pressable>
-              </View>
-              <AppText style={styles.hint}>
-                تنظیمات فعلی (رنگ، ذرات، چرخش، پس‌زمینه و…) را با یک نام
-                دلخواه ذخیره کن تا بعداً با یک لمس به همین حالت برگردی.
-              </AppText>
-
-              <View style={styles.divider} />
 
               <RowSwitch
                 label="پیش‌نمایش متحرک والپیپرهای قفل‌شده (گالری)"
@@ -1193,13 +1145,61 @@ export default function SettingsPanel({
                 <AppText style={styles.liveBtnSub}>صفحه اصلی گوشیت زنده می‌شه</AppText>
               </Pressable>
 
+              <View style={styles.homeSection}>
+              <AppText style={styles.sectionTitle}>پرست‌های من</AppText>
+              {userPresets.length > 0 ? (
+                <View style={styles.chips}>
+                  {userPresets.map(p => (
+                    <View key={p.id} style={styles.presetChipWrap}>
+                      <Pressable style={styles.chip} onPress={() => applyPreset(p.id)}>
+                        <AppText style={styles.chipText}>{p.label}</AppText>
+                      </Pressable>
+                      <Pressable
+                        style={styles.presetDeleteBtn}
+                        hitSlop={8}
+                        onPress={() => confirmDeletePreset(p.id, p.label)}>
+                        <AppText style={styles.presetDeleteText}>✕</AppText>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <AppText style={styles.hint}>هنوز پرستی ذخیره نکرده‌ای.</AppText>
+              )}
+
+              <View style={styles.promoRow}>
+                <TextInput
+                  style={styles.promoInput}
+                  value={presetNameInput}
+                  onChangeText={setPresetNameInput}
+                  placeholder="نام پرست جدید"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                />
+                <Pressable
+                  style={[
+                    styles.promoBtn,
+                    !presetNameInput.trim() && styles.promoBtnDisabled,
+                  ]}
+                  disabled={!presetNameInput.trim()}
+                  onPress={() => {
+                    savePreset(presetNameInput.trim());
+                    setPresetNameInput('');
+                  }}>
+                  <AppText style={styles.promoBtnText}>ذخیره</AppText>
+                </Pressable>
+              </View>
+              <AppText style={styles.hint}>
+                تنظیمات فعلی (رنگ، ذرات، چرخش، پس‌زمینه و…) را با یک نام
+                دلخواه ذخیره کن تا بعداً با یک لمس به همین حالت برگردی.
+              </AppText>
+
+              </View>
+
               <Pressable
                 style={[styles.galleryEntry, styles.deviceEntryRow]}
                 onPress={() => onOpenGallery?.()}>
                 <AppText style={styles.galleryEntryText}>🖼️ گالری والپیپرها</AppText>
               </Pressable>
-
-              <AppText style={styles.otherOptionsTitle}>گزینه‌های دیگر</AppText>
 
               <Pressable
                 style={styles.galleryBtn}
@@ -1741,13 +1741,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     writingDirection: 'rtl',
   },
-  otherOptionsTitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'right',
-    marginTop: 24,
-    writingDirection: 'rtl',
+  homeSection: {
+    marginTop: 20,
   },
   galleryBtn: {
     marginTop: 12,
