@@ -399,7 +399,6 @@ export default function SettingsPanel({
               </View>
               */}
 
-
               <RowSwitch
                 label="پیش‌نمایش متحرک والپیپرهای قفل‌شده (گالری)"
                 value={settings.animatedLockedPreview}
@@ -588,7 +587,6 @@ export default function SettingsPanel({
                   onChange={v => update('dynamicColor', v)}
                   info="به‌جای رنگ دستی زیر، رنگ ذرات نور از خودِ عکس پس‌زمینهٔ فعلی استخراج می‌شود."                />
 
-
                 {/* The manual colour is ignored while dynamicColor is on. */}
                 {!settings.dynamicColor ? (
                   <RowColors
@@ -684,7 +682,6 @@ export default function SettingsPanel({
                   </>
                 ) : null}
 
-
                 <RowSwitch
                   label="پارالاکس با حرکت گوشی (ژیروسکوپ)"
                   value={settings.gyroParallax}
@@ -692,16 +689,17 @@ export default function SettingsPanel({
                   info="با کج‌کردن گوشی، پس‌زمینه و گوی‌ها کمی جابه‌جا می‌شوند — علاوه بر کشیدن با انگشت."                />
 
                 <RowSwitch
-                  label="پارالاکس سه‌بعدی (شبیه‌سازی عمق)"
-                  value={settings.depthParallax}
-                  onChange={v => update('depthParallax', v)}
-                  info="عکس پس‌زمینه مثل یک صفحهٔ سه‌بعدی با کج‌شدن گوشی می‌چرخد؛ نیاز به روشن‌بودن «پارالاکس با حرکت گوشی» دارد. توجه: این جداسازی واقعیِ سوژه از پس‌زمینه (که به هوش‌مصنوعی نیاز دارد) نیست، فقط شبیه‌سازی بصری عمق است."                />
-
-                <RowSwitch
                   label="واکنش لمسی (حلقهٔ نور روی ضربه)"
                   value={settings.touchRipple}
                   onChange={v => update('touchRipple', v)}
                   info="با هر ضربه روی صفحه، یک حلقهٔ نور کوتاه از همان نقطه باز می‌شود و محو می‌شود."                />
+                <Disclosure title="پیشرفته">
+                  <RowSwitch
+                    label="پارالاکس سه‌بعدی (شبیه‌سازی عمق)"
+                    value={settings.depthParallax}
+                    onChange={v => update('depthParallax', v)}
+                    info="عکس پس‌زمینه مثل یک صفحهٔ سه‌بعدی با کج‌شدن گوشی می‌چرخد؛ نیاز به روشن‌بودن «پارالاکس با حرکت گوشی» دارد. توجه: این جداسازی واقعیِ سوژه از پس‌زمینه (که به هوش‌مصنوعی نیاز دارد) نیست، فقط شبیه‌سازی بصری عمق است."                />
+                </Disclosure>
               </SettingsGroup>
               <SettingsGroup
                 title="کره و گوی‌ها"
@@ -711,23 +709,6 @@ export default function SettingsPanel({
                   label="چرخش خودکار"
                   value={settings.autoRotate}
                   onChange={v => update('autoRotate', v)}
-                />
-
-                <RowStepper
-                  label="سرعت چرخش"
-                  value={`${settings.speed.toFixed(2)}×`}
-                  onDec={() =>
-                    update(
-                      'speed',
-                      Math.max(0.25, +(settings.speed - 0.25).toFixed(2)),
-                    )
-                  }
-                  onInc={() =>
-                    update(
-                      'speed',
-                      Math.min(3, +(settings.speed + 0.25).toFixed(2)),
-                    )
-                  }
                 />
 
                 <RowStepper
@@ -771,33 +752,50 @@ export default function SettingsPanel({
                   }
                 />
 
-                <RowStepper
-                  label="تعداد گوی‌ها"
-                  value={`${settings.ballCount}`}
-                  onDec={() =>
-                    update('ballCount', Math.max(1, settings.ballCount - 2))
-                  }
-                  onInc={() =>
-                    update(
-                      'ballCount',
-                      Math.min(maxBallCount, settings.ballCount + 2),
-                    )
-                  }
-                />
-
-                <RowChoices
-                  label="محور چرخش"
-                  options={[
-                    {id: 'x', label: 'محور X'},
-                    {id: 'y', label: 'محور Y'},
-                    {id: 'z', label: 'محور Z'},
-                    {id: 'mixed', label: 'ناهمگون (اتمی)'},
-                  ]}
-                  selected={settings.rotationAxis}
-                  onSelect={id =>
-                    update('rotationAxis', id as 'x' | 'y' | 'z' | 'mixed')
-                  }
-                />
+                <Disclosure title="پیشرفته">
+                  <RowChoices
+                    label="محور چرخش"
+                    options={[
+                      {id: 'x', label: 'محور X'},
+                      {id: 'y', label: 'محور Y'},
+                      {id: 'z', label: 'محور Z'},
+                      {id: 'mixed', label: 'ناهمگون (اتمی)'},
+                    ]}
+                    selected={settings.rotationAxis}
+                    onSelect={id =>
+                      update('rotationAxis', id as 'x' | 'y' | 'z' | 'mixed')
+                    }
+                  />
+                  <RowStepper
+                    label="سرعت چرخش"
+                    value={`${settings.speed.toFixed(2)}×`}
+                    onDec={() =>
+                      update(
+                        'speed',
+                        Math.max(0.25, +(settings.speed - 0.25).toFixed(2)),
+                      )
+                    }
+                    onInc={() =>
+                      update(
+                        'speed',
+                        Math.min(3, +(settings.speed + 0.25).toFixed(2)),
+                      )
+                    }
+                  />
+                  <RowStepper
+                    label="تعداد گوی‌ها"
+                    value={`${settings.ballCount}`}
+                    onDec={() =>
+                      update('ballCount', Math.max(1, settings.ballCount - 2))
+                    }
+                    onInc={() =>
+                      update(
+                        'ballCount',
+                        Math.min(maxBallCount, settings.ballCount + 2),
+                      )
+                    }
+                  />
+                </Disclosure>
               </SettingsGroup>
             </>
           ) : null}
@@ -1059,7 +1057,6 @@ export default function SettingsPanel({
                   value={settings.showWeather}
                   onChange={v => update('showWeather', v)}
                   info="دما همیشه زنده از طریق GPS و API آب‌وهوا گرفته می‌شود؛ تا وقتی گرفتن آن موفق نشود چیزی نمایش داده نمی‌شود."                />
-
 
                 <RowSwitch
                   label="جابجایی ساعت و متن (کشیدن)"
