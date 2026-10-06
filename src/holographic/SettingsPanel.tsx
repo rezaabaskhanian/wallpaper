@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
+  Animated,
   Image,
   Linking,
   Modal,
@@ -69,6 +70,9 @@ const TEXT_COLORS = [
   '#7dd3fc', // blue
   '#000000', // black
 ];
+
+/** How far (dp) the handle must be dragged down to close the sheet. */
+const CLOSE_DRAG = 120;
 
 /** Four tabs, always visible; the sheet always opens on «خانه». */
 type TabId = 'home' | 'look' | 'text' | 'more';
@@ -146,6 +150,31 @@ export default function SettingsPanel({
     }
   }, [visible]);
   const [presetNameInput, setPresetNameInput] = useState('');
+
+  // Drag the handle down to close. The sheet follows the finger; past
+  // CLOSE_DRAG (or on a quick flick) it closes, otherwise it springs back.
+  const dragY = useRef(new Animated.Value(0)).current;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    if (visible) dragY.setValue(0);
+  }, [visible, dragY]);
+  const handlePan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_e, g) => g.dy > 4,
+      onPanResponderMove: (_e, g) => dragY.setValue(Math.max(0, g.dy)),
+      onPanResponderRelease: (_e, g) => {
+        if (g.dy > CLOSE_DRAG || g.vy > 1) {
+          onCloseRef.current();
+        } else {
+          Animated.spring(dragY, {toValue: 0, useNativeDriver: true}).start();
+        }
+      },
+      onPanResponderTerminate: () =>
+        Animated.spring(dragY, {toValue: 0, useNativeDriver: true}).start(),
+    }),
+  ).current;
 
   // In the "وسط صفحه" clock layout the clock can grow until it fills the
   // screen; the slider stops exactly there (same limit ClockWidget renders
@@ -234,8 +263,14 @@ export default function SettingsPanel({
       transparent
       onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
+      <Animated.View style={[styles.sheet, {transform: [{translateY: dragY}]}]}>
+        <View
+          style={styles.handleZone}
+          accessibilityRole="adjustable"
+          accessibilityLabel="برای بستن به پایین بکش"
+          {...handlePan.panHandlers}>
+          <View style={styles.handle} />
+        </View>
 
         {/* تب‌بار دسته‌ها: اولین چیزی که دیده می‌شود، بالای مودال. */}
         <View style={styles.tabBar}>
@@ -1185,11 +1220,7 @@ export default function SettingsPanel({
             </>
           ) : null}
         </ScrollView>
-
-        <Pressable style={styles.closeBtn} onPress={onClose}>
-          <AppText style={styles.closeText}>بستن</AppText>
-        </Pressable>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }
@@ -1467,13 +1498,18 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: 'rgba(139, 92, 246, 0.25)',
   },
+  handleZone: {
+    // Full-width 32dp strip: an easy target for the drag-to-close gesture.
+    height: 32,
+    marginTop: -10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   handle: {
-    alignSelf: 'center',
     width: 44,
     height: 4,
     borderRadius: 2,
     backgroundColor: 'rgba(255,255,255,0.25)',
-    marginBottom: 12,
   },
   tabBar: {
     flexDirection: 'row-reverse',
@@ -1934,17 +1970,5 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: 'right',
     writingDirection: 'rtl',
-  },
-  closeBtn: {
-    marginTop: 14,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  closeText: {
-    color: '#eafffb',
-    fontSize: 16,
-    fontWeight: '700',
   },
 });
