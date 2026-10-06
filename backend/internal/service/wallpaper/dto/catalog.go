@@ -1,5 +1,7 @@
 package dto
 
+import "time"
+
 // CategoryDTO خروجی یک دسته در کاتالوگ.
 type CategoryDTO struct {
 	ID       string  `json:"id"`
@@ -24,6 +26,8 @@ type WallpaperDTO struct {
 	// DownloadCount چند بار این والپیپر واقعاً روی گوشی اعمال شده — ببینید
 	// wallpaper.DownloadCount و TrackDownload.
 	DownloadCount int `json:"downloadCount"`
+	// CreatedAt زمان افزودن؛ ردیف «تازه‌ها»ی گالری بر اساس آن مرتب می‌شود.
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // CatalogResponse پاسخ اندپوینت GET /api/v1/catalog.

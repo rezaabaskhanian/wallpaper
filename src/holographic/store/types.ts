@@ -23,6 +23,10 @@ export type WallpaperItem = {
   width?: number;
   height?: number;
   bytes?: number;
+  /** Times actually set on a phone — drives the gallery's «محبوب‌ها» row. */
+  downloadCount?: number;
+  /** ISO time it was added — drives the gallery's «تازه‌ها» row. */
+  createdAt?: string;
 };
 
 /** The whole catalog as returned by `GET /api/v1/catalog`. */

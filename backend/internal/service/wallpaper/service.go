@@ -50,6 +50,7 @@ func toWallpaperDTO(w domain.Wallpaper) dto.WallpaperDTO {
 		Bytes:         w.Bytes,
 		IsActive:      w.IsActive,
 		DownloadCount: w.DownloadCount,
+		CreatedAt:     w.CreatedAt,
 	}
 }
 

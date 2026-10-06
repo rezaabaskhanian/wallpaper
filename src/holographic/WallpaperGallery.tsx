@@ -25,9 +25,15 @@ import {setWallpaperFromUrl} from './lockWallpaper';
 import type {WallpaperTarget} from './lockWallpaper';
 import {useSettings} from './SettingsContext';
 import {useStore} from './store/StoreContext';
-import type {WallpaperItem} from './store/types';
+import type {WallpaperCategory, WallpaperItem} from './store/types';
 import {trackWallpaperDownload} from './store/wallpaperDownload';
+import {toFa} from './date';
 import {announceWallpaperSet} from './oneTapWallpaper';
+
+/** How many wallpapers the «تازه‌ها» / «محبوب‌ها» rows show. */
+const ROW_SIZE = 15;
+/** Thumbnail width in those rows. */
+const ROW_THUMB_W = 104;
 
 type Props = {
   visible: boolean;
@@ -134,43 +140,74 @@ export default function WallpaperGallery({visible, onClose}: Props) {
     isUnlocked,
   } = useStore();
 
-  const [activeCat, setActiveCat] = useState<string>('all');
+  // null = the gallery's front page (rows + category cards); otherwise the
+  // id of the top-level category being browsed.
+  const [activeCat, setActiveCat] = useState<string | null>(null);
   const [selected, setSelected] = useState<WallpaperItem | null>(null);
   const [busy, setBusy] = useState(false);
+  const [activeSubCat, setActiveSubCat] = useState<string>('all');
 
   const columns = 3;
   const gap = 10;
   const cellWidth = (width - gap * (columns + 1)) / columns;
 
-  // دسته‌های اصلی (بدون والد) برای ردیف اول تب‌ها.
+  const allWallpapers = useMemo(() => catalog?.wallpapers ?? [], [catalog]);
+
+  // Wallpapers of a top-level category, including all its subcategories.
+  // Catalog order is already the server's ranking, so [0] is its best pick.
+  const itemsByTopCat = useMemo(() => {
+    const parentOf = new Map<string, string>();
+    for (const c of catalog?.categories ?? []) {
+      parentOf.set(c.id, c.parentId || c.id);
+    }
+    const map = new Map<string, WallpaperItem[]>();
+    for (const w of allWallpapers) {
+      const top = parentOf.get(w.category) ?? w.category;
+      map.set(top, [...(map.get(top) ?? []), w]);
+    }
+    return map;
+  }, [catalog, allWallpapers]);
+
   const topCategories = useMemo(
-    () => (catalog?.categories ?? []).filter(c => !c.parentId),
-    [catalog],
+    () =>
+      (catalog?.categories ?? []).filter(
+        c => !c.parentId && (itemsByTopCat.get(c.id)?.length ?? 0) > 0,
+      ),
+    [catalog, itemsByTopCat],
   );
 
-  // زیردسته‌های دستهٔ اصلیِ فعال (اگر انتخاب‌شده دستهٔ اصلی باشد)، برای ردیف دوم تب‌ها.
   const subCategories = useMemo(
-    () => (catalog?.categories ?? []).filter(c => c.parentId === activeCat),
+    () => (catalog?.categories ?? []).filter(c => activeCat && c.parentId === activeCat),
     [catalog, activeCat],
   );
 
-  const [activeSubCat, setActiveSubCat] = useState<string>('all');
+  const newest = useMemo(
+    () =>
+      allWallpapers.some(w => w.createdAt)
+        ? [...allWallpapers]
+            .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+            .slice(0, ROW_SIZE)
+        : [],
+    [allWallpapers],
+  );
+
+  const popular = useMemo(
+    () =>
+      allWallpapers.some(w => (w.downloadCount ?? 0) > 0)
+        ? [...allWallpapers]
+            .sort((a, b) => (b.downloadCount ?? 0) - (a.downloadCount ?? 0))
+            .slice(0, ROW_SIZE)
+        : [],
+    [allWallpapers],
+  );
 
   const items = useMemo(() => {
-    const all = catalog?.wallpapers ?? [];
-    if (activeCat === 'all') {
-      return all;
-    }
+    if (!activeCat) return [];
     if (activeSubCat !== 'all') {
-      return all.filter(w => w.category === activeSubCat);
+      return allWallpapers.filter(w => w.category === activeSubCat);
     }
-    // شامل والپیپرهای خودِ دستهٔ اصلی + همهٔ زیردسته‌هایش می‌شود.
-    const idsInGroup = new Set([
-      activeCat,
-      ...subCategories.map(c => c.id),
-    ]);
-    return all.filter(w => idsInGroup.has(w.category));
-  }, [catalog, activeCat, activeSubCat, subCategories]);
+    return itemsByTopCat.get(activeCat) ?? [];
+  }, [allWallpapers, itemsByTopCat, activeCat, activeSubCat]);
 
   const startPurchase = async () => {
     try {
@@ -245,15 +282,86 @@ export default function WallpaperGallery({visible, onClose}: Props) {
     }
   };
 
-  const categories = [{id: 'all', title: 'همه'}, ...topCategories];
-
-  const selectCat = (id: string) => {
+  const openCategory = (id: string) => {
     setActiveCat(id);
     setActiveSubCat('all');
   };
+  const backToFront = () => {
+    setActiveCat(null);
+    setActiveSubCat('all');
+  };
+  // Android back inside a category returns to the front page first.
+  const handleBack = () => (activeCat ? backToFront() : onClose());
+  const activeTitle = topCategories.find(c => c.id === activeCat)?.title ?? '';
+
+  /** One thumbnail (grid cell or row item), locked look for premium. */
+  const renderThumb = (item: WallpaperItem, cellW: number) => {
+    const locked = !isUnlocked(item);
+    return (
+      <Pressable
+        key={item.id}
+        onPress={() => onPressItem(item)}
+        accessibilityRole="imagebutton"
+        accessibilityLabel={item.title}
+        style={[styles.cell, {width: cellW}]}>
+        {locked && settings.animatedLockedPreview ? (
+          <LockedThumb uri={item.thumb} />
+        ) : (
+          <>
+            <Image source={{uri: item.thumb}} style={styles.thumb} resizeMode="cover" />
+            {locked ? (
+              <View style={styles.lockOverlay}>
+                <AppText style={styles.lockIcon}>🔒</AppText>
+              </View>
+            ) : null}
+          </>
+        )}
+      </Pressable>
+    );
+  };
+
+  /** A titled, horizontally scrolling row of thumbnails. */
+  const renderRow = (title: string, list: WallpaperItem[]) =>
+    list.length === 0 ? null : (
+      <View style={styles.section}>
+        <AppText style={styles.sectionTitle}>{title}</AppText>
+        <ChipRow>{list.map(w => renderThumb(w, ROW_THUMB_W))}</ChipRow>
+      </View>
+    );
+
+  /** Category card: cover photo, name, count, and the mood emoji if any. */
+  const renderCategoryCard = (c: WallpaperCategory) => {
+    const list = itemsByTopCat.get(c.id) ?? [];
+    // Prefer a free wallpaper as the cover so the card isn't a lock icon.
+    const cover = list.find(w => !w.premium) ?? list[0];
+    return (
+      <Pressable
+        key={c.id}
+        onPress={() => openCategory(c.id)}
+        accessibilityRole="button"
+        accessibilityLabel={c.title}
+        style={({pressed}) => [
+          styles.catCard,
+          {width: cellWidth},
+          pressed && styles.catCardPressed,
+        ]}>
+        {cover ? (
+          <Image source={{uri: cover.thumb}} style={styles.thumb} resizeMode="cover" />
+        ) : null}
+        <View style={styles.catShade} />
+        {c.mood ? <AppText style={styles.catMood}>{c.mood}</AppText> : null}
+        <View style={styles.catLabel}>
+          <AppText style={styles.catTitle} numberOfLines={1}>
+            {c.title}
+          </AppText>
+          <AppText style={styles.catCount}>{toFa(list.length)} عکس</AppText>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={handleBack}>
       <View style={styles.root}>
         <View style={styles.header}>
           <Pressable onPress={onClose} hitSlop={12} style={styles.headerBtn}>
@@ -279,42 +387,6 @@ export default function WallpaperGallery({visible, onClose}: Props) {
           </Pressable>
         ) : null}
 
-        {/* Categories */}
-        <ChipRow style={styles.cats}>
-          {categories.map(c => {
-            const active = c.id === activeCat;
-            return (
-              <Pressable
-                key={c.id}
-                onPress={() => selectCat(c.id)}
-                style={[styles.cat, active && styles.catActive]}>
-                <AppText style={[styles.catText, active && styles.catTextActive]}>
-                  {c.title}
-                </AppText>
-              </Pressable>
-            );
-          })}
-        </ChipRow>
-
-        {/* Subcategories (only when the active top category has children) */}
-        {subCategories.length > 0 ? (
-          <ChipRow style={styles.subCats}>
-            {[{id: 'all', title: 'همه'}, ...subCategories].map(c => {
-              const active = c.id === activeSubCat;
-              return (
-                <Pressable
-                  key={c.id}
-                  onPress={() => setActiveSubCat(c.id)}
-                  style={[styles.subCat, active && styles.subCatActive]}>
-                  <AppText style={[styles.subCatText, active && styles.subCatTextActive]}>
-                    {c.title}
-                  </AppText>
-                </Pressable>
-              );
-            })}
-          </ChipRow>
-        ) : null}
-
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color="#8b5cf6" size="large" />
@@ -326,43 +398,59 @@ export default function WallpaperGallery({visible, onClose}: Props) {
               <AppText style={styles.retryText}>تلاش دوباره</AppText>
             </Pressable>
           </View>
-        ) : items.length === 0 ? (
+        ) : allWallpapers.length === 0 ? (
           <View style={styles.center}>
             <AppText style={styles.muted}>هنوز والپیپری نیست.</AppText>
           </View>
+        ) : !activeCat ? (
+          // Front page: newest + most-set rows, then every category as a card.
+          <ScrollView contentContainerStyle={styles.frontContent}>
+            {renderRow('تازه‌ها', newest)}
+            {renderRow('محبوب‌ها', popular)}
+            <View style={styles.section}>
+              <AppText style={styles.sectionTitle}>دسته‌ها</AppText>
+              <View style={styles.catGrid}>{topCategories.map(renderCategoryCard)}</View>
+            </View>
+          </ScrollView>
         ) : (
-          <FlatList
-            data={items}
-            keyExtractor={i => i.id}
-            numColumns={columns}
-            contentContainerStyle={styles.gridContent}
-            columnWrapperStyle={styles.gridRow}
-            renderItem={({item}) => {
-              const locked = !isUnlocked(item);
-              return (
-                <Pressable
-                  onPress={() => onPressItem(item)}
-                  style={[styles.cell, {width: cellWidth}]}>
-                  {locked && settings.animatedLockedPreview ? (
-                    <LockedThumb uri={item.thumb} />
-                  ) : (
-                    <>
-                      <Image
-                        source={{uri: item.thumb}}
-                        style={styles.thumb}
-                        resizeMode="cover"
-                      />
-                      {locked ? (
-                        <View style={styles.lockOverlay}>
-                          <AppText style={styles.lockIcon}>🔒</AppText>
-                        </View>
-                      ) : null}
-                    </>
-                  )}
-                </Pressable>
-              );
-            }}
-          />
+          // Inside one category: its subcategories (if any) and the grid.
+          <>
+            <Pressable style={styles.backRow} onPress={backToFront} hitSlop={8}>
+              <AppText style={styles.backText}>‹ همه دسته‌ها</AppText>
+              <AppText style={styles.catHeading}>{activeTitle}</AppText>
+            </Pressable>
+            {subCategories.length > 0 ? (
+              <ChipRow style={styles.subCats}>
+                {[{id: 'all', title: 'همه'}, ...subCategories].map(c => {
+                  const active = c.id === activeSubCat;
+                  return (
+                    <Pressable
+                      key={c.id}
+                      onPress={() => setActiveSubCat(c.id)}
+                      style={[styles.subCat, active && styles.subCatActive]}>
+                      <AppText style={[styles.subCatText, active && styles.subCatTextActive]}>
+                        {c.title}
+                      </AppText>
+                    </Pressable>
+                  );
+                })}
+              </ChipRow>
+            ) : null}
+            {items.length === 0 ? (
+              <View style={styles.center}>
+                <AppText style={styles.muted}>اینجا هنوز والپیپری نیست.</AppText>
+              </View>
+            ) : (
+              <FlatList
+                data={items}
+                keyExtractor={i => i.id}
+                numColumns={columns}
+                contentContainerStyle={styles.gridContent}
+                columnWrapperStyle={styles.gridRow}
+                renderItem={({item}) => renderThumb(item, cellWidth)}
+              />
+            )}
+          </>
         )}
 
         {/* Preview + actions */}
@@ -460,20 +548,66 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   unlockText: {color: '#f5e6b3', fontSize: 14, fontWeight: '700', writingDirection: 'rtl'},
-  cats: {paddingTop: 12},
+  frontContent: {paddingBottom: 32},
+  section: {paddingTop: 16},
+  sectionTitle: {
+    color: '#eafffb',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'right',
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    writingDirection: 'rtl',
+  },
+  catGrid: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingHorizontal: 10,
+  },
+  catCard: {
+    aspectRatio: 0.8,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  catCardPressed: {opacity: 0.8},
+  catShade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '55%',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  catMood: {position: 'absolute', top: 6, right: 8, fontSize: 20},
+  catLabel: {position: 'absolute', left: 8, right: 8, bottom: 8},
+  catTitle: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  catCount: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    marginTop: 2,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  backRow: {
+    minHeight: 48,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingTop: 8,
+  },
+  backText: {color: '#c4b5fd', fontSize: 15, writingDirection: 'rtl'},
+  catHeading: {color: '#eafffb', fontSize: 17, fontWeight: '700', writingDirection: 'rtl'},
   chipRow: {flexGrow: 1, flexDirection: 'row', gap: 8, paddingHorizontal: 12},
   chipRowReverse: {flexDirection: 'row-reverse'},
-  cat: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.2)',
-  },
-  catActive: {backgroundColor: 'rgba(139, 92, 246, 0.22)', borderColor: '#8b5cf6'},
-  catText: {color: 'rgba(255,255,255,0.7)', fontSize: 13, writingDirection: 'rtl'},
-  catTextActive: {color: '#eafffb', fontWeight: '700'},
   subCats: {paddingTop: 6},
   subCat: {
     paddingHorizontal: 12,
