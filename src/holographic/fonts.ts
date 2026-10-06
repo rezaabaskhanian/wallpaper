@@ -16,7 +16,8 @@ export type FontOption = {
   id: string;
   /** Persian label shown in the settings picker. */
   label: string;
-  /** Short text rendered in this font as a live preview. */
+  /** Short text rendered in this font as a live preview — for Persian
+   * fonts, the font's own name. */
   sample: string;
   /** Persian/Arabic fonts style Persian text; English fonts style Latin. */
   script: FontScript;
@@ -33,7 +34,7 @@ export const FONTS: FontOption[] = [
   {
     id: 'vazirmatn',
     label: 'وزیرمتن',
-    sample: 'نستعلیقِ نور',
+    sample: 'وزیرمتن',
     script: 'fa',
     families: {
       light: 'Vazirmatn-Light',
@@ -45,42 +46,42 @@ export const FONTS: FontOption[] = [
   {
     id: 'sahel',
     label: 'ساحل',
-    sample: 'نستعلیقِ نور',
+    sample: 'ساحل',
     script: 'fa',
     families: {regular: 'Sahel', bold: 'Sahel-Bold'},
   },
   {
     id: 'samim',
     label: 'صمیم',
-    sample: 'نستعلیقِ نور',
+    sample: 'صمیم',
     script: 'fa',
     families: {regular: 'Samim', bold: 'Samim-Bold'},
   },
   {
     id: 'shabnam',
     label: 'شبنم',
-    sample: 'نستعلیقِ نور',
+    sample: 'شبنم',
     script: 'fa',
     families: {regular: 'Shabnam', bold: 'Shabnam-Bold'},
   },
   {
     id: 'iransans',
     label: 'ایران‌سنس',
-    sample: 'نستعلیقِ نور',
+    sample: 'ایران‌سنس',
     script: 'fa',
     families: {regular: 'Iranian-Sans', bold: 'Iranian-Sans'},
   },
   {
     id: 'gandom',
     label: 'گندم',
-    sample: 'نستعلیقِ نور',
+    sample: 'گندم',
     script: 'fa',
     families: {regular: 'Gandom', bold: 'Gandom'},
   },
   {
     id: 'lalezar',
     label: 'لاله‌زار',
-    sample: 'نستعلیقِ نور',
+    sample: 'لاله‌زار',
     script: 'fa',
     families: {regular: 'Lalezar-Regular', bold: 'Lalezar-Regular'},
   },
