@@ -254,9 +254,9 @@ export default function SettingsPanel({
       : 1.6;
 
   const confirmDeletePreset = (id: string, label: string) => {
-    showAlert('حذف پرست', `«${label}» حذف شود؟`, {
+    showAlert('حذف حالت', `«${label}» حذف بشه؟`, {
       confirmText: 'حذف',
-      cancelText: 'انصراف',
+      cancelText: 'نه',
       onConfirm: () => deletePreset(id),
     });
   };
@@ -278,7 +278,7 @@ export default function SettingsPanel({
     const username = DEVELOPER_TELEGRAM_USERNAME;
     Linking.openURL(`tg://resolve?domain=${username}`).catch(() =>
       Linking.openURL(`https://t.me/${username}`).catch(() =>
-        showAlert('خطا', 'باز کردن تلگرام ممکن نشد.'),
+        showAlert('خطا', 'تلگرام باز نشد.'),
       ),
     );
   };
@@ -377,7 +377,7 @@ export default function SettingsPanel({
                 <ListRow
                   icon={Redo2}
                   title="بازگشت به لانچر قبلی"
-                  subtitle="در صفحه بعد، لانچر قبلی گوشیت رو انتخاب کن."
+                  subtitle="در صفحه بعد، لانچر قبلی گوشیت رو انتخاب کن"
                   onPress={openLauncherSettings}
                 />
               ) : (
@@ -392,7 +392,7 @@ export default function SettingsPanel({
               <ListRow icon={BookOpen} title="راهنمای کار با اپ" onPress={() => onOpenHelp?.()} />
               <ListRow
                 icon={CirclePlay}
-                title="پیش‌نمایش متحرک والپیپرهای قفل‌شده (گالری)"
+                title="پیش‌نمایش متحرک در گالری"
                 right={
                   <SettingSwitch
                     value={settings.animatedLockedPreview}
@@ -403,7 +403,7 @@ export default function SettingsPanel({
               <ListRow
                 icon={MessageSquare}
                 title="ارتباط با سازنده"
-                subtitle={`تلگرام: @${DEVELOPER_TELEGRAM_USERNAME}`}
+                subtitle="در تلگرام پیام بده"
                 onPress={openDeveloperTelegram}
               />
               <ListRow
@@ -435,7 +435,7 @@ export default function SettingsPanel({
                           style={styles.promoInput}
                           value={promoInput}
                           onChangeText={setPromoInput}
-                          placeholder="کد تخفیف را وارد کن"
+                          placeholder="کد تخفیف رو بنویس"
                           placeholderTextColor="rgba(255,255,255,0.35)"
                           autoCapitalize="characters"
                           autoCorrect={false}
@@ -449,7 +449,7 @@ export default function SettingsPanel({
                           </AppText>
                         </Pressable>
                       </View>
-                      <HintLine>با وارد کردن کد معتبر، همهٔ والپیپرهای پرمیوم باز می‌شوند.</HintLine>
+                      <HintLine>با کد معتبر، همه والپیپرهای ویژه باز می‌شه</HintLine>
                     </View>
                   ) : null}
                 </>
@@ -464,7 +464,7 @@ export default function SettingsPanel({
                 open={openGroup.look === 'background'}
                 onToggle={() => toggleGroup('look', 'background')}>
                 <RowChoices
-                  label="پس‌زمینه"
+                  label="عکس پس‌زمینه"
                   options={backgroundOptions}
                   selected={settings.backgroundId}
                   onSelect={id => update('backgroundId', id)}
@@ -476,17 +476,18 @@ export default function SettingsPanel({
                   </AppText>
                 </Pressable> */}
                 {settings.customBackgroundUri ? (
-                  <HintLine>یک عکس از گالری انتخاب شده — گزینهٔ «گالری» را در بالا بزن.</HintLine>
+                  <HintLine>عکس گالری رو از گزینه «گالری» بالا انتخاب کن</HintLine>
                 ) : null}
 
                 <View style={styles.divider} />
                 <AppText style={styles.sectionTitle}>چرخش رندوم پس‌زمینه‌ها</AppText>
 
                 <RowSwitch
-                  label="نمایش رندوم عکس‌های ستاره‌دار"
+                  label="چرخش بین عکس‌های ستاره‌دار"
+                  hint="هر بار یکی از عکس‌های ستاره‌دارت می‌اد"
                   value={settings.randomBackgroundEnabled}
                   onChange={v => update('randomBackgroundEnabled', v)}
-                  info="هر بار که اپ باز می‌شود، یکی از عکس‌های زیر رندوم به‌عنوان پس‌زمینه انتخاب می‌شود. از «گالری والپیپر» یک عکس را باز کن و «☆ افزودن به چرخش رندوم» را بزن (حداکثر ۵ عکس)."
+                  info="هر بار که اپ باز می‌شه، یکی از عکس‌های زیر رندوم پس‌زمینه می‌شه. از «گالری والپیپرها» یه عکس رو باز کن و «افزودن به چرخش رندوم» رو بزن (حداکثر ۵ عکس)."
                 />
 
                 {settings.randomBackgroundUris.length > 0 ? (
@@ -514,7 +515,7 @@ export default function SettingsPanel({
                     ))}
                   </ScrollView>
                 ) : (
-                  <HintLine>هنوز عکسی اضافه نشده.</HintLine>
+                  <HintLine>هنوز عکسی اضافه نکردی</HintLine>
                 )}
               </SettingsGroup>
               <SettingsGroup
@@ -522,7 +523,7 @@ export default function SettingsPanel({
                 open={openGroup.look === 'effects'}
                 onToggle={() => toggleGroup('look', 'effects')}>
                 <RowChoices
-                  label="حالت روز/شب"
+                  label="حالت روز و شب"
                   options={[
                     {id: 'auto', label: 'خودکار'},
                     {id: 'day', label: 'روز'},
@@ -536,20 +537,21 @@ export default function SettingsPanel({
                 />
 
                 <RowSwitch
-                  label="نور خورشید (Lens Flare)"
+                  label="نور خورشید"
+                  hint="نور با ساعت روز حرکت می‌کنه"
                   value={settings.sunFlare}
                   onChange={v => update('sunFlare', v)}
-                  info="یک هالهٔ نور شبیه خورشید که همراه با ساعت واقعی روز روی آسمان حرکت می‌کند و نورش عوض می‌شود: صبح از سمت چپ و پایین با نور نارنجی طلوع می‌کند، ظهر بالای صفحه و سفید و ملایم است، و عصر سمت راست با نور نارنجی غروب می‌کند؛ شب خاموش است. زمان طلوع و غروب از موقعیت مکانی شما گرفته می‌شود."
+                  info="یه هاله نور شبیه خورشید که با ساعت واقعی روز روی آسمون حرکت می‌کنه و نورش عوض می‌شه: صبح از سمت چپ و پایین با نور نارنجی طلوع می‌کنه، ظهر بالای صفحه سفید و ملایمه، و عصر سمت راست با نور نارنجی غروب می‌کنه؛ شب خاموشه. زمان طلوع و غروب از موقعیت گوشیت گرفته می‌شه."
                 />
                 {settings.sunFlare ? (
                   <>
                     <SunDayPreview />
-                    <HintLine info="پیش‌نمایش: یک روز کامل در چند ثانیه. نقطهٔ سفید جای خورشید در همین لحظه است.">
-                      پیش‌نمایش یک روز کامل
+                    <HintLine info="یه روز کامل توی چند ثانیه. نقطه سفید جای خورشید توی همین لحظه‌ست.">
+                      پیش‌نمایش یه روز کامل
                     </HintLine>
                     {settings.dayNightMode !== 'auto' ? (
-                      <HintLine info="برای اینکه نور خورشید روی صفحه با ساعت روز حرکت کند، «حالت روز/شب» را روی «خودکار» بگذار.">
-                        حالت روز/شب را روی «خودکار» بگذار
+                      <HintLine info="برای اینکه نور خورشید با ساعت روز روی صفحه حرکت کنه، «حالت روز و شب» رو روی «خودکار» بذار.">
+                        حالت روز و شب رو روی «خودکار» بذار
                       </HintLine>
                     ) : null}
                   </>
@@ -593,14 +595,15 @@ export default function SettingsPanel({
                       id as 'low' | 'medium' | 'high' | 'extreme',
                     )
                   }
-                  info="هرچه شدت بیشتر باشد، هم تعداد ذرات نور بیشتر می‌شود و هم سرعت حرکتشان."
+                  info="هرچی شدت بیشتر باشه، هم تعداد ذرات نور بیشتر می‌شه هم سرعتشون."
                 />
 
                 <RowSwitch
-                  label="رنگ پویا از عکس پس‌زمینه"
+                  label="رنگ خودکار از عکس"
+                  hint="رنگ ذرات از خود عکس گرفته می‌شه"
                   value={settings.dynamicColor}
                   onChange={v => update('dynamicColor', v)}
-                  info="به‌جای رنگ دستی زیر، رنگ ذرات نور از خودِ عکس پس‌زمینهٔ فعلی استخراج می‌شود."                />
+                  info="به‌جای رنگ دستی، رنگ ذرات نور از خود عکس پس‌زمینه فعلی گرفته می‌شه."                />
 
                 {/* The manual colour is ignored while dynamicColor is on. */}
                 {!settings.dynamicColor ? (
@@ -613,7 +616,7 @@ export default function SettingsPanel({
                 ) : null}
 
                 <RowSwitch
-                  label="افکت سینمایی (تیرگی لبه‌ها)"
+                  label="تیرگی لبه‌ها"
                   value={settings.vignette}
                   onChange={v => update('vignette', v)}
                 />
@@ -633,18 +636,18 @@ export default function SettingsPanel({
                 />
 
                 <RowChoices
-                  label="جلوه‌های آب‌وهوا (باران/برف)"
+                  label="باران و برف"
                   options={[
                     {id: 'off', label: 'خاموش'},
                     {id: 'rain', label: 'باران'},
                     {id: 'snow', label: 'برف'},
-                    {id: 'auto', label: 'خودکار (بر اساس هوا)'},
+                    {id: 'auto', label: 'خودکار'},
                   ]}
                   selected={settings.weatherEffects}
                   onSelect={id =>
                     update('weatherEffects', id as 'off' | 'rain' | 'snow' | 'auto')
                   }
-                  info="حالت خودکار به گرفتن موفق وضعیت هوا از GPS و API نیاز دارد؛ اگر دسترسی موقعیت مکانی داده نشود یا اینترنت نباشد، فعال نمی‌شود."
+                  info="حالت خودکار باید وضعیت هوا رو از موقعیت گوشی و اینترنت بگیره؛ اگه اجازه موقعیت ندی یا اینترنت نباشه، فعال نمی‌شه."
                 />
 
                 {/* [combat mode disabled for now — planned for a future
@@ -665,55 +668,62 @@ export default function SettingsPanel({
                 open={openGroup.look === 'motion'}
                 onToggle={() => toggleGroup('look', 'motion')}>
                 <RowSwitch
-                  label="زنده‌سازی پس‌زمینه (حرکت آرام)"
+                  label="حرکت آرام پس‌زمینه"
+                  hint="عکس آروم زوم و جابه‌جا می‌شه"
                   value={settings.livingWallpaper}
                   onChange={v => update('livingWallpaper', v)}
-                  info="عکس پس‌زمینه به‌آرامی زوم و جابه‌جا می‌شود؛ هر بار که اپ باز می‌شود هم یک حرکت شروع (بیدار شدن) دارد."
+                  info="عکس پس‌زمینه آروم زوم و جابه‌جا می‌شه؛ هر بار که اپ باز می‌شه هم یه حرکت شروع (بیدار شدن) داره."
                 />
 
                 {settings.livingWallpaper ? (
                   <>
                     <RowSwitch
-                      label="لرزش آرام پس‌زمینه"
+                      label="لرزش آرام"
+                      hint="یه لرزش خیلی ریز روی حرکت آرام"
                       value={settings.wallpaperShake}
                       onChange={v => update('wallpaperShake', v)}
-                      info="یک لرزش بسیار ریز و ملایم روی حرکت آرام بالا اضافه می‌شود."                    />
+                      info="یه لرزش خیلی ریز و ملایم روی حرکت آرام اضافه می‌شه."                    />
                   </>
                 ) : null}
 
                 <RowSwitch
-                  label="موج آب با لمس صفحه"
+                  label="موج آب با لمس"
+                  hint="باتری کمی بیشتر مصرف می‌شه"
                   value={settings.waterRipple}
                   onChange={v => update('waterRipple', v)}
-                  info="با هر لمس، مثل افتادن سنگ در آب، موج روی خودِ عکس پخش می‌شود؛ هر بار که اپ باز می‌شود هم یک موج از وسط صفحه شروع می‌شود. اگر لایو ولپیپر را هم ست کرده باشید، روی صفحهٔ اصلی گوشی هم کار می‌کند (اندروید ۱۳ به بالا). ⚡ با این قابلیت مصرف باتری کمی بیشتر می‌شود."                />
+                  info="با هر لمس، مثل افتادن سنگ توی آب، موج روی خود عکس پخش می‌شه؛ هر بار که اپ باز می‌شه هم یه موج از وسط صفحه شروع می‌شه. اگه والپیپر زنده رو هم گذاشته باشی، روی صفحه اصلی گوشی هم کار می‌کنه (اندروید ۱۳ به بالا). باتری کمی بیشتر مصرف می‌شه."                />
 
                 {settings.waterRipple ? (
                   <>
                     <RowSwitch
-                      label="موج خودکار (هر ۱۰ ثانیه)"
+                      label="موج خودکار"
+                      hint="هر ۱۰ ثانیه یه موج، حتی بدون لمس"
                       value={settings.waterRippleAuto}
                       onChange={v => update('waterRippleAuto', v)}
-                      info="بدون لمس هم هر ۱۰ ثانیه یک موج از یک نقطهٔ تصادفی شروع می‌شود. فقط وقتی اپ باز است اجرا می‌شود تا باتری مصرف نکند."                    />
+                      info="بدون لمس هم هر ۱۰ ثانیه یه موج از یه نقطه تصادفی شروع می‌شه. فقط وقتی اپ بازه اجرا می‌شه تا باتری مصرف نکنه."                    />
                   </>
                 ) : null}
 
                 <RowSwitch
-                  label="پارالاکس با حرکت گوشی (ژیروسکوپ)"
+                  label="حرکت با کج‌کردن گوشی"
+                  hint="با کج‌کردن گوشی، عکس کمی جابه‌جا می‌شه"
                   value={settings.gyroParallax}
                   onChange={v => update('gyroParallax', v)}
-                  info="با کج‌کردن گوشی، پس‌زمینه و گوی‌ها کمی جابه‌جا می‌شوند — علاوه بر کشیدن با انگشت."                />
+                  info="با کج‌کردن گوشی، پس‌زمینه و گوی‌ها کمی جابه‌جا می‌شن — علاوه بر کشیدن با انگشت."                />
 
                 <RowSwitch
-                  label="واکنش لمسی (حلقهٔ نور روی ضربه)"
+                  label="حلقه نور با لمس"
+                  hint="هر جا بزنی یه حلقه نور باز می‌شه"
                   value={settings.touchRipple}
                   onChange={v => update('touchRipple', v)}
-                  info="با هر ضربه روی صفحه، یک حلقهٔ نور کوتاه از همان نقطه باز می‌شود و محو می‌شود."                />
+                  info="با هر ضربه روی صفحه، یه حلقه نور کوتاه از همون نقطه باز می‌شه و محو می‌شه."                />
                 <Disclosure title="پیشرفته" summary="عمق سه‌بعدی">
                   <RowSwitch
-                    label="پارالاکس سه‌بعدی (شبیه‌سازی عمق)"
+                    label="عمق سه‌بعدی"
+                    hint="عکس مثل یه صفحه سه‌بعدی می‌چرخه"
                     value={settings.depthParallax}
                     onChange={v => update('depthParallax', v)}
-                    info="عکس پس‌زمینه مثل یک صفحهٔ سه‌بعدی با کج‌شدن گوشی می‌چرخد؛ نیاز به روشن‌بودن «پارالاکس با حرکت گوشی» دارد. توجه: این جداسازی واقعیِ سوژه از پس‌زمینه (که به هوش‌مصنوعی نیاز دارد) نیست، فقط شبیه‌سازی بصری عمق است."                />
+                    info="عکس پس‌زمینه مثل یه صفحه سه‌بعدی با کج‌شدن گوشی می‌چرخه؛ «حرکت با کج‌کردن گوشی» باید روشن باشه. این جداکردن واقعی سوژه از پس‌زمینه نیست، فقط شبیه‌سازی عمقه."                />
                 </Disclosure>
               </SettingsGroup>
               <SettingsGroup
@@ -748,7 +758,7 @@ export default function SettingsPanel({
 
                 {orbitCategories.length >= 2 ? (
                   <RowChoices
-                    label="تم اوربیت (شهدا/طبیعت/...)"
+                    label="تم گوی‌ها"
                     options={orbitCategories.map(c => ({id: c.id, label: c.title}))}
                     selected={settings.orbitCategoryId}
                     onSelect={id => update('orbitCategoryId', id)}
@@ -771,10 +781,10 @@ export default function SettingsPanel({
                   <RowChoices
                     label="محور چرخش"
                     options={[
-                      {id: 'x', label: 'محور X'},
-                      {id: 'y', label: 'محور Y'},
-                      {id: 'z', label: 'محور Z'},
-                      {id: 'mixed', label: 'ناهمگون (اتمی)'},
+                      {id: 'x', label: 'عمودی'},
+                      {id: 'y', label: 'افقی'},
+                      {id: 'z', label: 'مثل عقربه'},
+                      {id: 'mixed', label: 'آزاد'},
                     ]}
                     selected={settings.rotationAxis}
                     onSelect={id =>
@@ -834,7 +844,7 @@ export default function SettingsPanel({
                 />
 
                 <RowChoices
-                  label="حالت نمایش ساعت"
+                  label="۱۲ یا ۲۴ ساعته"
                   options={[
                     {id: '12', label: '۱۲ ساعته'},
                     {id: '24', label: '۲۴ ساعته'},
@@ -845,14 +855,14 @@ export default function SettingsPanel({
 
                 {settings.hourFormat === '12' ? (
                   <RowSwitch
-                    label="نمایش قبل‌ازظهر/بعدازظهر"
+                    label="نمایش قبل‌ازظهر و بعدازظهر"
                     value={settings.showAmPm}
                     onChange={v => update('showAmPm', v)}
                   />
                 ) : null}
 
                 <RowChoices
-                  label="ارقام ساعت"
+                  label="ارقام"
                   options={[
                     {id: 'fa', label: 'فارسی'},
                     {id: 'en', label: 'انگلیسی'},
@@ -864,8 +874,8 @@ export default function SettingsPanel({
                 <RowChoices
                   label="چیدمان ساعت"
                   options={[
-                    {id: 'inline', label: 'بالا (کنار تاریخ)'},
-                    {id: 'bigCentered', label: 'وسط صفحه (بزرگ)'},
+                    {id: 'inline', label: 'بالا، کنار تاریخ'},
+                    {id: 'bigCentered', label: 'وسط صفحه، بزرگ'},
                   ]}
                   selected={settings.clockLayout}
                   onSelect={id => {
@@ -876,11 +886,11 @@ export default function SettingsPanel({
                       update('clockFontScale', 1.6);
                     }
                   }}
-                  info="در حالت «وسط صفحه» فقط ساعت وسط صفحه و بزرگ نمایش داده می‌شود — ساعت‌شمار بالا، دقیقه پایین — و تاریخ زیر آن نشان داده نمی‌شود."
+                  info="در حالت «وسط صفحه» فقط ساعت، بزرگ و وسط صفحه نشون داده می‌شه — ساعت بالا، دقیقه پایین — و تاریخ زیرش نمیاد."
                 />
 
                 <RowSlider
-                  label="اندازه فونت ساعت"
+                  label="اندازه ساعت"
                   value={Math.min(settings.clockFontScale, maxClockScale)}
                   min={0.7}
                   max={maxClockScale}
@@ -891,14 +901,14 @@ export default function SettingsPanel({
                 />
 
                 <RowColors
-                  label="رنگ فونت ساعت"
+                  label="رنگ ساعت"
                   colors={TEXT_COLORS}
                   selected={settings.clockTextColor}
                   onSelect={c => update('clockTextColor', c)}
                 />
                 <Disclosure title="رنگ‌های بیشتر">
                   <RowColors
-                    label="رنگ تاریخ (متن کوچک)"
+                    label="رنگ تاریخ"
                     colors={TEXT_COLORS}
                     selected={settings.clockSmallTextColor}
                     onSelect={c => update('clockSmallTextColor', c)}
@@ -975,7 +985,7 @@ export default function SettingsPanel({
 
                 {quoteCategories.length > 1 ? (
                   <RowChoices
-                    label="دسته‌ی نقل‌قول‌ها"
+                    label="دسته جمله‌ها"
                     options={quoteCategories.map(c => ({id: c.id, label: c.title}))}
                     selected={settings.quoteCategoryId || quoteCategories[0].id}
                     onSelect={id => update('quoteCategoryId', id)}
@@ -983,7 +993,7 @@ export default function SettingsPanel({
                 ) : null}
 
                 <RowSlider
-                  label="اندازه فونت متن پایین"
+                  label="اندازه متن"
                   value={settings.quoteFontScale}
                   min={0.7}
                   max={1.6}
@@ -994,14 +1004,14 @@ export default function SettingsPanel({
                 />
 
                 <RowColors
-                  label="رنگ فونت متن پایین"
+                  label="رنگ متن"
                   colors={TEXT_COLORS}
                   selected={settings.quoteTextColor}
                   onSelect={c => update('quoteTextColor', c)}
                 />
                 <Disclosure title="رنگ‌های بیشتر">
                   <RowColors
-                    label="رنگ خط کوچک متن پایین"
+                    label="رنگ خط کوچک"
                     colors={TEXT_COLORS}
                     selected={settings.quoteSmallTextColor}
                     onSelect={c => update('quoteSmallTextColor', c)}
@@ -1055,13 +1065,13 @@ export default function SettingsPanel({
                 <AppText style={styles.sectionTitle}>ویجت صفحهٔ اصلی</AppText>
 
                 <RowSwitch
-                  label="چرخش خودکار نقل‌قول ویجت"
+                  label="چرخش خودکار جمله‌های ویجت"
                   value={settings.widgetAutoRotateQuote}
                   onChange={v => {
                     update('widgetAutoRotateQuote', v);
                     setWidgetAutoRotateQuote(v).catch(() => {});
                   }}
-                  info="روی صفحه اصلی انگشت نگه دار و ویجت «Wallpaper» رو اضافه کن."                />
+                  info="روی صفحه اصلی گوشی انگشت نگه دار و ویجت «Wallpaper» رو اضافه کن."                />
               </SettingsGroup>
               <SettingsGroup
                 title="هوا و چیدمان"
@@ -1069,12 +1079,14 @@ export default function SettingsPanel({
                 onToggle={() => toggleGroup('text', 'layout')}>
                 <RowSwitch
                   label="نمایش هوا"
+                  hint="دما از موقعیت گوشی گرفته می‌شه"
                   value={settings.showWeather}
                   onChange={v => update('showWeather', v)}
-                  info="دما همیشه زنده از طریق GPS و API آب‌وهوا گرفته می‌شود؛ تا وقتی گرفتن آن موفق نشود چیزی نمایش داده نمی‌شود."                />
+                  info="دما همیشه زنده از موقعیت گوشی و سرویس هواشناسی گرفته می‌شه؛ تا وقتی گرفتنش موفق نشه چیزی نشون داده نمی‌شه."                />
 
                 <RowSwitch
-                  label="جابجایی ساعت و متن (کشیدن)"
+                  label="جابه‌جایی ساعت و متن"
+                  hint="روشن کن و با انگشت بکششون"
                   value={settings.editLayout}
                   onChange={v => {
                     update('editLayout', v);
@@ -1082,7 +1094,7 @@ export default function SettingsPanel({
                       onClose();
                     }
                   }}
-                  info="روشن کن و پنجره را ببند، سپس ساعت، دما یا متن پایین را با انگشت بکش تا جابه‌جا شود."                />
+                  info="روشن کن و پنجره رو ببند، بعد ساعت، دما یا متن پایین رو با انگشت بکش تا جابه‌جا بشه."                />
                 <Pressable
                   style={styles.galleryBtn}
                   onPress={() => {
@@ -1125,15 +1137,15 @@ export default function SettingsPanel({
 
               <ListRow
                 icon={Lock}
-                title="عکس ثابت برای صفحه قفل"
-                subtitle="روی صفحه قفل فقط عکس ثابت می‌شه"
+                title="عکس صفحه قفل"
+                subtitle="اندروید روی صفحه قفل فقط عکس ثابت می‌ذاره"
                 info="اندروید اجازه والپیپر زنده روی صفحه قفل نمی‌ده، برای همین اینجا عکس ثابت گذاشته می‌شه."
                 onPress={() => onSetWallpaper?.('lock')}
               />
               <ListRow
                 icon={BatteryCharging}
-                title="نمایش هنگام شارژ"
-                subtitle="موقع شارژ، صحنه زنده به‌جای محافظ صفحه پخش می‌شه."
+                title="نمایش موقع شارژ"
+                subtitle="موقع شارژ، صحنه زنده پخش می‌شه"
                 onPress={openScreenSaverSettings}
                 last
               />
@@ -1238,10 +1250,17 @@ function InfoButton({title, info}: {title: string; info: string}) {
 }
 
 /** Setting label, with a «؟» when there is a longer explanation. */
-function RowLabel({label, info}: {label: string; info?: string}) {
+function RowLabel({label, hint, info}: {label: string; hint?: string; info?: string}) {
   return (
     <View style={styles.labelWrap}>
-      <AppText style={styles.rowLabel}>{label}</AppText>
+      <View style={styles.labelText}>
+        <AppText style={styles.rowLabel}>{label}</AppText>
+        {hint ? (
+          <AppText style={styles.rowHint} numberOfLines={1}>
+            {hint}
+          </AppText>
+        ) : null}
+      </View>
       {info ? <InfoButton title={label} info={info} /> : null}
     </View>
   );
@@ -1331,17 +1350,28 @@ function RowSwitch({
   value,
   onChange,
   info,
+  hint,
 }: {
   label: string;
   /** Full explanation shown behind a «؟» next to the label. */
   info?: string;
+  /** One line under the label. */
+  hint?: string;
   value: boolean;
   onChange: (v: boolean) => void;
 }) {
   return (
     <View style={styles.row}>
+      <View style={styles.labelText}>
+        <AppText style={styles.rowLabel}>{label}</AppText>
+        {hint ? (
+          <AppText style={styles.rowHint} numberOfLines={1}>
+            {hint}
+          </AppText>
+        ) : null}
+      </View>
+      {info ? <InfoButton title={label} info={info} /> : null}
       <SettingSwitch value={value} onChange={onChange} />
-      <RowLabel label={label} info={info} />
     </View>
   );
 }
@@ -1352,10 +1382,13 @@ function RowStepper({
   onDec,
   onInc,
   info,
+  hint,
 }: {
   label: string;
   /** Full explanation shown behind a «؟» next to the label. */
   info?: string;
+  /** One line under the label. */
+  hint?: string;
   value: string;
   onDec: () => void;
   onInc: () => void;
@@ -1381,7 +1414,7 @@ function RowStepper({
           <Plus size={18} color="#eafffb" />
         </Pressable>
       </View>
-      <RowLabel label={label} info={info} />
+      <RowLabel label={label} hint={hint} info={info} />
     </View>
   );
 }
@@ -1500,17 +1533,20 @@ function RowChoices({
   selected,
   onSelect,
   info,
+  hint,
 }: {
   label: string;
   /** Full explanation shown behind a «؟» next to the label. */
   info?: string;
+  /** One line under the label. */
+  hint?: string;
   options: {id: string; label: string}[];
   selected: string;
   onSelect: (id: string) => void;
 }) {
   return (
     <View style={styles.choicesRow}>
-      <RowLabel label={label} info={info} />
+      <RowLabel label={label} hint={hint} info={info} />
       <View style={styles.chips}>
         {options.map(opt => {
           const active = opt.id === selected;
@@ -1548,17 +1584,20 @@ function RowColors({
   selected,
   onSelect,
   info,
+  hint,
 }: {
   label: string;
   /** Full explanation shown behind a «؟» next to the label. */
   info?: string;
+  /** One line under the label. */
+  hint?: string;
   colors: string[];
   selected: string;
   onSelect: (color: string) => void;
 }) {
   return (
     <View style={styles.choicesRow}>
-      <RowLabel label={label} info={info} />
+      <RowLabel label={label} hint={hint} info={info} />
       <View style={styles.chips}>
         {colors.map(c => {
           const active = c.toLowerCase() === selected.toLowerCase();
@@ -1669,18 +1708,29 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   row: {
+    minHeight: 72,
     flexDirection: 'row-reverse',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   rowLabel: {
-    color: '#d6f5ee',
-    fontSize: 16,
+    color: '#ffffff',
+    fontSize: 17,
+    fontWeight: '700',
+    textAlign: 'right',
     writingDirection: 'rtl',
   },
+  rowHint: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 14,
+    marginTop: 4,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  labelText: {flex: 1},
   sliderRow: {
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -2085,19 +2135,18 @@ const styles = StyleSheet.create({
   labelWrap: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
-    gap: 8,
-    flexShrink: 1,
+    gap: 12,
   },
   infoBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(196,181,253,0.5)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  infoBtnText: {color: '#c4b5fd', fontSize: 13, fontWeight: '700'},
+  infoBtnText: {color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: '700'},
   hintRow: {flexDirection: 'row-reverse', alignItems: 'center', gap: 8},
   hintText: {flexShrink: 1},
   hint: {

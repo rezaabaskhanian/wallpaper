@@ -199,7 +199,7 @@ export default function PresetRow({onApplied, onDeleteUserPreset}: Props) {
             style={styles.input}
             value={name}
             onChangeText={setName}
-            placeholder="نام پرست جدید"
+            placeholder="اسم این حالت"
             placeholderTextColor="rgba(255,255,255,0.35)"
             autoFocus
           />
@@ -211,9 +211,12 @@ export default function PresetRow({onApplied, onDeleteUserPreset}: Props) {
               setName('');
               setSaving(false);
             }}>
-            <AppText style={styles.saveBtnText}>ذخیره</AppText>
+            <AppText style={styles.saveBtnText}>ذخیره حالت فعلی</AppText>
           </Pressable>
         </View>
+      ) : null}
+      {saving ? (
+        <AppText style={styles.formHint}>بعداً با یک لمس به همین ظاهر برمی‌گردی</AppText>
       ) : null}
     </View>
   );
@@ -284,5 +287,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(245,196,81,0.5)',
   },
   saveBtnDisabled: {opacity: 0.5},
+  formHint: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 13,
+    marginTop: 6,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
   saveBtnText: {color: '#f5e6b3', fontSize: 14, fontWeight: '700', writingDirection: 'rtl'},
 });
