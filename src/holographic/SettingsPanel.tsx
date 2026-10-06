@@ -227,21 +227,6 @@ export default function SettingsPanel({
   //   }
   // };
 
-  const entryRow = (
-    <View style={styles.entryRow}>
-      <Pressable
-        style={[styles.galleryEntry, styles.entryRowItem]}
-        onPress={() => onOpenGallery?.()}>
-        <AppText style={styles.galleryEntryText}>🖼️ گالری والپیپرها</AppText>
-      </Pressable>
-      <Pressable
-        style={[styles.helpEntry, styles.entryRowItem]}
-        onPress={() => onOpenHelp?.()}>
-        <AppText style={styles.helpEntryText}>📖 راهنمای کار با اپ</AppText>
-      </Pressable>
-    </View>
-  );
-
   return (
     <Modal
       visible={visible}
@@ -274,10 +259,6 @@ export default function SettingsPanel({
           })}
         </View>
 
-        {/* In «روی گوشیم بذار» this row moves below the main live-wallpaper
-            button (see that tab) so nothing competes with it for attention. */}
-        {tab !== 'home' ? entryRow : null}
-
         {/* [AI disabled for this version] entry point for AI wallpaper
             generation — styles.aiEntry/aiEntryText are kept below.
         <View style={styles.entryRow}>
@@ -295,6 +276,11 @@ export default function SettingsPanel({
           contentContainerStyle={styles.content}>
           {tab === 'more' ? (
             <>
+              <Pressable style={styles.helpEntry} onPress={() => onOpenHelp?.()}>
+                <AppText style={styles.helpEntryText}>📖 راهنمای کار با اپ</AppText>
+              </Pressable>
+              <View style={styles.divider} />
+
               {!premiumUnlocked && hasPremiumWallpapers ? (
                 <>
                   <AppText style={styles.sectionTitle}>کد تخفیف</AppText>
@@ -1170,7 +1156,11 @@ export default function SettingsPanel({
                 <AppText style={styles.liveBtnSub}>صفحه اصلی گوشیت زنده می‌شه</AppText>
               </Pressable>
 
-              <View style={styles.deviceEntryRow}>{entryRow}</View>
+              <Pressable
+                style={[styles.galleryEntry, styles.deviceEntryRow]}
+                onPress={() => onOpenGallery?.()}>
+                <AppText style={styles.galleryEntryText}>🖼️ گالری والپیپرها</AppText>
+              </Pressable>
 
               <AppText style={styles.otherOptionsTitle}>گزینه‌های دیگر</AppText>
 
@@ -1762,15 +1752,6 @@ const styles = StyleSheet.create({
     color: '#eafffb',
     fontSize: 13,
     lineHeight: 14,
-  },
-  entryRow: {
-    flexDirection: 'row-reverse',
-    gap: 8,
-    marginBottom: 10,
-  },
-  entryRowItem: {
-    flex: 1,
-    marginBottom: 0,
   },
   galleryEntry: {
     backgroundColor: 'rgba(245,196,81,0.15)',
