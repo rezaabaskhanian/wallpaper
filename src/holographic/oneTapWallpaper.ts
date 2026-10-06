@@ -16,6 +16,10 @@ import {noteLauncherIntroWallpaperSet} from './launcherIntro';
 
 const CTA_SHOWN_KEY = 'oneTapWallpaper:shown';
 const RATING_ASKED_KEY = 'rating:askedAfterWallpaper';
+const SET_COUNT_KEY = 'wallpaperSet:count';
+/** Ask for a rating only once the user has clearly found value — after this
+ * many successful sets, not on the very first one. */
+const RATING_AFTER_SETS = 3;
 
 async function getFlag(key: string): Promise<boolean | null> {
   try {
@@ -45,9 +49,21 @@ export function markOneTapWallpaperShown(): Promise<void> {
   return setFlag(CTA_SHOWN_KEY);
 }
 
-/** The rating request is shown once, after the first successful set. */
+/** Counts successful sets; returns the new total (0 if storage fails). */
+async function bumpSetCount(): Promise<number> {
+  try {
+    const n = Number((await AsyncStorage.getItem(SET_COUNT_KEY)) ?? '0') + 1;
+    await AsyncStorage.setItem(SET_COUNT_KEY, String(n));
+    return n;
+  } catch {
+    return 0;
+  }
+}
+
+/** The rating request is shown once, after the RATING_AFTER_SETS-th set. */
 async function shouldAskForRating(): Promise<boolean> {
-  return (await getFlag(RATING_ASKED_KEY)) === false;
+  if ((await getFlag(RATING_ASKED_KEY)) !== false) return false;
+  return (await bumpSetCount()) >= RATING_AFTER_SETS;
 }
 
 type StoreRatingNative = {openRating: () => Promise<boolean>};
@@ -81,7 +97,7 @@ async function askForRatingOnce(): Promise<void> {
 /**
  * Call once a wallpaper has really been set (for a live wallpaper: after
  * isLiveWallpaperActive confirmed it). Records the analytics event, shows the
- * short success message, and after the very first success asks for a rating.
+ * short success message, and after the third success asks for a rating.
  */
 export function announceWallpaperSet(
   method: WallpaperSetMethod,

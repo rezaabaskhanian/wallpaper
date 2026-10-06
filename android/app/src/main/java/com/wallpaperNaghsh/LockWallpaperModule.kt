@@ -46,20 +46,57 @@ class LockWallpaperModule(reactContext: ReactApplicationContext) :
     /** Matches the app's own cap on starred rotation photos (SettingsContext
      * randomBackgroundUris) — used to sweep away files from a shrunk pool. */
     private const val MAX_RANDOM_SOURCES = 5
+
+    /**
+     * Only the app's own backend/CDN may be fetched. Without this the module is a
+     * general-purpose "download anything the JS side names" primitive, which is
+     * both a real SSRF-ish footgun and the pattern malware scanners flag.
+     */
+    internal fun isAllowedWallpaperUrl(url: URL): Boolean {
+      if (!url.protocol.equals("https", ignoreCase = true)) return false
+      val host = url.host.lowercase()
+      return host == ASSET_HOST || host.endsWith(".$ASSET_HOST")
+    }
+
+    /**
+     * Center-crops `bitmap` to exactly the screen's aspect ratio before it's
+     * ever handed to WallpaperManager.
+     *
+     * `setBitmap(bitmap, visibleCropHint, ...)` below passes `null` for the
+     * crop hint, which makes Android scale the bitmap to *cover* the screen
+     * (fill both dimensions) and crop the excess itself. If the photo's aspect
+     * ratio doesn't already match the screen's — e.g. a landscape 16:9 photo
+     * on a ~9:19 portrait phone — covering the screen means scaling the image
+     * up by the screen-height/photo-height ratio (well beyond its native
+     * resolution, hence the blur), and only the resulting center ~25-30% of
+     * the width ends up on screen (hence most of the photo being cropped
+     * away). Cropping to the right aspect ratio *here*, before that implicit
+     * scale-to-cover, means only the true excess (whatever doesn't fit the
+     * aspect ratio) is trimmed instead of three-quarters of the photo.
+     */
+    internal fun centerCropToAspect(bitmap: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
+      if (targetWidth <= 0 || targetHeight <= 0) return bitmap
+      val targetAspect = targetWidth.toFloat() / targetHeight.toFloat()
+      val srcAspect = bitmap.width.toFloat() / bitmap.height.toFloat()
+      return when {
+        srcAspect > targetAspect -> {
+          // Photo is relatively wider than the screen — trim the sides.
+          val newWidth = (bitmap.height * targetAspect).toInt().coerceIn(1, bitmap.width)
+          val x = (bitmap.width - newWidth) / 2
+          Bitmap.createBitmap(bitmap, x, 0, newWidth, bitmap.height)
+        }
+        srcAspect < targetAspect -> {
+          // Photo is relatively taller than the screen — trim top/bottom.
+          val newHeight = (bitmap.width / targetAspect).toInt().coerceIn(1, bitmap.height)
+          val y = (bitmap.height - newHeight) / 2
+          Bitmap.createBitmap(bitmap, 0, y, bitmap.width, newHeight)
+        }
+        else -> bitmap
+      }
+    }
   }
 
   override fun getName(): String = "LockWallpaper"
-
-  /**
-   * Only the app's own backend/CDN may be fetched. Without this the module is a
-   * general-purpose "download anything the JS side names" primitive, which is
-   * both a real SSRF-ish footgun and the pattern malware scanners flag.
-   */
-  private fun isAllowedWallpaperUrl(url: URL): Boolean {
-    if (!url.protocol.equals("https", ignoreCase = true)) return false
-    val host = url.host.lowercase()
-    return host == ASSET_HOST || host.endsWith(".$ASSET_HOST")
-  }
 
   private fun flagsFor(which: String): Int =
       when (which) {
@@ -82,43 +119,6 @@ class LockWallpaperModule(reactContext: ReactApplicationContext) :
     @Suppress("DEPRECATION")
     windowManager.defaultDisplay.getRealMetrics(metrics)
     return Pair(metrics.widthPixels, metrics.heightPixels)
-  }
-
-  /**
-   * Center-crops `bitmap` to exactly the screen's aspect ratio before it's
-   * ever handed to WallpaperManager.
-   *
-   * `setBitmap(bitmap, visibleCropHint, ...)` below passes `null` for the
-   * crop hint, which makes Android scale the bitmap to *cover* the screen
-   * (fill both dimensions) and crop the excess itself. If the photo's aspect
-   * ratio doesn't already match the screen's — e.g. a landscape 16:9 photo
-   * on a ~9:19 portrait phone — covering the screen means scaling the image
-   * up by the screen-height/photo-height ratio (well beyond its native
-   * resolution, hence the blur), and only the resulting center ~25-30% of
-   * the width ends up on screen (hence most of the photo being cropped
-   * away). Cropping to the right aspect ratio *here*, before that implicit
-   * scale-to-cover, means only the true excess (whatever doesn't fit the
-   * aspect ratio) is trimmed instead of three-quarters of the photo.
-   */
-  private fun centerCropToAspect(bitmap: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
-    if (targetWidth <= 0 || targetHeight <= 0) return bitmap
-    val targetAspect = targetWidth.toFloat() / targetHeight.toFloat()
-    val srcAspect = bitmap.width.toFloat() / bitmap.height.toFloat()
-    return when {
-      srcAspect > targetAspect -> {
-        // Photo is relatively wider than the screen — trim the sides.
-        val newWidth = (bitmap.height * targetAspect).toInt().coerceIn(1, bitmap.width)
-        val x = (bitmap.width - newWidth) / 2
-        Bitmap.createBitmap(bitmap, x, 0, newWidth, bitmap.height)
-      }
-      srcAspect < targetAspect -> {
-        // Photo is relatively taller than the screen — trim top/bottom.
-        val newHeight = (bitmap.width / targetAspect).toInt().coerceIn(1, bitmap.height)
-        val y = (bitmap.height - newHeight) / 2
-        Bitmap.createBitmap(bitmap, 0, y, bitmap.width, newHeight)
-      }
-      else -> bitmap
-    }
   }
 
   /**

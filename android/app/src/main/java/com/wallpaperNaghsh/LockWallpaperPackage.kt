@@ -15,6 +15,7 @@ class LockWallpaperPackage : ReactPackage {
           InstalledAppsModule(reactContext),
           HomeWidgetModule(reactContext),
           StoreRatingModule(reactContext),
+          DailyWallpaperModule(reactContext),
       )
 
   override fun createViewManagers(

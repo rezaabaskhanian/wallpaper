@@ -159,6 +159,8 @@ android.applicationVariants.all { variant ->
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    // Daily wallpaper change (DailyWallpaper.kt) runs as a periodic background job.
+    implementation("androidx.work:work-runtime-ktx:2.10.1")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

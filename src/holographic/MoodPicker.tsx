@@ -1,10 +1,11 @@
-import React, {useCallback, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Image,
   Modal,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   View,
 } from 'react-native';
@@ -13,9 +14,25 @@ import AppText from './AppText';
 import {showAlert} from './AppAlert';
 import {setWallpaperFromUrl} from './lockWallpaper';
 import {announceWallpaperSet} from './oneTapWallpaper';
+import {
+  disableDailyWallpaper,
+  enableDailyWallpaper,
+  getDailyMood,
+  updateDailyPool,
+} from './dailyWallpaper';
 import {useStore} from './store/StoreContext';
 import type {WallpaperCategory, WallpaperItem} from './store/types';
 import {trackWallpaperDownload} from './store/wallpaperDownload';
+
+const STORE_URL = 'https://cafebazaar.ir/app/com.wallpaperNaghsh';
+
+/** Shares the wallpaper link plus the app's store page — every share is a
+ * free install ad. Best-effort: a dismissed share sheet is not an error. */
+function shareWallpaper(item: WallpaperItem) {
+  Share.share({
+    message: `این والپیپر رو ببین 😍\n${item.full}\n\nکلی والپیپر دیگه تو اپ ریحان:\n${STORE_URL}`,
+  }).catch(() => {});
+}
 
 function shuffled<T>(list: T[]): T[] {
   const a = [...list];
@@ -41,6 +58,8 @@ export default function MoodPicker({bottom}: {bottom: number}) {
   const [imgLoading, setImgLoading] = useState(true);
   // Shuffled queue per open mood, so "another one" doesn't repeat until the
   // whole mood has been seen.
+  // Mood the daily auto-change draws from (null = off).
+  const [dailyMood, setDailyMood] = useState<string | null>(null);
   const queueRef = useRef<WallpaperItem[]>([]);
   const posRef = useRef(0);
 
@@ -56,6 +75,46 @@ export default function MoodPicker({bottom}: {bottom: number}) {
       ),
     [catalog],
   );
+
+  // Only wallpapers this user can actually have go to the daily job — a
+  // locked premium one would otherwise be handed out for free.
+  const dailyUrls = useCallback(
+    (cat: WallpaperCategory) => poolFor(cat).filter(isUnlocked).map(w => w.full),
+    [poolFor, isUnlocked],
+  );
+
+  useEffect(() => {
+    getDailyMood().then(setDailyMood);
+  }, []);
+
+  // Keep the native pool in step with the catalog (new/removed wallpapers,
+  // premium unlocked since).
+  useEffect(() => {
+    const cat = moods.find(c => c.id === dailyMood);
+    if (cat) updateDailyPool(dailyUrls(cat));
+  }, [moods, dailyMood, dailyUrls]);
+
+  const toggleDaily = async () => {
+    if (!mood) return;
+    try {
+      if (dailyMood === mood.id) {
+        await disableDailyWallpaper();
+        setDailyMood(null);
+        return;
+      }
+      const urls = dailyUrls(mood);
+      if (urls.length === 0) {
+        showAlert('فعلاً نمی‌شه', 'این مود هنوز والپیپر رایگان نداره.');
+        return;
+      }
+      await enableDailyWallpaper(mood.id, urls);
+      setDailyMood(mood.id);
+      showAlert('🔁 روشن شد', `از فردا هر روز یه والپیپر تازه از «${mood.title}» روی گوشیت میاد.`);
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      showAlert('خطا', detail);
+    }
+  };
 
   const show = (item: WallpaperItem) => {
     setImgLoading(true);
@@ -170,6 +229,15 @@ export default function MoodPicker({bottom}: {bottom: number}) {
             hitSlop={12}>
             <AppText style={styles.closeText}>✕</AppText>
           </Pressable>
+          {current ? (
+            <Pressable
+              style={[styles.closeBtn, styles.shareBtn, {top: insets.top + 12}]}
+              onPress={() => shareWallpaper(current)}
+              hitSlop={12}
+              accessibilityLabel="اشتراک‌گذاری">
+              <AppText style={styles.closeText}>📤</AppText>
+            </Pressable>
+          ) : null}
 
           <View style={[styles.actions, {paddingBottom: insets.bottom + 20}]}>
             {busy ? (
@@ -185,6 +253,13 @@ export default function MoodPicker({bottom}: {bottom: number}) {
                 </Pressable>
                 <Pressable style={styles.secondary} onPress={another}>
                   <AppText style={styles.secondaryText}>🔄 یکی دیگه</AppText>
+                </Pressable>
+                <Pressable style={styles.dailyRow} onPress={toggleDaily} hitSlop={8}>
+                  <AppText style={styles.dailyText}>
+                    {dailyMood === mood?.id
+                      ? '✅ هر روز خودش عوض می‌شه (برای خاموش کردن بزن)'
+                      : '🔁 هر روز خودش از این مود عوض کنه'}
+                  </AppText>
                 </Pressable>
               </>
             )}
@@ -241,6 +316,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  shareBtn: {left: undefined, right: 16},
   closeText: {color: '#fff', fontSize: 18},
   actions: {
     position: 'absolute',
@@ -265,5 +341,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
+  dailyRow: {alignItems: 'center', paddingVertical: 6},
+  dailyText: {color: '#fff', fontSize: 14, writingDirection: 'rtl', opacity: 0.9},
   secondaryText: {color: '#fff', fontSize: 16, fontWeight: '700', writingDirection: 'rtl'},
 });
