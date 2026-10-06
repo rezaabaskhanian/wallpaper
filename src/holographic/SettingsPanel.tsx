@@ -140,6 +140,13 @@ export default function SettingsPanel({
   // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('home');
   const insets = useSafeAreaInsets();
+  // One open group per tab at a time; the first group starts open.
+  const [openGroup, setOpenGroup] = useState<{look: string; text: string}>({
+    look: 'background',
+    text: 'clock',
+  });
+  const toggleGroup = (t: 'look' | 'text', id: string) =>
+    setOpenGroup(prev => ({...prev, [t]: prev[t] === id ? '' : id}));
   // True while a finger is on a RowSlider, so the ScrollView doesn't take
   // over a horizontal drag partway through.
   const [sliderActive, setSliderActive] = useState(false);
@@ -450,711 +457,724 @@ export default function SettingsPanel({
 
           {tab === 'look' ? (
             <>
-              <RowChoices
-                label="پس‌زمینه"
-                options={backgroundOptions}
-                selected={settings.backgroundId}
-                onSelect={id => update('backgroundId', id)}
-              />
-
-              {/* <Pressable style={styles.galleryBtn} onPress={pickFromGallery}>
-                <AppText style={styles.galleryBtnText}>
-                  📷 انتخاب عکس از گالری
-                </AppText>
-              </Pressable> */}
-              {settings.customBackgroundUri ? (
-                <AppText style={styles.hint}>
-                  یک عکس از گالری انتخاب شده — گزینهٔ «گالری» را در بالا بزن.
-                </AppText>
-              ) : null}
-
-              <View style={styles.divider} />
-              <AppText style={styles.sectionTitle}>چرخش رندوم پس‌زمینه‌ها</AppText>
-
-              <RowSwitch
-                label="نمایش رندوم عکس‌های ستاره‌دار"
-                value={settings.randomBackgroundEnabled}
-                onChange={v => update('randomBackgroundEnabled', v)}
-              />
-              <AppText style={styles.hint}>
-                هر بار که اپ باز می‌شود، یکی از عکس‌های زیر رندوم به‌عنوان
-                پس‌زمینه انتخاب می‌شود. از «گالری والپیپر» یک عکس را باز کن و
-                «☆ افزودن به چرخش رندوم» را بزن (حداکثر ۵ عکس).
-              </AppText>
-
-              {settings.randomBackgroundUris.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.randomBgRow}>
-                  {settings.randomBackgroundUris.map(uri => (
-                    <View key={uri} style={styles.randomBgThumbWrap}>
-                      <Image source={{uri}} style={styles.randomBgThumb} />
-                      <Pressable
-                        style={styles.randomBgRemove}
-                        onPress={() =>
-                          update(
-                            'randomBackgroundUris',
-                            settings.randomBackgroundUris.filter(u => u !== uri),
-                          )
-                        }>
-                        <AppText style={styles.randomBgRemoveText}>×</AppText>
-                      </Pressable>
-                    </View>
-                  ))}
-                </ScrollView>
-              ) : (
-                <AppText style={styles.hint}>هنوز عکسی اضافه نشده.</AppText>
-              )}
-
-              <View style={styles.divider} />
-
-              <AppText style={styles.sectionTitle}>حرکت و لمس</AppText>
-              <RowSwitch
-                label="زنده‌سازی پس‌زمینه (حرکت آرام)"
-                value={settings.livingWallpaper}
-                onChange={v => update('livingWallpaper', v)}
-              />
-              <AppText style={styles.hint}>
-                عکس پس‌زمینه به‌آرامی زوم و جابه‌جا می‌شود؛ هر بار که اپ باز
-                می‌شود هم یک حرکت شروع (بیدار شدن) دارد.
-              </AppText>
-
-              {settings.livingWallpaper ? (
-                <>
-                  <RowSwitch
-                    label="لرزش آرام پس‌زمینه"
-                    value={settings.wallpaperShake}
-                    onChange={v => update('wallpaperShake', v)}
-                  />
-                  <AppText style={styles.hint}>
-                    یک لرزش بسیار ریز و ملایم روی حرکت آرام بالا اضافه می‌شود.
-                  </AppText>
-                </>
-              ) : null}
-
-              <RowSwitch
-                label="موج آب با لمس صفحه"
-                value={settings.waterRipple}
-                onChange={v => update('waterRipple', v)}
-              />
-              <AppText style={styles.hint}>
-                با هر لمس، مثل افتادن سنگ در آب، موج روی خودِ عکس پخش می‌شود؛
-                هر بار که اپ باز می‌شود هم یک موج از وسط صفحه شروع می‌شود.
-                اگر لایو ولپیپر را هم ست کرده باشید، روی صفحهٔ اصلی گوشی هم کار
-                می‌کند (اندروید ۱۳ به بالا). ⚡ با این قابلیت مصرف باتری کمی
-                بیشتر می‌شود.
-              </AppText>
-
-              {settings.waterRipple ? (
-                <>
-                  <RowSwitch
-                    label="موج خودکار (هر ۱۰ ثانیه)"
-                    value={settings.waterRippleAuto}
-                    onChange={v => update('waterRippleAuto', v)}
-                  />
-                  <AppText style={styles.hint}>
-                    بدون لمس هم هر ۱۰ ثانیه یک موج از یک نقطهٔ تصادفی شروع
-                    می‌شود. فقط وقتی اپ باز است اجرا می‌شود تا باتری مصرف نکند.
-                  </AppText>
-                </>
-              ) : null}
-
-
-              <RowSwitch
-                label="پارالاکس با حرکت گوشی (ژیروسکوپ)"
-                value={settings.gyroParallax}
-                onChange={v => update('gyroParallax', v)}
-              />
-              <AppText style={styles.hint}>
-                با کج‌کردن گوشی، پس‌زمینه و گوی‌ها کمی جابه‌جا می‌شوند — علاوه
-                بر کشیدن با انگشت.
-              </AppText>
-
-              <RowSwitch
-                label="پارالاکس سه‌بعدی (شبیه‌سازی عمق)"
-                value={settings.depthParallax}
-                onChange={v => update('depthParallax', v)}
-              />
-              <AppText style={styles.hint}>
-                عکس پس‌زمینه مثل یک صفحهٔ سه‌بعدی با کج‌شدن گوشی می‌چرخد؛
-                نیاز به روشن‌بودن «پارالاکس با حرکت گوشی» دارد. توجه: این
-                جداسازی واقعیِ سوژه از پس‌زمینه (که به هوش‌مصنوعی نیاز دارد)
-                نیست، فقط شبیه‌سازی بصری عمق است.
-              </AppText>
-
-              <RowSwitch
-                label="واکنش لمسی (حلقهٔ نور روی ضربه)"
-                value={settings.touchRipple}
-                onChange={v => update('touchRipple', v)}
-              />
-              <AppText style={styles.hint}>
-                با هر ضربه روی صفحه، یک حلقهٔ نور کوتاه از همان نقطه باز
-                می‌شود و محو می‌شود.
-              </AppText>
-
-            </>
-          ) : null}
-
-          {tab === 'look' ? (
-            <>
-              <RowSwitch
-                label="چرخش خودکار"
-                value={settings.autoRotate}
-                onChange={v => update('autoRotate', v)}
-              />
-
-              <RowStepper
-                label="سرعت چرخش"
-                value={`${settings.speed.toFixed(2)}×`}
-                onDec={() =>
-                  update(
-                    'speed',
-                    Math.max(0.25, +(settings.speed - 0.25).toFixed(2)),
-                  )
-                }
-                onInc={() =>
-                  update(
-                    'speed',
-                    Math.min(3, +(settings.speed + 0.25).toFixed(2)),
-                  )
-                }
-              />
-
-              <RowStepper
-                label="اندازه کره"
-                value={`${settings.ringCount}`}
-                onDec={() =>
-                  update('ringCount', Math.max(1, settings.ringCount - 1))
-                }
-                onInc={() =>
-                  update(
-                    'ringCount',
-                    Math.min(RINGS.length, settings.ringCount + 1),
-                  )
-                }
-              />
-
-              <RowSwitch
-                label="نمایش گوی‌ها"
-                value={settings.showOrbs}
-                onChange={v => update('showOrbs', v)}
-              />
-
-              {orbitCategories.length >= 2 ? (
+              <SettingsGroup
+                title="پس‌زمینه"
+                open={openGroup.look === 'background'}
+                onToggle={() => toggleGroup('look', 'background')}>
                 <RowChoices
-                  label="تم اوربیت (شهدا/طبیعت/...)"
-                  options={orbitCategories.map(c => ({id: c.id, label: c.title}))}
-                  selected={settings.orbitCategoryId}
-                  onSelect={id => update('orbitCategoryId', id)}
+                  label="پس‌زمینه"
+                  options={backgroundOptions}
+                  selected={settings.backgroundId}
+                  onSelect={id => update('backgroundId', id)}
                 />
-              ) : null}
 
-              <RowChoices
-                label="حالت نمایش گوی‌ها"
-                options={[
-                  {id: 'steady', label: 'ثابت'},
-                  {id: 'flicker', label: '✨ پیدا و پنهان'},
-                ]}
-                selected={settings.orbVisibility}
-                onSelect={id =>
-                  update('orbVisibility', id as 'steady' | 'flicker')
-                }
-              />
-
-              <RowStepper
-                label="تعداد گوی‌ها"
-                value={`${settings.ballCount}`}
-                onDec={() =>
-                  update('ballCount', Math.max(1, settings.ballCount - 2))
-                }
-                onInc={() =>
-                  update(
-                    'ballCount',
-                    Math.min(maxBallCount, settings.ballCount + 2),
-                  )
-                }
-              />
-
-              <RowChoices
-                label="محور چرخش"
-                options={[
-                  {id: 'x', label: 'محور X'},
-                  {id: 'y', label: 'محور Y'},
-                  {id: 'z', label: 'محور Z'},
-                  {id: 'mixed', label: 'ناهمگون (اتمی)'},
-                ]}
-                selected={settings.rotationAxis}
-                onSelect={id =>
-                  update('rotationAxis', id as 'x' | 'y' | 'z' | 'mixed')
-                }
-              />
-            </>
-          ) : null}
-
-          {tab === 'look' ? (
-            <>
-              <RowChoices
-                label="حالت روز/شب"
-                options={[
-                  {id: 'auto', label: 'خودکار'},
-                  {id: 'day', label: 'روز'},
-                  {id: 'night', label: 'شب'},
-                  {id: 'off', label: 'خاموش'},
-                ]}
-                selected={settings.dayNightMode}
-                onSelect={id =>
-                  update('dayNightMode', id as 'auto' | 'day' | 'night' | 'off')
-                }
-              />
-
-              <RowSwitch
-                label="نور خورشید (Lens Flare)"
-                value={settings.sunFlare}
-                onChange={v => update('sunFlare', v)}
-              />
-              <AppText style={styles.hint}>
-                یک هالهٔ نور شبیه خورشید که همراه با ساعت واقعی روز روی آسمان
-                حرکت می‌کند و نورش عوض می‌شود: صبح از سمت چپ و پایین با نور
-                نارنجی طلوع می‌کند، ظهر بالای صفحه و سفید و ملایم است، و عصر
-                سمت راست با نور نارنجی غروب می‌کند؛ شب خاموش است. زمان طلوع و
-                غروب از موقعیت مکانی شما گرفته می‌شود.
-              </AppText>
-              {settings.sunFlare ? (
-                <>
-                  <SunDayPreview />
+                {/* <Pressable style={styles.galleryBtn} onPress={pickFromGallery}>
+                  <AppText style={styles.galleryBtnText}>
+                    📷 انتخاب عکس از گالری
+                  </AppText>
+                </Pressable> */}
+                {settings.customBackgroundUri ? (
                   <AppText style={styles.hint}>
-                    پیش‌نمایش: یک روز کامل در چند ثانیه. نقطهٔ سفید جای خورشید
-                    در همین لحظه است.
+                    یک عکس از گالری انتخاب شده — گزینهٔ «گالری» را در بالا بزن.
                   </AppText>
-                  {settings.dayNightMode !== 'auto' ? (
-                    <AppText style={styles.hint}>
-                      ⚠️ برای اینکه نور خورشید روی صفحه با ساعت روز حرکت کند،
-                      «حالت روز/شب» را روی «خودکار» بگذار.
-                    </AppText>
-                  ) : null}
-                </>
-              ) : null}
+                ) : null}
 
-              <RowChoices
-                label="ذرات نور"
-                options={[
-                  {id: 'off', label: 'خاموش'},
-                  {id: 'on', label: 'روشن'},
-                  {id: 'auto', label: 'خودکار'},
-                ]}
-                selected={settings.particleMode}
-                onSelect={id =>
-                  update('particleMode', id as 'off' | 'on' | 'auto')
-                }
-              />
+                <View style={styles.divider} />
+                <AppText style={styles.sectionTitle}>چرخش رندوم پس‌زمینه‌ها</AppText>
 
-              <RowChoices
-                label="شکل ذرات"
-                options={[
-                  {id: 'dot', label: '✦ نقطه'},
-                  {id: 'heart', label: '♥ قلب'},
-                ]}
-                selected={settings.particleShape}
-                onSelect={id => update('particleShape', id as 'dot' | 'heart')}
-              />
-
-              <RowChoices
-                label="شدت ذرات"
-                options={[
-                  {id: 'low', label: 'کم'},
-                  {id: 'medium', label: 'متوسط'},
-                  {id: 'high', label: 'زیاد'},
-                  {id: 'extreme', label: 'خیلی زیاد'},
-                ]}
-                selected={settings.particleIntensity}
-                onSelect={id =>
-                  update(
-                    'particleIntensity',
-                    id as 'low' | 'medium' | 'high' | 'extreme',
-                  )
-                }
-              />
-              <AppText style={styles.hint}>
-                هرچه شدت بیشتر باشد، هم تعداد ذرات نور بیشتر می‌شود و هم
-                سرعت حرکتشان.
-              </AppText>
-
-              <RowSwitch
-                label="رنگ پویا از عکس پس‌زمینه"
-                value={settings.dynamicColor}
-                onChange={v => update('dynamicColor', v)}
-              />
-              <AppText style={styles.hint}>
-                به‌جای رنگ دستی زیر، رنگ ذرات نور از خودِ عکس پس‌زمینهٔ فعلی
-                استخراج می‌شود.
-              </AppText>
-
-
-              <RowColors
-                label="رنگ نور"
-                colors={GLOW_COLORS}
-                selected={settings.glowColor}
-                onSelect={c => update('glowColor', c)}
-              />
-              {settings.dynamicColor ? (
-                <AppText style={styles.hint}>
-                  تا وقتی «رنگ پویا» روشن است، این انتخاب نادیده گرفته
-                  می‌شود.
-                </AppText>
-              ) : null}
-
-              <RowSwitch
-                label="افکت سینمایی (تیرگی لبه‌ها)"
-                value={settings.vignette}
-                onChange={v => update('vignette', v)}
-              />
-
-              <RowChoices
-                label="مه"
-                options={[
-                  {id: 'off', label: 'خاموش'},
-                  {id: 'bottom', label: 'از پایین'},
-                  {id: 'top', label: 'از بالا'},
-                  {id: 'both', label: 'هر دو'},
-                ]}
-                selected={settings.fogMode}
-                onSelect={id =>
-                  update('fogMode', id as 'off' | 'bottom' | 'top' | 'both')
-                }
-              />
-
-              <RowChoices
-                label="جلوه‌های آب‌وهوا (باران/برف)"
-                options={[
-                  {id: 'off', label: 'خاموش'},
-                  {id: 'rain', label: '🌧️ باران'},
-                  {id: 'snow', label: '❄️ برف'},
-                  {id: 'auto', label: 'خودکار (بر اساس هوا)'},
-                ]}
-                selected={settings.weatherEffects}
-                onSelect={id =>
-                  update('weatherEffects', id as 'off' | 'rain' | 'snow' | 'auto')
-                }
-              />
-              {settings.weatherEffects === 'auto' ? (
-                <AppText style={styles.hint}>
-                  حالت خودکار به گرفتن موفق وضعیت هوا از GPS و API نیاز دارد؛
-                  اگر دسترسی موقعیت مکانی داده نشود یا اینترنت نباشد، فعال
-                  نمی‌شود.
-                </AppText>
-              ) : null}
-
-              {/* [combat mode disabled for now — planned for a future
-                  version] Re-enable by uncommenting this switch + the
-                  `combatMode` field in SettingsContext.tsx, and the
-                  ProjectileLayer wiring in HolographicHome.tsx. */}
-              {/* <RowSwitch
-                label="حالت رزمی (موشک و پهباد)"
-                value={settings.combatMode}
-                onChange={v => update('combatMode', v)}
-              />
-              {settings.combatMode ? (
-                <AppText style={styles.hint}>
-                  مه و متن پایین صفحه خاموش می‌شود و هر ۸ ثانیه یک موشک یا
-                  پهباد از یک گوشهٔ صفحه رد می‌شود.
-                </AppText>
-              ) : null} */}
-            </>
-          ) : null}
-
-          {tab === 'text' ? (
-            <>
-              {(
-                [
-                  {script: 'fa', title: 'فونت فارسی', key: 'fontIdFa'},
-                  {script: 'en', title: 'فونت انگلیسی', key: 'fontIdEn'},
-                ] as const
-              ).map(group => (
-                <React.Fragment key={group.script}>
-                  <AppText
-                    style={[
-                      styles.sectionTitle,
-                      group.script === 'en' && styles.fontGroupGap,
-                    ]}>
-                    {group.title}
-                  </AppText>
-                  <View style={styles.fontList}>
-                    {fontsForScript(group.script).map(f => {
-                      const active =
-                        f.id === getScriptFont(group.script, settings[group.key]).id;
-                      return (
-                        <Pressable
-                          key={f.id}
-                          style={[styles.fontChip, active && styles.fontChipActive]}
-                          onPress={() => update(group.key, f.id)}>
-                          <AppText
-                            style={[
-                              styles.fontSample,
-                              {fontFamily: f.families.regular},
-                            ]}>
-                            {f.sample}
-                          </AppText>
-                          <AppText
-                            style={[
-                              styles.fontName,
-                              active && styles.fontNameActive,
-                            ]}>
-                            {f.label}
-                          </AppText>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </React.Fragment>
-              ))}
-            </>
-          ) : null}
-
-          {tab === 'text' ? (
-            <>
-              <RowSwitch
-                label="نمایش ساعت"
-                value={settings.showClock}
-                onChange={v => update('showClock', v)}
-              />
-
-              <RowSwitch
-                label="نمایش تاریخ"
-                value={settings.showDate}
-                onChange={v => update('showDate', v)}
-              />
-
-              <RowChoices
-                label="حالت نمایش ساعت"
-                options={[
-                  {id: '12', label: '۱۲ ساعته'},
-                  {id: '24', label: '۲۴ ساعته'},
-                ]}
-                selected={settings.hourFormat}
-                onSelect={id => update('hourFormat', id as '12' | '24')}
-              />
-
-              {settings.hourFormat === '12' ? (
                 <RowSwitch
-                  label="نمایش قبل‌ازظهر/بعدازظهر"
-                  value={settings.showAmPm}
-                  onChange={v => update('showAmPm', v)}
+                  label="نمایش رندوم عکس‌های ستاره‌دار"
+                  value={settings.randomBackgroundEnabled}
+                  onChange={v => update('randomBackgroundEnabled', v)}
                 />
-              ) : null}
-
-              <RowChoices
-                label="ارقام ساعت"
-                options={[
-                  {id: 'fa', label: 'فارسی'},
-                  {id: 'en', label: 'انگلیسی'},
-                ]}
-                selected={settings.clockDigits}
-                onSelect={id => update('clockDigits', id as 'fa' | 'en')}
-              />
-
-              <RowChoices
-                label="چیدمان ساعت"
-                options={[
-                  {id: 'inline', label: 'بالا (کنار تاریخ)'},
-                  {id: 'bigCentered', label: 'وسط صفحه (بزرگ)'},
-                ]}
-                selected={settings.clockLayout}
-                onSelect={id => {
-                  update('clockLayout', id as 'inline' | 'bigCentered');
-                  // The inline clock tops out at 1.6× (the big layout goes
-                  // much higher), so don't carry a huge scale back into it.
-                  if (id === 'inline' && settings.clockFontScale > 1.6) {
-                    update('clockFontScale', 1.6);
-                  }
-                }}
-              />
-              {settings.clockLayout === 'bigCentered' ? (
                 <AppText style={styles.hint}>
-                  در این حالت فقط ساعت وسط صفحه و بزرگ نمایش داده می‌شود —
-                  ساعت‌شمار بالا، دقیقه پایین — و تاریخ زیر آن نشان داده
-                  نمی‌شود.
+                  هر بار که اپ باز می‌شود، یکی از عکس‌های زیر رندوم به‌عنوان
+                  پس‌زمینه انتخاب می‌شود. از «گالری والپیپر» یک عکس را باز کن و
+                  «☆ افزودن به چرخش رندوم» را بزن (حداکثر ۵ عکس).
                 </AppText>
-              ) : null}
 
-              <RowSlider
-                label="اندازه فونت ساعت"
-                value={Math.min(settings.clockFontScale, maxClockScale)}
-                min={0.7}
-                max={maxClockScale}
-                step={0.1}
-                format={v => `${v.toFixed(1)}×`}
-                onChange={v => update('clockFontScale', v)}
-                onDragActive={setSliderActive}
-              />
-
-              <RowColors
-                label="رنگ فونت ساعت"
-                colors={TEXT_COLORS}
-                selected={settings.clockTextColor}
-                onSelect={c => update('clockTextColor', c)}
-              />
-              <RowColors
-                label="رنگ تاریخ (متن کوچک)"
-                colors={TEXT_COLORS}
-                selected={settings.clockSmallTextColor}
-                onSelect={c => update('clockSmallTextColor', c)}
-              />
-
-              <RowSwitch
-                label="نمایش هوا"
-                value={settings.showWeather}
-                onChange={v => update('showWeather', v)}
-              />
-              <AppText style={styles.hint}>
-                دما همیشه زنده از طریق GPS و API آب‌وهوا گرفته می‌شود؛ تا وقتی
-                گرفتن آن موفق نشود چیزی نمایش داده نمی‌شود.
-              </AppText>
-
-              <View style={styles.divider} />
-              <AppText style={styles.sectionTitle}>چیدمان صفحه</AppText>
-
-              <RowSwitch
-                label="جابجایی ساعت و متن (کشیدن)"
-                value={settings.editLayout}
-                onChange={v => {
-                  update('editLayout', v);
-                  if (v) {
-                    onClose();
-                  }
-                }}
-              />
-              <AppText style={styles.hint}>
-                روشن کن و پنجره را ببند، سپس ساعت، دما یا متن پایین را با انگشت
-                بکش تا جابه‌جا شود.
-              </AppText>
-              <Pressable
-                style={styles.galleryBtn}
-                onPress={() => {
-                  update('clockOffset', {x: 0, y: 0});
-                  update('weatherOffset', {x: 0, y: 0});
-                  update('quoteOffset', {x: 0, y: 0});
-                }}>
-                <AppText style={styles.galleryBtnText}>
-                  ↺ بازنشانی موقعیت‌ها
-                </AppText>
-              </Pressable>
-
-              <View style={styles.divider} />
-              <AppText style={styles.sectionTitle}>متن پایین صفحه</AppText>
-
-              <RowSwitch
-                label="نمایش متن پایین"
-                value={settings.showQuote}
-                onChange={v => update('showQuote', v)}
-              />
-
-              {/* [AI disabled for this version] daily AI-generated quote —
-                  re-enable with dailyAiQuote in SettingsContext.tsx and the
-                  fetch block in QuoteWidget.tsx.
-              <RowSwitch
-                label="جملهٔ روزانه با هوش مصنوعی ✨"
-                value={settings.dailyAiQuote}
-                onChange={v => update('dailyAiQuote', v)}
-              />
-              <AppText style={styles.hint}>
-                هر روز یک جملهٔ تازه (ساخته‌شده با هوش مصنوعی) به‌جای دسته‌ی
-                زیر نمایش داده می‌شود. اگر این فیچر روی سرور فعال نباشد،
-                خودکار به دسته‌ی انتخابی برمی‌گردد.
-              </AppText> */}
-
-              {quoteCategories.length > 1 ? (
+                {settings.randomBackgroundUris.length > 0 ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.randomBgRow}>
+                    {settings.randomBackgroundUris.map(uri => (
+                      <View key={uri} style={styles.randomBgThumbWrap}>
+                        <Image source={{uri}} style={styles.randomBgThumb} />
+                        <Pressable
+                          style={styles.randomBgRemove}
+                          onPress={() =>
+                            update(
+                              'randomBackgroundUris',
+                              settings.randomBackgroundUris.filter(u => u !== uri),
+                            )
+                          }>
+                          <AppText style={styles.randomBgRemoveText}>×</AppText>
+                        </Pressable>
+                      </View>
+                    ))}
+                  </ScrollView>
+                ) : (
+                  <AppText style={styles.hint}>هنوز عکسی اضافه نشده.</AppText>
+                )}
+              </SettingsGroup>
+              <SettingsGroup
+                title="جلوه‌ها"
+                open={openGroup.look === 'effects'}
+                onToggle={() => toggleGroup('look', 'effects')}>
                 <RowChoices
-                  label="دسته‌ی نقل‌قول‌ها"
-                  options={quoteCategories.map(c => ({id: c.id, label: c.title}))}
-                  selected={settings.quoteCategoryId || quoteCategories[0].id}
-                  onSelect={id => update('quoteCategoryId', id)}
+                  label="حالت روز/شب"
+                  options={[
+                    {id: 'auto', label: 'خودکار'},
+                    {id: 'day', label: 'روز'},
+                    {id: 'night', label: 'شب'},
+                    {id: 'off', label: 'خاموش'},
+                  ]}
+                  selected={settings.dayNightMode}
+                  onSelect={id =>
+                    update('dayNightMode', id as 'auto' | 'day' | 'night' | 'off')
+                  }
                 />
-              ) : null}
 
-              <RowSlider
-                label="اندازه فونت متن پایین"
-                value={settings.quoteFontScale}
-                min={0.7}
-                max={1.6}
-                step={0.1}
-                format={v => `${v.toFixed(1)}×`}
-                onChange={v => update('quoteFontScale', v)}
-                onDragActive={setSliderActive}
-              />
+                <RowSwitch
+                  label="نور خورشید (Lens Flare)"
+                  value={settings.sunFlare}
+                  onChange={v => update('sunFlare', v)}
+                />
+                <AppText style={styles.hint}>
+                  یک هالهٔ نور شبیه خورشید که همراه با ساعت واقعی روز روی آسمان
+                  حرکت می‌کند و نورش عوض می‌شود: صبح از سمت چپ و پایین با نور
+                  نارنجی طلوع می‌کند، ظهر بالای صفحه و سفید و ملایم است، و عصر
+                  سمت راست با نور نارنجی غروب می‌کند؛ شب خاموش است. زمان طلوع و
+                  غروب از موقعیت مکانی شما گرفته می‌شود.
+                </AppText>
+                {settings.sunFlare ? (
+                  <>
+                    <SunDayPreview />
+                    <AppText style={styles.hint}>
+                      پیش‌نمایش: یک روز کامل در چند ثانیه. نقطهٔ سفید جای خورشید
+                      در همین لحظه است.
+                    </AppText>
+                    {settings.dayNightMode !== 'auto' ? (
+                      <AppText style={styles.hint}>
+                        ⚠️ برای اینکه نور خورشید روی صفحه با ساعت روز حرکت کند،
+                        «حالت روز/شب» را روی «خودکار» بگذار.
+                      </AppText>
+                    ) : null}
+                  </>
+                ) : null}
 
-              <RowColors
-                label="رنگ فونت متن پایین"
-                colors={TEXT_COLORS}
-                selected={settings.quoteTextColor}
-                onSelect={c => update('quoteTextColor', c)}
-              />
-              <RowColors
-                label="رنگ خط کوچک متن پایین"
-                colors={TEXT_COLORS}
-                selected={settings.quoteSmallTextColor}
-                onSelect={c => update('quoteSmallTextColor', c)}
-              />
+                <RowChoices
+                  label="ذرات نور"
+                  options={[
+                    {id: 'off', label: 'خاموش'},
+                    {id: 'on', label: 'روشن'},
+                    {id: 'auto', label: 'خودکار'},
+                  ]}
+                  selected={settings.particleMode}
+                  onSelect={id =>
+                    update('particleMode', id as 'off' | 'on' | 'auto')
+                  }
+                />
 
-              {/* <AppText style={styles.fieldLabel}>خط اول (کوچک)</AppText>
-              <TextInput
-                style={styles.input}
-                value={settings.quoteLine1}
-                onChangeText={t => update('quoteLine1', t)}
-                placeholder="ما با این جوان‌ها"
-                placeholderTextColor="rgba(255,255,255,0.35)"
-              />
+                <RowChoices
+                  label="شکل ذرات"
+                  options={[
+                    {id: 'dot', label: '✦ نقطه'},
+                    {id: 'heart', label: '♥ قلب'},
+                  ]}
+                  selected={settings.particleShape}
+                  onSelect={id => update('particleShape', id as 'dot' | 'heart')}
+                />
 
-              <AppText style={styles.fieldLabel}>خط دوم (بزرگ طلایی)</AppText>
-              <TextInput
-                style={styles.input}
-                value={settings.quoteLine2}
-                onChangeText={t => update('quoteLine2', t)}
-                placeholder="به جایی خواهیم رسید"
-                placeholderTextColor="rgba(255,255,255,0.35)"
-              /> */}
+                <RowChoices
+                  label="شدت ذرات"
+                  options={[
+                    {id: 'low', label: 'کم'},
+                    {id: 'medium', label: 'متوسط'},
+                    {id: 'high', label: 'زیاد'},
+                    {id: 'extreme', label: 'خیلی زیاد'},
+                  ]}
+                  selected={settings.particleIntensity}
+                  onSelect={id =>
+                    update(
+                      'particleIntensity',
+                      id as 'low' | 'medium' | 'high' | 'extreme',
+                    )
+                  }
+                />
+                <AppText style={styles.hint}>
+                  هرچه شدت بیشتر باشد، هم تعداد ذرات نور بیشتر می‌شود و هم
+                  سرعت حرکتشان.
+                </AppText>
 
-              {/* --- COUNTDOWN FEATURE (disabled) ---------------------------------
-              <View style={styles.divider} />
-              <AppText style={styles.sectionTitle}>شمارش معکوس</AppText>
+                <RowSwitch
+                  label="رنگ پویا از عکس پس‌زمینه"
+                  value={settings.dynamicColor}
+                  onChange={v => update('dynamicColor', v)}
+                />
+                <AppText style={styles.hint}>
+                  به‌جای رنگ دستی زیر، رنگ ذرات نور از خودِ عکس پس‌زمینهٔ فعلی
+                  استخراج می‌شود.
+                </AppText>
 
-              <AppText style={styles.fieldLabel}>عنوان</AppText>
-              <TextInput
-                style={styles.input}
-                value={settings.countdownLabel}
-                onChangeText={t => update('countdownLabel', t)}
-                placeholder="عنوان شمارش معکوس"
-                placeholderTextColor="rgba(255,255,255,0.35)"
-              />
 
-              <AppText style={styles.fieldLabel}>تاریخ مقصد (ISO)</AppText>
-              <TextInput
-                style={styles.input}
-                value={settings.countdownTargetISO}
-                onChangeText={t => update('countdownTargetISO', t)}
-                placeholder="2040-01-01T00:00:00"
-                placeholderTextColor="rgba(255,255,255,0.35)"
-                autoCapitalize="none"
-              />
-              <AppText style={styles.hint}>
-                نمونه: ۲۰۴۰-۰۱-۰۱T۰۰:۰۰:۰۰ — تاریخ و عنوان دلخواه خودت را وارد کن.
-              </AppText>
-              ------------------------------------------------------------------ */}
+                <RowColors
+                  label="رنگ نور"
+                  colors={GLOW_COLORS}
+                  selected={settings.glowColor}
+                  onSelect={c => update('glowColor', c)}
+                />
+                {settings.dynamicColor ? (
+                  <AppText style={styles.hint}>
+                    تا وقتی «رنگ پویا» روشن است، این انتخاب نادیده گرفته
+                    می‌شود.
+                  </AppText>
+                ) : null}
 
-              <View style={styles.divider} />
-              <AppText style={styles.sectionTitle}>ویجت صفحهٔ اصلی</AppText>
+                <RowSwitch
+                  label="افکت سینمایی (تیرگی لبه‌ها)"
+                  value={settings.vignette}
+                  onChange={v => update('vignette', v)}
+                />
 
-              <RowSwitch
-                label="چرخش خودکار نقل‌قول ویجت"
-                value={settings.widgetAutoRotateQuote}
-                onChange={v => {
-                  update('widgetAutoRotateQuote', v);
-                  setWidgetAutoRotateQuote(v).catch(() => {});
-                }}
-              />
-              <AppText style={styles.hint}>
-                روی صفحه اصلی انگشت نگه دار و ویجت «Wallpaper» رو اضافه کن.
-              </AppText>
+                <RowChoices
+                  label="مه"
+                  options={[
+                    {id: 'off', label: 'خاموش'},
+                    {id: 'bottom', label: 'از پایین'},
+                    {id: 'top', label: 'از بالا'},
+                    {id: 'both', label: 'هر دو'},
+                  ]}
+                  selected={settings.fogMode}
+                  onSelect={id =>
+                    update('fogMode', id as 'off' | 'bottom' | 'top' | 'both')
+                  }
+                />
+
+                <RowChoices
+                  label="جلوه‌های آب‌وهوا (باران/برف)"
+                  options={[
+                    {id: 'off', label: 'خاموش'},
+                    {id: 'rain', label: '🌧️ باران'},
+                    {id: 'snow', label: '❄️ برف'},
+                    {id: 'auto', label: 'خودکار (بر اساس هوا)'},
+                  ]}
+                  selected={settings.weatherEffects}
+                  onSelect={id =>
+                    update('weatherEffects', id as 'off' | 'rain' | 'snow' | 'auto')
+                  }
+                />
+                {settings.weatherEffects === 'auto' ? (
+                  <AppText style={styles.hint}>
+                    حالت خودکار به گرفتن موفق وضعیت هوا از GPS و API نیاز دارد؛
+                    اگر دسترسی موقعیت مکانی داده نشود یا اینترنت نباشد، فعال
+                    نمی‌شود.
+                  </AppText>
+                ) : null}
+
+                {/* [combat mode disabled for now — planned for a future
+                    version] Re-enable by uncommenting this switch + the
+                    `combatMode` field in SettingsContext.tsx, and the
+                    ProjectileLayer wiring in HolographicHome.tsx. */}
+                {/* <RowSwitch
+                  label="حالت رزمی (موشک و پهباد)"
+                  value={settings.combatMode}
+                  onChange={v => update('combatMode', v)}
+                />
+                {settings.combatMode ? (
+                  <AppText style={styles.hint}>
+                    مه و متن پایین صفحه خاموش می‌شود و هر ۸ ثانیه یک موشک یا
+                    پهباد از یک گوشهٔ صفحه رد می‌شود.
+                  </AppText>
+                ) : null} */}
+              </SettingsGroup>
+              <SettingsGroup
+                title="حرکت و لمس"
+                open={openGroup.look === 'motion'}
+                onToggle={() => toggleGroup('look', 'motion')}>
+                <RowSwitch
+                  label="زنده‌سازی پس‌زمینه (حرکت آرام)"
+                  value={settings.livingWallpaper}
+                  onChange={v => update('livingWallpaper', v)}
+                />
+                <AppText style={styles.hint}>
+                  عکس پس‌زمینه به‌آرامی زوم و جابه‌جا می‌شود؛ هر بار که اپ باز
+                  می‌شود هم یک حرکت شروع (بیدار شدن) دارد.
+                </AppText>
+
+                {settings.livingWallpaper ? (
+                  <>
+                    <RowSwitch
+                      label="لرزش آرام پس‌زمینه"
+                      value={settings.wallpaperShake}
+                      onChange={v => update('wallpaperShake', v)}
+                    />
+                    <AppText style={styles.hint}>
+                      یک لرزش بسیار ریز و ملایم روی حرکت آرام بالا اضافه می‌شود.
+                    </AppText>
+                  </>
+                ) : null}
+
+                <RowSwitch
+                  label="موج آب با لمس صفحه"
+                  value={settings.waterRipple}
+                  onChange={v => update('waterRipple', v)}
+                />
+                <AppText style={styles.hint}>
+                  با هر لمس، مثل افتادن سنگ در آب، موج روی خودِ عکس پخش می‌شود؛
+                  هر بار که اپ باز می‌شود هم یک موج از وسط صفحه شروع می‌شود.
+                  اگر لایو ولپیپر را هم ست کرده باشید، روی صفحهٔ اصلی گوشی هم کار
+                  می‌کند (اندروید ۱۳ به بالا). ⚡ با این قابلیت مصرف باتری کمی
+                  بیشتر می‌شود.
+                </AppText>
+
+                {settings.waterRipple ? (
+                  <>
+                    <RowSwitch
+                      label="موج خودکار (هر ۱۰ ثانیه)"
+                      value={settings.waterRippleAuto}
+                      onChange={v => update('waterRippleAuto', v)}
+                    />
+                    <AppText style={styles.hint}>
+                      بدون لمس هم هر ۱۰ ثانیه یک موج از یک نقطهٔ تصادفی شروع
+                      می‌شود. فقط وقتی اپ باز است اجرا می‌شود تا باتری مصرف نکند.
+                    </AppText>
+                  </>
+                ) : null}
+
+
+                <RowSwitch
+                  label="پارالاکس با حرکت گوشی (ژیروسکوپ)"
+                  value={settings.gyroParallax}
+                  onChange={v => update('gyroParallax', v)}
+                />
+                <AppText style={styles.hint}>
+                  با کج‌کردن گوشی، پس‌زمینه و گوی‌ها کمی جابه‌جا می‌شوند — علاوه
+                  بر کشیدن با انگشت.
+                </AppText>
+
+                <RowSwitch
+                  label="پارالاکس سه‌بعدی (شبیه‌سازی عمق)"
+                  value={settings.depthParallax}
+                  onChange={v => update('depthParallax', v)}
+                />
+                <AppText style={styles.hint}>
+                  عکس پس‌زمینه مثل یک صفحهٔ سه‌بعدی با کج‌شدن گوشی می‌چرخد؛
+                  نیاز به روشن‌بودن «پارالاکس با حرکت گوشی» دارد. توجه: این
+                  جداسازی واقعیِ سوژه از پس‌زمینه (که به هوش‌مصنوعی نیاز دارد)
+                  نیست، فقط شبیه‌سازی بصری عمق است.
+                </AppText>
+
+                <RowSwitch
+                  label="واکنش لمسی (حلقهٔ نور روی ضربه)"
+                  value={settings.touchRipple}
+                  onChange={v => update('touchRipple', v)}
+                />
+                <AppText style={styles.hint}>
+                  با هر ضربه روی صفحه، یک حلقهٔ نور کوتاه از همان نقطه باز
+                  می‌شود و محو می‌شود.
+                </AppText>
+              </SettingsGroup>
+              <SettingsGroup
+                title="کره و گوی‌ها"
+                open={openGroup.look === 'sphere'}
+                onToggle={() => toggleGroup('look', 'sphere')}>
+                <RowSwitch
+                  label="چرخش خودکار"
+                  value={settings.autoRotate}
+                  onChange={v => update('autoRotate', v)}
+                />
+
+                <RowStepper
+                  label="سرعت چرخش"
+                  value={`${settings.speed.toFixed(2)}×`}
+                  onDec={() =>
+                    update(
+                      'speed',
+                      Math.max(0.25, +(settings.speed - 0.25).toFixed(2)),
+                    )
+                  }
+                  onInc={() =>
+                    update(
+                      'speed',
+                      Math.min(3, +(settings.speed + 0.25).toFixed(2)),
+                    )
+                  }
+                />
+
+                <RowStepper
+                  label="اندازه کره"
+                  value={`${settings.ringCount}`}
+                  onDec={() =>
+                    update('ringCount', Math.max(1, settings.ringCount - 1))
+                  }
+                  onInc={() =>
+                    update(
+                      'ringCount',
+                      Math.min(RINGS.length, settings.ringCount + 1),
+                    )
+                  }
+                />
+
+                <RowSwitch
+                  label="نمایش گوی‌ها"
+                  value={settings.showOrbs}
+                  onChange={v => update('showOrbs', v)}
+                />
+
+                {orbitCategories.length >= 2 ? (
+                  <RowChoices
+                    label="تم اوربیت (شهدا/طبیعت/...)"
+                    options={orbitCategories.map(c => ({id: c.id, label: c.title}))}
+                    selected={settings.orbitCategoryId}
+                    onSelect={id => update('orbitCategoryId', id)}
+                  />
+                ) : null}
+
+                <RowChoices
+                  label="حالت نمایش گوی‌ها"
+                  options={[
+                    {id: 'steady', label: 'ثابت'},
+                    {id: 'flicker', label: '✨ پیدا و پنهان'},
+                  ]}
+                  selected={settings.orbVisibility}
+                  onSelect={id =>
+                    update('orbVisibility', id as 'steady' | 'flicker')
+                  }
+                />
+
+                <RowStepper
+                  label="تعداد گوی‌ها"
+                  value={`${settings.ballCount}`}
+                  onDec={() =>
+                    update('ballCount', Math.max(1, settings.ballCount - 2))
+                  }
+                  onInc={() =>
+                    update(
+                      'ballCount',
+                      Math.min(maxBallCount, settings.ballCount + 2),
+                    )
+                  }
+                />
+
+                <RowChoices
+                  label="محور چرخش"
+                  options={[
+                    {id: 'x', label: 'محور X'},
+                    {id: 'y', label: 'محور Y'},
+                    {id: 'z', label: 'محور Z'},
+                    {id: 'mixed', label: 'ناهمگون (اتمی)'},
+                  ]}
+                  selected={settings.rotationAxis}
+                  onSelect={id =>
+                    update('rotationAxis', id as 'x' | 'y' | 'z' | 'mixed')
+                  }
+                />
+              </SettingsGroup>
+            </>
+          ) : null}
+
+          {tab === 'text' ? (
+            <>
+              <SettingsGroup
+                title="ساعت و تاریخ"
+                open={openGroup.text === 'clock'}
+                onToggle={() => toggleGroup('text', 'clock')}>
+                <RowSwitch
+                  label="نمایش ساعت"
+                  value={settings.showClock}
+                  onChange={v => update('showClock', v)}
+                />
+
+                <RowSwitch
+                  label="نمایش تاریخ"
+                  value={settings.showDate}
+                  onChange={v => update('showDate', v)}
+                />
+
+                <RowChoices
+                  label="حالت نمایش ساعت"
+                  options={[
+                    {id: '12', label: '۱۲ ساعته'},
+                    {id: '24', label: '۲۴ ساعته'},
+                  ]}
+                  selected={settings.hourFormat}
+                  onSelect={id => update('hourFormat', id as '12' | '24')}
+                />
+
+                {settings.hourFormat === '12' ? (
+                  <RowSwitch
+                    label="نمایش قبل‌ازظهر/بعدازظهر"
+                    value={settings.showAmPm}
+                    onChange={v => update('showAmPm', v)}
+                  />
+                ) : null}
+
+                <RowChoices
+                  label="ارقام ساعت"
+                  options={[
+                    {id: 'fa', label: 'فارسی'},
+                    {id: 'en', label: 'انگلیسی'},
+                  ]}
+                  selected={settings.clockDigits}
+                  onSelect={id => update('clockDigits', id as 'fa' | 'en')}
+                />
+
+                <RowChoices
+                  label="چیدمان ساعت"
+                  options={[
+                    {id: 'inline', label: 'بالا (کنار تاریخ)'},
+                    {id: 'bigCentered', label: 'وسط صفحه (بزرگ)'},
+                  ]}
+                  selected={settings.clockLayout}
+                  onSelect={id => {
+                    update('clockLayout', id as 'inline' | 'bigCentered');
+                    // The inline clock tops out at 1.6× (the big layout goes
+                    // much higher), so don't carry a huge scale back into it.
+                    if (id === 'inline' && settings.clockFontScale > 1.6) {
+                      update('clockFontScale', 1.6);
+                    }
+                  }}
+                />
+                {settings.clockLayout === 'bigCentered' ? (
+                  <AppText style={styles.hint}>
+                    در این حالت فقط ساعت وسط صفحه و بزرگ نمایش داده می‌شود —
+                    ساعت‌شمار بالا، دقیقه پایین — و تاریخ زیر آن نشان داده
+                    نمی‌شود.
+                  </AppText>
+                ) : null}
+
+                <RowSlider
+                  label="اندازه فونت ساعت"
+                  value={Math.min(settings.clockFontScale, maxClockScale)}
+                  min={0.7}
+                  max={maxClockScale}
+                  step={0.1}
+                  format={v => `${v.toFixed(1)}×`}
+                  onChange={v => update('clockFontScale', v)}
+                  onDragActive={setSliderActive}
+                />
+
+                <RowColors
+                  label="رنگ فونت ساعت"
+                  colors={TEXT_COLORS}
+                  selected={settings.clockTextColor}
+                  onSelect={c => update('clockTextColor', c)}
+                />
+                <RowColors
+                  label="رنگ تاریخ (متن کوچک)"
+                  colors={TEXT_COLORS}
+                  selected={settings.clockSmallTextColor}
+                  onSelect={c => update('clockSmallTextColor', c)}
+                />
+              </SettingsGroup>
+              <SettingsGroup
+                title="فونت"
+                open={openGroup.text === 'fonts'}
+                onToggle={() => toggleGroup('text', 'fonts')}>
+                {(
+                  [
+                    {script: 'fa', title: 'فونت فارسی', key: 'fontIdFa'},
+                    {script: 'en', title: 'فونت انگلیسی', key: 'fontIdEn'},
+                  ] as const
+                ).map(group => (
+                  <React.Fragment key={group.script}>
+                    <AppText
+                      style={[
+                        styles.sectionTitle,
+                        group.script === 'en' && styles.fontGroupGap,
+                      ]}>
+                      {group.title}
+                    </AppText>
+                    <View style={styles.fontList}>
+                      {fontsForScript(group.script).map(f => {
+                        const active =
+                          f.id === getScriptFont(group.script, settings[group.key]).id;
+                        return (
+                          <Pressable
+                            key={f.id}
+                            style={[styles.fontChip, active && styles.fontChipActive]}
+                            onPress={() => update(group.key, f.id)}>
+                            <AppText
+                              style={[
+                                styles.fontSample,
+                                {fontFamily: f.families.regular},
+                              ]}>
+                              {f.sample}
+                            </AppText>
+                            <AppText
+                              style={[
+                                styles.fontName,
+                                active && styles.fontNameActive,
+                              ]}>
+                              {f.label}
+                            </AppText>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </React.Fragment>
+                ))}
+              </SettingsGroup>
+              <SettingsGroup
+                title="متن پایین صفحه"
+                open={openGroup.text === 'quote'}
+                onToggle={() => toggleGroup('text', 'quote')}>
+                <RowSwitch
+                  label="نمایش متن پایین"
+                  value={settings.showQuote}
+                  onChange={v => update('showQuote', v)}
+                />
+
+                {/* [AI disabled for this version] daily AI-generated quote —
+                    re-enable with dailyAiQuote in SettingsContext.tsx and the
+                    fetch block in QuoteWidget.tsx.
+                <RowSwitch
+                  label="جملهٔ روزانه با هوش مصنوعی ✨"
+                  value={settings.dailyAiQuote}
+                  onChange={v => update('dailyAiQuote', v)}
+                />
+                <AppText style={styles.hint}>
+                  هر روز یک جملهٔ تازه (ساخته‌شده با هوش مصنوعی) به‌جای دسته‌ی
+                  زیر نمایش داده می‌شود. اگر این فیچر روی سرور فعال نباشد،
+                  خودکار به دسته‌ی انتخابی برمی‌گردد.
+                </AppText> */}
+
+                {quoteCategories.length > 1 ? (
+                  <RowChoices
+                    label="دسته‌ی نقل‌قول‌ها"
+                    options={quoteCategories.map(c => ({id: c.id, label: c.title}))}
+                    selected={settings.quoteCategoryId || quoteCategories[0].id}
+                    onSelect={id => update('quoteCategoryId', id)}
+                  />
+                ) : null}
+
+                <RowSlider
+                  label="اندازه فونت متن پایین"
+                  value={settings.quoteFontScale}
+                  min={0.7}
+                  max={1.6}
+                  step={0.1}
+                  format={v => `${v.toFixed(1)}×`}
+                  onChange={v => update('quoteFontScale', v)}
+                  onDragActive={setSliderActive}
+                />
+
+                <RowColors
+                  label="رنگ فونت متن پایین"
+                  colors={TEXT_COLORS}
+                  selected={settings.quoteTextColor}
+                  onSelect={c => update('quoteTextColor', c)}
+                />
+                <RowColors
+                  label="رنگ خط کوچک متن پایین"
+                  colors={TEXT_COLORS}
+                  selected={settings.quoteSmallTextColor}
+                  onSelect={c => update('quoteSmallTextColor', c)}
+                />
+
+                {/* <AppText style={styles.fieldLabel}>خط اول (کوچک)</AppText>
+                <TextInput
+                  style={styles.input}
+                  value={settings.quoteLine1}
+                  onChangeText={t => update('quoteLine1', t)}
+                  placeholder="ما با این جوان‌ها"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                />
+
+                <AppText style={styles.fieldLabel}>خط دوم (بزرگ طلایی)</AppText>
+                <TextInput
+                  style={styles.input}
+                  value={settings.quoteLine2}
+                  onChangeText={t => update('quoteLine2', t)}
+                  placeholder="به جایی خواهیم رسید"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                /> */}
+
+                {/* --- COUNTDOWN FEATURE (disabled) ---------------------------------
+                <View style={styles.divider} />
+                <AppText style={styles.sectionTitle}>شمارش معکوس</AppText>
+
+                <AppText style={styles.fieldLabel}>عنوان</AppText>
+                <TextInput
+                  style={styles.input}
+                  value={settings.countdownLabel}
+                  onChangeText={t => update('countdownLabel', t)}
+                  placeholder="عنوان شمارش معکوس"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                />
+
+                <AppText style={styles.fieldLabel}>تاریخ مقصد (ISO)</AppText>
+                <TextInput
+                  style={styles.input}
+                  value={settings.countdownTargetISO}
+                  onChangeText={t => update('countdownTargetISO', t)}
+                  placeholder="2040-01-01T00:00:00"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  autoCapitalize="none"
+                />
+                <AppText style={styles.hint}>
+                  نمونه: ۲۰۴۰-۰۱-۰۱T۰۰:۰۰:۰۰ — تاریخ و عنوان دلخواه خودت را وارد کن.
+                </AppText>
+                ------------------------------------------------------------------ */}
+
+                <View style={styles.divider} />
+                <AppText style={styles.sectionTitle}>ویجت صفحهٔ اصلی</AppText>
+
+                <RowSwitch
+                  label="چرخش خودکار نقل‌قول ویجت"
+                  value={settings.widgetAutoRotateQuote}
+                  onChange={v => {
+                    update('widgetAutoRotateQuote', v);
+                    setWidgetAutoRotateQuote(v).catch(() => {});
+                  }}
+                />
+                <AppText style={styles.hint}>
+                  روی صفحه اصلی انگشت نگه دار و ویجت «Wallpaper» رو اضافه کن.
+                </AppText>
+              </SettingsGroup>
+              <SettingsGroup
+                title="هوا و چیدمان"
+                open={openGroup.text === 'layout'}
+                onToggle={() => toggleGroup('text', 'layout')}>
+                <RowSwitch
+                  label="نمایش هوا"
+                  value={settings.showWeather}
+                  onChange={v => update('showWeather', v)}
+                />
+                <AppText style={styles.hint}>
+                  دما همیشه زنده از طریق GPS و API آب‌وهوا گرفته می‌شود؛ تا وقتی
+                  گرفتن آن موفق نشود چیزی نمایش داده نمی‌شود.
+                </AppText>
+
+
+                <RowSwitch
+                  label="جابجایی ساعت و متن (کشیدن)"
+                  value={settings.editLayout}
+                  onChange={v => {
+                    update('editLayout', v);
+                    if (v) {
+                      onClose();
+                    }
+                  }}
+                />
+                <AppText style={styles.hint}>
+                  روشن کن و پنجره را ببند، سپس ساعت، دما یا متن پایین را با انگشت
+                  بکش تا جابه‌جا شود.
+                </AppText>
+                <Pressable
+                  style={styles.galleryBtn}
+                  onPress={() => {
+                    update('clockOffset', {x: 0, y: 0});
+                    update('weatherOffset', {x: 0, y: 0});
+                    update('quoteOffset', {x: 0, y: 0});
+                  }}>
+                  <AppText style={styles.galleryBtnText}>
+                    ↺ بازنشانی موقعیت‌ها
+                  </AppText>
+                </Pressable>
+              </SettingsGroup>
             </>
           ) : null}
 
@@ -1214,6 +1234,34 @@ export default function SettingsPanel({
         ) : null}
       </Animated.View>
     </Modal>
+  );
+}
+
+/** Collapsible section in «ظاهر» / «ساعت و متن»: a 56dp header row with the
+ * group name and an arrow; the body renders only while open. */
+function SettingsGroup({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.group}>
+      <Pressable
+        style={styles.groupHeader}
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityState={{expanded: open}}>
+        <AppText style={styles.groupTitle}>{title}</AppText>
+        <AppText style={styles.groupArrow}>{open ? '▴' : '▾'}</AppText>
+      </Pressable>
+      {open ? <View style={styles.groupBody}>{children}</View> : null}
+    </View>
   );
 }
 
@@ -1711,6 +1759,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     writingDirection: 'rtl',
   },
+  group: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(139, 92, 246, 0.25)',
+  },
+  groupHeader: {
+    height: 56,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  groupTitle: {
+    color: '#c4b5fd',
+    fontSize: 16,
+    fontWeight: '700',
+    writingDirection: 'rtl',
+  },
+  groupArrow: {color: '#c4b5fd', fontSize: 16},
+  groupBody: {paddingBottom: 12},
   undoBar: {
     position: 'absolute',
     left: 16,
