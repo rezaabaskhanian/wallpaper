@@ -140,6 +140,10 @@ export default function SettingsPanel({
   // Persists across opens/closes (the panel stays mounted, only `visible`
   // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('device');
+  // Simple mode shows only «روی گوشیم بذار»; the other tabs (look, widgets,
+  // effects…) sit behind one «تنظیمات بیشتر» button so a new user isn't met
+  // with seven tabs. Resets to simple every time the panel opens.
+  const [advanced, setAdvanced] = useState(false);
   // True while a finger is on a RowSlider, so the ScrollView doesn't take
   // over a horizontal drag partway through.
   const [sliderActive, setSliderActive] = useState(false);
@@ -152,6 +156,8 @@ export default function SettingsPanel({
   useEffect(() => {
     if (visible) {
       isDefaultLauncher().then(setIsLauncher);
+      setAdvanced(false);
+      setTab('device');
     }
   }, [visible]);
   const [presetNameInput, setPresetNameInput] = useState('');
@@ -262,7 +268,19 @@ export default function SettingsPanel({
         <View style={styles.handle} />
 
         {/* تب‌بار دسته‌ها: اولین چیزی که دیده می‌شود، بالای مودال. */}
+        {advanced ? (
         <View style={styles.tabBar}>
+          <Pressable
+            style={styles.tabBtn}
+            onPress={() => {
+              setAdvanced(false);
+              selectTab('device');
+            }}>
+            <AppText numberOfLines={1} style={styles.tabBtnText}>
+              ‹ ساده
+            </AppText>
+            <View style={styles.tabIndicator} />
+          </Pressable>
           {TABS.map(t => {
             const active = t.id === tab;
             return (
@@ -282,10 +300,11 @@ export default function SettingsPanel({
             );
           })}
         </View>
+        ) : null}
 
         {/* In «روی گوشیم بذار» this row moves below the main live-wallpaper
             button (see that tab) so nothing competes with it for attention. */}
-        {tab !== 'device' ? entryRow : null}
+        {advanced && tab !== 'device' ? entryRow : null}
 
         {/* [AI disabled for this version] entry point for AI wallpaper
             generation — styles.aiEntry/aiEntryText are kept below.
@@ -1201,6 +1220,14 @@ export default function SettingsPanel({
               <AppText style={styles.hint}>
                 موقع شارژ، صحنه زنده به‌جای محافظ صفحه پخش می‌شه.
               </AppText>
+
+              <Pressable
+                style={styles.galleryBtn}
+                onPress={() => setAdvanced(true)}>
+                <AppText style={styles.galleryBtnText}>
+                  ⚙️ تنظیمات بیشتر (پس‌زمینه، جلوه‌ها، ویجت، فونت…)
+                </AppText>
+              </Pressable>
             </>
           ) : null}
         </ScrollView>
