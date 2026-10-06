@@ -957,7 +957,7 @@ export default function SettingsPanel({
                   value={settings.dailyAiQuote}
                   onChange={v => update('dailyAiQuote', v)}
                   info="هر روز یک جملهٔ تازه (ساخته‌شده با هوش مصنوعی) به‌جای دسته‌ی زیر نمایش داده می‌شود. اگر این فیچر روی سرور فعال نباشد، خودکار به دسته‌ی انتخابی برمی‌گردد."
-                />
+                /> */}
 
                 {quoteCategories.length > 1 ? (
                   <RowChoices
