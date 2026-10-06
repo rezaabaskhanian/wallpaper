@@ -7,6 +7,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Svg, {Circle, Line} from 'react-native-svg';
+import {Bookmark, Plus, X} from 'lucide-react-native';
 import AppText from './AppText';
 import {useSettings, type WallpaperSettings} from './SettingsContext';
 import {BUILTIN_PRESETS, presetMatches} from './settingsPresets';
@@ -24,6 +26,77 @@ type Props = {
  * saved presets, then a «ذخیره حالت فعلی» card that opens the naming form.
  * Scrolls horizontally, right to left.
  */
+const TILE_W = 72;
+const TILE_H = 52;
+
+/** Tiny picture of each built-in look, drawn on its tile. */
+function PresetArt({id}: {id: string}) {
+  switch (id) {
+    case 'calm':
+      return (
+        <Svg width={TILE_W} height={TILE_H}>
+          {[
+            [20, 14],
+            [52, 12],
+            [38, 24],
+            [26, 38],
+            [50, 36],
+          ].map(([x, y]) => (
+            <Circle key={`${x}-${y}`} cx={x} cy={y} r={2.5} fill="#ffffff" />
+          ))}
+        </Svg>
+      );
+    case 'rainy':
+      return (
+        <Svg width={TILE_W} height={TILE_H}>
+          {[
+            [16, 8],
+            [34, 6],
+            [52, 10],
+            [22, 28],
+            [40, 26],
+            [58, 28],
+          ].map(([x, y]) => (
+            <Line
+              key={`${x}-${y}`}
+              x1={x + 5}
+              y1={y}
+              x2={x}
+              y2={y + 14}
+              stroke="rgba(255,255,255,0.6)"
+              strokeWidth={2}
+              strokeLinecap="round"
+            />
+          ))}
+        </Svg>
+      );
+    case 'night':
+      return (
+        <Svg width={TILE_W} height={TILE_H}>
+          <Circle cx={46} cy={22} r={10} fill="#e5e7eb" />
+          <Circle cx={18} cy={14} r={2} fill="#ffffff" />
+          <Circle cx={24} cy={36} r={2} fill="#ffffff" />
+        </Svg>
+      );
+    case 'smart':
+      return (
+        <Svg width={TILE_W} height={TILE_H}>
+          <Circle cx={22} cy={26} r={11} fill="#f4b46a" />
+        </Svg>
+      );
+    default:
+      return null;
+  }
+}
+
+const TILE_BG: Record<string, string> = {
+  simple: '#2b3a46',
+  calm: '#2b3a46',
+  rainy: '#2b3a46',
+  night: '#0f1720',
+  smart: '#33475a',
+};
+
 export default function PresetRow({onApplied, onDeleteUserPreset}: Props) {
   const {settings, update, userPresets, savePreset, applyPreset} = useSettings();
   const [saving, setSaving] = useState(false);
@@ -63,39 +136,60 @@ export default function PresetRow({onApplied, onDeleteUserPreset}: Props) {
           return (
             <Pressable
               key={p.id}
-              style={[styles.card, active && styles.cardActive]}
+              style={styles.item}
               accessibilityRole="button"
+              accessibilityLabel={p.label}
               accessibilityState={{selected: active}}
               onPress={() => applyBuiltin(p.id)}>
-              <AppText style={[styles.cardText, active && styles.cardTextActive]}>
+              <View
+                style={[
+                  styles.tile,
+                  {backgroundColor: TILE_BG[p.id]},
+                  active && styles.tileActive,
+                ]}>
+                <PresetArt id={p.id} />
+              </View>
+              <AppText style={[styles.itemText, active && styles.itemTextActive]}>
                 {p.label}
               </AppText>
             </Pressable>
           );
         })}
         {userPresets.map(p => (
-          <View key={p.id} style={styles.userWrap}>
+          <View key={p.id}>
             <Pressable
-              style={styles.card}
+              style={styles.item}
               accessibilityRole="button"
+              accessibilityLabel={p.label}
               onPress={() => applyUser(p.id, p.label)}>
-              <AppText style={styles.cardText}>{p.label}</AppText>
+              <View style={[styles.tile, styles.userTile]}>
+                <Bookmark size={22} color="#c4b5fd" />
+              </View>
+              <AppText style={styles.itemText} numberOfLines={1}>
+                {p.label}
+              </AppText>
             </Pressable>
             <Pressable
               style={styles.deleteBtn}
-              hitSlop={12}
+              hitSlop={13}
               accessibilityRole="button"
               accessibilityLabel={`حذف ${p.label}`}
               onPress={() => onDeleteUserPreset(p.id, p.label)}>
-              <AppText style={styles.deleteText}>✕</AppText>
+              <X size={12} color="#fca5a5" />
             </Pressable>
           </View>
         ))}
         <Pressable
-          style={[styles.card, styles.saveCard, saving && styles.cardActive]}
+          style={styles.item}
           accessibilityRole="button"
+          accessibilityState={{expanded: saving}}
           onPress={() => setSaving(v => !v)}>
-          <AppText style={styles.cardText}>+ ذخیره حالت فعلی</AppText>
+          <View style={[styles.tile, styles.saveTile, saving && styles.tileActive]}>
+            <Plus size={22} color="#c4b5fd" />
+          </View>
+          <AppText style={styles.itemText} numberOfLines={1}>
+            ذخیره حالت فعلی
+          </AppText>
         </Pressable>
       </ScrollView>
 
@@ -126,24 +220,33 @@ export default function PresetRow({onApplied, onDeleteUserPreset}: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: {flexGrow: 1, flexDirection: 'row', gap: 8, paddingVertical: 8},
+  row: {flexGrow: 1, flexDirection: 'row', gap: 12, paddingVertical: 12},
   rowReverse: {flexDirection: 'row-reverse'},
-  card: {
-    minHeight: 48,
-    minWidth: 72,
-    paddingHorizontal: 16,
+  item: {width: TILE_W, alignItems: 'center'},
+  tile: {
+    width: TILE_W,
+    height: TILE_H,
     borderRadius: 14,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.2)',
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
-  cardActive: {backgroundColor: 'rgba(139, 92, 246, 0.22)', borderColor: '#8b5cf6', borderWidth: 2},
-  saveCard: {borderStyle: 'dashed'},
-  cardText: {color: 'rgba(255,255,255,0.8)', fontSize: 14, writingDirection: 'rtl'},
-  cardTextActive: {color: '#eafffb', fontWeight: '700'},
-  userWrap: {justifyContent: 'center'},
+  tileActive: {borderColor: '#8b5cf6'},
+  userTile: {backgroundColor: 'rgba(139, 92, 246, 0.18)'},
+  saveTile: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderStyle: 'dashed',
+  },
+  itemText: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 14,
+    marginTop: 8,
+    writingDirection: 'rtl',
+  },
+  itemTextActive: {color: '#ffffff', fontWeight: '700'},
   deleteBtn: {
     position: 'absolute',
     top: -6,
@@ -157,7 +260,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deleteText: {color: '#fca5a5', fontSize: 11, fontWeight: '700'},
   form: {flexDirection: 'row-reverse', gap: 8, marginTop: 8},
   input: {
     flex: 1,

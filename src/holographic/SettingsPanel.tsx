@@ -14,6 +14,26 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {
+  BatteryCharging,
+  BookOpen,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronUp,
+  CirclePlay,
+  House,
+  ImageIcon,
+  Info,
+  Lock,
+  MessageSquare,
+  Minus,
+  Plus,
+  Redo2,
+  RotateCcw,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react-native';
 import AppText from './AppText';
 import {showAlert} from './AppAlert';
 // import {launchImageLibrary} from 'react-native-image-picker';
@@ -73,6 +93,14 @@ const TEXT_COLORS = [
   '#7dd3fc', // blue
   '#000000', // black
 ];
+
+/** Shown from Settings ▸ بیشتر ▸ منبع محتوا. */
+const CONTENT_SOURCE =
+  'جملات نمایش داده‌شده در برنامه برگرفته و خلاصه‌شده از پایگاه اطلاع‌رسانی دفتر حفظ و نشر آثار حضرت آیت‌الله العظمی خامنه‌ای (khamenei.ir) است.';
+
+/** Stroke colour of the row icons. */
+const ICON_COLOR = '#c4b5fd';
+const MUTED_ICON = 'rgba(255,255,255,0.55)';
 
 /** How long the «برگردان» bar stays after applying a preset. */
 const UNDO_MS = 5000;
@@ -140,6 +168,7 @@ export default function SettingsPanel({
   // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('home');
   const insets = useSafeAreaInsets();
+  const [moreAdvancedOpen, setMoreAdvancedOpen] = useState(false);
   // One open group per tab at a time; the first group starts open.
   const [openGroup, setOpenGroup] = useState<{look: string; text: string}>({
     look: 'background',
@@ -345,103 +374,85 @@ export default function SettingsPanel({
               {/* Both open Android's own "Home app" chooser — the only place a
                   launcher can be switched — so the way back is always one tap. */}
               {isLauncher ? (
-                <>
-                  <Pressable style={styles.galleryBtn} onPress={openLauncherSettings}>
-                    <AppText style={styles.galleryBtnText}>
-                      ↩️ بازگشت به لانچر قبلی
-                    </AppText>
-                  </Pressable>
-                  <HintLine>در صفحه بعد، لانچر قبلی گوشیت رو انتخاب کن.</HintLine>
-                </>
+                <ListRow
+                  icon={Redo2}
+                  title="بازگشت به لانچر قبلی"
+                  subtitle="در صفحه بعد، لانچر قبلی گوشیت رو انتخاب کن."
+                  onPress={openLauncherSettings}
+                />
               ) : (
-                <>
-                  <Pressable style={styles.galleryBtn} onPress={openLauncherSettings}>
-                    <AppText style={styles.galleryBtnText}>
-                      🏠 تنظیم به‌عنوان لانچر
-                    </AppText>
-                  </Pressable>
-                  <HintLine info="صحنه زنده می‌شه صفحه اصلی گوشیت؛ هر وقت خواستی، از همین‌جا به لانچر قبلی برمی‌گردی.">
-                    صحنه زنده می‌شه صفحه اصلی گوشیت
-                  </HintLine>
-                </>
+                <ListRow
+                  icon={House}
+                  title="تنظیم به‌عنوان لانچر"
+                  subtitle="صحنه زنده می‌شه صفحه اصلی گوشیت"
+                  info="صحنه زنده می‌شه صفحه اصلی گوشیت؛ هر وقت خواستی، از همین‌جا به لانچر قبلی برمی‌گردی."
+                  onPress={openLauncherSettings}
+                />
               )}
-
-              <View style={styles.divider} />
-              <Pressable style={styles.helpEntry} onPress={() => onOpenHelp?.()}>
-                <AppText style={styles.helpEntryText}>📖 راهنمای کار با اپ</AppText>
-              </Pressable>
-
-              <View style={styles.divider} />
-              <RowSwitch
-                label="پیش‌نمایش متحرک والپیپرهای قفل‌شده (گالری)"
-                value={settings.animatedLockedPreview}
-                onChange={v => update('animatedLockedPreview', v)}
+              <ListRow icon={BookOpen} title="راهنمای کار با اپ" onPress={() => onOpenHelp?.()} />
+              <ListRow
+                icon={CirclePlay}
+                title="پیش‌نمایش متحرک والپیپرهای قفل‌شده (گالری)"
+                right={
+                  <SettingSwitch
+                    value={settings.animatedLockedPreview}
+                    onChange={v => update('animatedLockedPreview', v)}
+                  />
+                }
               />
-
-              <View style={styles.divider} />
-              <AppText style={styles.sectionTitle}>ارتباط با سازنده</AppText>
-              <Pressable style={styles.galleryBtn} onPress={openDeveloperTelegram}>
-                <AppText style={styles.galleryBtnText}>
-                  💬 تلگرام: @{DEVELOPER_TELEGRAM_USERNAME}
-                </AppText>
-              </Pressable>
-
-              <View style={styles.divider} />
-              <AppText style={styles.sectionTitle}>منبع محتوا</AppText>
-              <AppText style={styles.hint}>جملات نمایش داده‌شده در برنامه برگرفته و خلاصه‌شده از پایگاه اطلاع‌رسانی دفتر حفظ و نشر آثار حضرت آیت‌الله العظمی خامنه‌ای (khamenei.ir) است.</AppText>
+              <ListRow
+                icon={MessageSquare}
+                title="ارتباط با سازنده"
+                subtitle={`تلگرام: @${DEVELOPER_TELEGRAM_USERNAME}`}
+                onPress={openDeveloperTelegram}
+              />
+              <ListRow
+                icon={Info}
+                title="منبع محتوا"
+                onPress={() => showAlert('منبع محتوا', CONTENT_SOURCE)}
+                last={!(!premiumUnlocked && hasPremiumWallpapers)}
+              />
 
               {/* «تم آماده» فعلاً کامنت شده — نیاز به اصلاح دارد، شاید بعداً
                   برگردانده شود. See THEMES in ./themes.ts and applyTheme in
-                  ./SettingsContext.tsx (هنوز موجودند، فقط UI‌اش مخفی است).
-              <AppText style={styles.sectionTitle}>تم آماده</AppText>
-              <View style={styles.chips}>
-                {THEMES.map(t => {
-                  const active = t.id === settings.themeId;
-                  return (
-                    <Pressable
-                      key={t.id}
-                      style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => applyTheme(t.id)}>
-                      <AppText
-                        style={[
-                          styles.chipText,
-                          active && styles.chipTextActive,
-                        ]}>
-                        {t.label}
-                      </AppText>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              */}
+                  ./SettingsContext.tsx (هنوز موجودند، فقط UI‌اش مخفی است). */}
 
               {/* Rarely needed: kept last, behind a closed row. */}
               {!premiumUnlocked && hasPremiumWallpapers ? (
-                <Disclosure title="پیشرفته">
-                  <>
-                    <AppText style={styles.sectionTitle}>کد تخفیف</AppText>
-                    <View style={styles.promoRow}>
-                      <TextInput
-                        style={styles.promoInput}
-                        value={promoInput}
-                        onChangeText={setPromoInput}
-                        placeholder="کد تخفیف را وارد کن"
-                        placeholderTextColor="rgba(255,255,255,0.35)"
-                        autoCapitalize="characters"
-                        autoCorrect={false}
-                      />
-                      <Pressable
-                        style={[styles.promoBtn, redeeming && styles.promoBtnDisabled]}
-                        disabled={redeeming}
-                        onPress={submitPromoCode}>
-                        <AppText style={styles.promoBtnText}>
-                          {redeeming ? '...' : 'فعال‌سازی'}
-                        </AppText>
-                      </Pressable>
+                <>
+                  <ListRow
+                    icon={SlidersHorizontal}
+                    title="پیشرفته"
+                    onPress={() => setMoreAdvancedOpen(o => !o)}
+                    expanded={moreAdvancedOpen}
+                    last={!moreAdvancedOpen}
+                  />
+                  {moreAdvancedOpen ? (
+                    <View style={styles.groupBody}>
+                      <AppText style={styles.sectionTitle}>کد تخفیف</AppText>
+                      <View style={styles.promoRow}>
+                        <TextInput
+                          style={styles.promoInput}
+                          value={promoInput}
+                          onChangeText={setPromoInput}
+                          placeholder="کد تخفیف را وارد کن"
+                          placeholderTextColor="rgba(255,255,255,0.35)"
+                          autoCapitalize="characters"
+                          autoCorrect={false}
+                        />
+                        <Pressable
+                          style={[styles.promoBtn, redeeming && styles.promoBtnDisabled]}
+                          disabled={redeeming}
+                          onPress={submitPromoCode}>
+                          <AppText style={styles.promoBtnText}>
+                            {redeeming ? '...' : 'فعال‌سازی'}
+                          </AppText>
+                        </Pressable>
+                      </View>
+                      <HintLine>با وارد کردن کد معتبر، همهٔ والپیپرهای پرمیوم باز می‌شوند.</HintLine>
                     </View>
-                    <HintLine>با وارد کردن کد معتبر، همهٔ والپیپرهای پرمیوم باز می‌شوند.</HintLine>
-                  </>
-                </Disclosure>
+                  ) : null}
+                </>
               ) : null}
             </>
           ) : null}
@@ -488,13 +499,16 @@ export default function SettingsPanel({
                         <Image source={{uri}} style={styles.randomBgThumb} />
                         <Pressable
                           style={styles.randomBgRemove}
+                        hitSlop={14}
+                        accessibilityRole="button"
+                        accessibilityLabel="حذف از چرخش"
                           onPress={() =>
                             update(
                               'randomBackgroundUris',
                               settings.randomBackgroundUris.filter(u => u !== uri),
                             )
                           }>
-                          <AppText style={styles.randomBgRemoveText}>×</AppText>
+                          <X size={12} color="#eafffb" />
                         </Pressable>
                       </View>
                     ))}
@@ -557,8 +571,8 @@ export default function SettingsPanel({
                 <RowChoices
                   label="شکل ذرات"
                   options={[
-                    {id: 'dot', label: '✦ نقطه'},
-                    {id: 'heart', label: '♥ قلب'},
+                    {id: 'dot', label: 'نقطه'},
+                    {id: 'heart', label: 'قلب'},
                   ]}
                   selected={settings.particleShape}
                   onSelect={id => update('particleShape', id as 'dot' | 'heart')}
@@ -622,8 +636,8 @@ export default function SettingsPanel({
                   label="جلوه‌های آب‌وهوا (باران/برف)"
                   options={[
                     {id: 'off', label: 'خاموش'},
-                    {id: 'rain', label: '🌧️ باران'},
-                    {id: 'snow', label: '❄️ برف'},
+                    {id: 'rain', label: 'باران'},
+                    {id: 'snow', label: 'برف'},
                     {id: 'auto', label: 'خودکار (بر اساس هوا)'},
                   ]}
                   selected={settings.weatherEffects}
@@ -694,7 +708,7 @@ export default function SettingsPanel({
                   value={settings.touchRipple}
                   onChange={v => update('touchRipple', v)}
                   info="با هر ضربه روی صفحه، یک حلقهٔ نور کوتاه از همان نقطه باز می‌شود و محو می‌شود."                />
-                <Disclosure title="پیشرفته">
+                <Disclosure title="پیشرفته" summary="عمق سه‌بعدی">
                   <RowSwitch
                     label="پارالاکس سه‌بعدی (شبیه‌سازی عمق)"
                     value={settings.depthParallax}
@@ -745,7 +759,7 @@ export default function SettingsPanel({
                   label="حالت نمایش گوی‌ها"
                   options={[
                     {id: 'steady', label: 'ثابت'},
-                    {id: 'flicker', label: '✨ پیدا و پنهان'},
+                    {id: 'flicker', label: 'پیدا و پنهان'},
                   ]}
                   selected={settings.orbVisibility}
                   onSelect={id =>
@@ -753,7 +767,7 @@ export default function SettingsPanel({
                   }
                 />
 
-                <Disclosure title="پیشرفته">
+                <Disclosure title="پیشرفته" summary="محور، سرعت و تعداد گوی‌ها">
                   <RowChoices
                     label="محور چرخش"
                     options={[
@@ -1076,9 +1090,10 @@ export default function SettingsPanel({
                     update('weatherOffset', {x: 0, y: 0});
                     update('quoteOffset', {x: 0, y: 0});
                   }}>
-                  <AppText style={styles.galleryBtnText}>
-                    ↺ بازنشانی موقعیت‌ها
-                  </AppText>
+                  <View style={styles.btnInner}>
+                    <AppText style={styles.galleryBtnText}>بازنشانی موقعیت‌ها</AppText>
+                    <RotateCcw size={18} color={ICON_COLOR} />
+                  </View>
                 </Pressable>
               </SettingsGroup>
             </>
@@ -1089,11 +1104,12 @@ export default function SettingsPanel({
               <Pressable
                 style={({pressed}) => [styles.liveBtn, pressed && styles.liveBtnPressed]}
                 onPress={() => onSetLiveWallpaper?.()}>
-                <AppText style={styles.liveBtnTitle}>✨ والپیپر زنده روی گوشیم</AppText>
+                <AppText style={styles.liveBtnTitle}>والپیپر زنده روی گوشیم</AppText>
                 <AppText style={styles.liveBtnSub}>صفحه اصلی گوشیت زنده می‌شه</AppText>
               </Pressable>
 
               <View style={styles.homeSection}>
+                <AppText style={styles.homeSectionTitle}>حالت‌های آماده</AppText>
                 <PresetRow
                   onApplied={(label, previous) => setUndo({label, previous})}
                   onDeleteUserPreset={confirmDeletePreset}
@@ -1101,26 +1117,26 @@ export default function SettingsPanel({
               </View>
 
               <Pressable
-                style={[styles.galleryEntry, styles.deviceEntryRow]}
+                style={({pressed}) => [styles.outlineBtn, pressed && styles.liveBtnPressed]}
                 onPress={() => onOpenGallery?.()}>
-                <AppText style={styles.galleryEntryText}>🖼️ گالری والپیپرها</AppText>
+                <AppText style={styles.outlineBtnText}>گالری والپیپرها</AppText>
+                <ImageIcon size={22} color={ICON_COLOR} />
               </Pressable>
 
-              <Pressable
-                style={styles.galleryBtn}
-                onPress={() => onSetWallpaper?.('lock')}>
-                <AppText style={styles.galleryBtnText}>🔒 عکس ثابت برای صفحه قفل</AppText>
-              </Pressable>
-              <HintLine info="اندروید اجازه والپیپر زنده روی صفحه قفل نمی‌ده، برای همین اینجا عکس ثابت گذاشته می‌شه.">
-                روی صفحه قفل فقط عکس ثابت می‌شه
-              </HintLine>
-
-              <Pressable style={styles.galleryBtn} onPress={openScreenSaverSettings}>
-                <AppText style={styles.galleryBtnText}>
-                  🖥️ نمایش هنگام شارژ (محافظ صفحه)
-                </AppText>
-              </Pressable>
-              <HintLine>موقع شارژ، صحنه زنده به‌جای محافظ صفحه پخش می‌شه.</HintLine>
+              <ListRow
+                icon={Lock}
+                title="عکس ثابت برای صفحه قفل"
+                subtitle="روی صفحه قفل فقط عکس ثابت می‌شه"
+                info="اندروید اجازه والپیپر زنده روی صفحه قفل نمی‌ده، برای همین اینجا عکس ثابت گذاشته می‌شه."
+                onPress={() => onSetWallpaper?.('lock')}
+              />
+              <ListRow
+                icon={BatteryCharging}
+                title="نمایش هنگام شارژ"
+                subtitle="موقع شارژ، صحنه زنده به‌جای محافظ صفحه پخش می‌شه."
+                onPress={openScreenSaverSettings}
+                last
+              />
             </>
           ) : null}
         </ScrollView>
@@ -1137,6 +1153,71 @@ export default function SettingsPanel({
         ) : null}
       </Animated.View>
     </Modal>
+  );
+}
+
+type IconType = React.ComponentType<{size?: number; color?: string}>;
+
+/** Tappable list row (home/more tabs): icon on the right, title + optional
+ * one-line subtitle, and a left chevron — or a custom control in `right`. */
+function ListRow({
+  icon: Icon,
+  title,
+  subtitle,
+  info,
+  onPress,
+  right,
+  expanded,
+  last,
+}: {
+  icon: IconType;
+  title: string;
+  subtitle?: string;
+  info?: string;
+  onPress?: () => void;
+  right?: React.ReactNode;
+  expanded?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <Pressable
+      style={({pressed}) => [
+        styles.listRow,
+        !last && styles.listRowDivider,
+        pressed && onPress && styles.listRowPressed,
+      ]}
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}>
+      <Icon size={24} color={ICON_COLOR} />
+      <View style={styles.listRowText}>
+        <AppText style={styles.listRowTitle}>{title}</AppText>
+        {subtitle ? (
+          <AppText style={styles.listRowSub} numberOfLines={1}>
+            {subtitle}
+          </AppText>
+        ) : null}
+      </View>
+      {info ? <InfoButton title={title} info={info} /> : null}
+      {right ??
+        (expanded ? (
+          <ChevronDown size={20} color={MUTED_ICON} />
+        ) : (
+          <ChevronLeft size={20} color={MUTED_ICON} />
+        ))}
+    </Pressable>
+  );
+}
+
+/** The sheet's on/off switch. */
+function SettingSwitch({value, onChange}: {value: boolean; onChange: (v: boolean) => void}) {
+  return (
+    <Switch
+      value={value}
+      onValueChange={onChange}
+      trackColor={{true: '#8b5cf6', false: '#334155'}}
+      thumbColor="#eafffb"
+    />
   );
 }
 
@@ -1179,7 +1260,16 @@ function HintLine({children, info}: {children: React.ReactNode; info?: string}) 
 
 /** A closed-by-default row inside a group («رنگ‌های بیشتر», «پیشرفته»)
  * that tucks away settings most people never need. */
-function Disclosure({title, children}: {title: string; children: React.ReactNode}) {
+function Disclosure({
+  title,
+  summary,
+  children,
+}: {
+  title: string;
+  /** What's inside, shown after the title while closed: «پیشرفته: عمق سه‌بعدی». */
+  summary?: string;
+  children: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <View>
@@ -1188,8 +1278,14 @@ function Disclosure({title, children}: {title: string; children: React.ReactNode
         onPress={() => setOpen(o => !o)}
         accessibilityRole="button"
         accessibilityState={{expanded: open}}>
-        <AppText style={styles.disclosureTitle}>{title}</AppText>
-        <AppText style={styles.disclosureArrow}>{open ? '▴' : '▾'}</AppText>
+        <AppText style={styles.disclosureTitle}>
+          {summary ? `${title}: ${summary}` : title}
+        </AppText>
+        {open ? (
+          <ChevronDown size={20} color={MUTED_ICON} />
+        ) : (
+          <ChevronLeft size={20} color={MUTED_ICON} />
+        )}
       </Pressable>
       {open ? children : null}
     </View>
@@ -1216,8 +1312,12 @@ function SettingsGroup({
         onPress={onToggle}
         accessibilityRole="button"
         accessibilityState={{expanded: open}}>
-        <AppText style={styles.groupTitle}>{title}</AppText>
-        <AppText style={styles.groupArrow}>{open ? '▴' : '▾'}</AppText>
+        <AppText style={[styles.groupTitle, open && styles.groupTitleOpen]}>{title}</AppText>
+        {open ? (
+          <ChevronUp size={22} color={ICON_COLOR} />
+        ) : (
+          <ChevronDown size={22} color={MUTED_ICON} />
+        )}
       </Pressable>
       {open ? <View style={styles.groupBody}>{children}</View> : null}
     </View>
@@ -1238,12 +1338,7 @@ function RowSwitch({
 }) {
   return (
     <View style={styles.row}>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        trackColor={{true: '#8b5cf6', false: '#334155'}}
-        thumbColor="#eafffb"
-      />
+      <SettingSwitch value={value} onChange={onChange} />
       <RowLabel label={label} info={info} />
     </View>
   );
@@ -1266,12 +1361,22 @@ function RowStepper({
   return (
     <View style={styles.row}>
       <View style={styles.stepper}>
-        <Pressable style={styles.stepBtn} onPress={onDec}>
-          <AppText style={styles.stepText}>−</AppText>
+        <Pressable
+          style={styles.stepBtn}
+          onPress={onDec}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={`کم کردن ${label}`}>
+          <Minus size={18} color="#eafffb" />
         </Pressable>
         <AppText style={styles.stepValue}>{value}</AppText>
-        <Pressable style={styles.stepBtn} onPress={onInc}>
-          <AppText style={styles.stepText}>+</AppText>
+        <Pressable
+          style={styles.stepBtn}
+          onPress={onInc}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={`زیاد کردن ${label}`}>
+          <Plus size={18} color="#eafffb" />
         </Pressable>
       </View>
       <RowLabel label={label} info={info} />
@@ -1459,6 +1564,10 @@ function RowColors({
             <Pressable
               key={c}
               onPress={() => onSelect(c)}
+              hitSlop={9}
+              accessibilityRole="button"
+              accessibilityLabel={`رنگ ${c}`}
+              accessibilityState={{selected: active}}
               style={[
                 styles.swatch,
                 {backgroundColor: c},
@@ -1468,14 +1577,7 @@ function RowColors({
                 active && styles.swatchActive,
               ]}>
               {active ? (
-                <AppText
-                  style={[
-                    styles.swatchCheck,
-                    // near-white swatches (white, the pale gold) would hide a white tick
-                    luminance(c) > 220 && styles.swatchCheckDark,
-                  ]}>
-                  ✓
-                </AppText>
+                <Check size={16} strokeWidth={3} color={luminance(c) > 220 ? '#000000' : '#ffffff'} />
               ) : null}
             </Pressable>
           );
@@ -1523,6 +1625,9 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row-reverse',
+    // Bleed past the sheet's side padding so the divider spans the sheet.
+    marginHorizontal: -20,
+    paddingHorizontal: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.1)',
   },
@@ -1536,7 +1641,7 @@ const styles = StyleSheet.create({
   },
   tabBtnText: {
     color: 'rgba(255,255,255,0.55)',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     writingDirection: 'rtl',
   },
@@ -1545,7 +1650,7 @@ const styles = StyleSheet.create({
   },
   tabIndicator: {
     height: 3,
-    width: '70%',
+    width: '100%',
     borderRadius: 2,
     backgroundColor: 'transparent',
   },
@@ -1636,11 +1741,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepText: {
-    color: '#eafffb',
-    fontSize: 20,
-    lineHeight: 22,
-  },
   stepValue: {
     color: '#f5e6b3',
     fontSize: 16,
@@ -1694,26 +1794,13 @@ const styles = StyleSheet.create({
     borderColor: '#eafffb',
     borderWidth: 3,
   },
-  swatchCheck: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 18,
-    includeFontPadding: false,
-  },
-  swatchCheckDark: {color: '#000000'},
   liveBtn: {
     marginTop: 4,
-    backgroundColor: '#8b5cf6',
-    borderRadius: 18,
-    paddingVertical: 18,
+    backgroundColor: '#7c3aed',
+    borderRadius: 24,
+    paddingVertical: 20,
     paddingHorizontal: 16,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  deviceEntryRow: {
-    marginTop: 12,
   },
   liveBtnPressed: {
     opacity: 0.85,
@@ -1743,7 +1830,54 @@ const styles = StyleSheet.create({
     fontSize: 15,
     writingDirection: 'rtl',
   },
-  disclosureArrow: {color: 'rgba(255,255,255,0.7)', fontSize: 14},
+  listRow: {
+    minHeight: 64,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 12,
+  },
+  listRowDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.12)',
+  },
+  listRowPressed: {opacity: 0.7},
+  listRowText: {flex: 1},
+  listRowTitle: {
+    color: '#ffffff',
+    fontSize: 17,
+    fontWeight: '700',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  listRowSub: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 14,
+    marginTop: 4,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  outlineBtn: {
+    marginTop: 20,
+    minHeight: 56,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  outlineBtnText: {color: '#ffffff', fontSize: 17, fontWeight: '700'},
+  homeSectionTitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  btnInner: {flexDirection: 'row-reverse', alignItems: 'center', gap: 8},
   group: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(139, 92, 246, 0.25)',
@@ -1755,12 +1889,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   groupTitle: {
-    color: '#c4b5fd',
-    fontSize: 16,
+    color: '#ffffff',
+    fontSize: 17,
     fontWeight: '700',
     writingDirection: 'rtl',
   },
-  groupArrow: {color: '#c4b5fd', fontSize: 16},
+  groupTitleOpen: {color: '#c4b5fd'},
   groupBody: {paddingBottom: 12},
   undoBar: {
     position: 'absolute',
@@ -1780,7 +1914,7 @@ const styles = StyleSheet.create({
   undoBtn: {minHeight: 48, justifyContent: 'center', paddingHorizontal: 8},
   undoBtnText: {color: '#c4b5fd', fontSize: 15, fontWeight: '700'},
   homeSection: {
-    marginTop: 20,
+    marginTop: 24,
   },
   galleryBtn: {
     marginTop: 12,
@@ -1818,39 +1952,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  randomBgRemoveText: {
-    color: '#eafffb',
-    fontSize: 13,
-    lineHeight: 14,
-  },
-  galleryEntry: {
-    backgroundColor: 'rgba(245,196,81,0.15)',
-    borderColor: 'rgba(245,196,81,0.5)',
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  galleryEntryText: {
-    color: '#f5e6b3',
-    fontSize: 14,
-    fontWeight: '700',
-    writingDirection: 'rtl',
-  },
-  helpEntry: {
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
-    borderColor: 'rgba(139, 92, 246, 0.5)',
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  helpEntryText: {
-    color: '#c4b5fd',
-    fontSize: 14,
-    fontWeight: '700',
-    writingDirection: 'rtl',
   },
   aiEntry: {
     backgroundColor: 'rgba(94, 234, 212, 0.15)',
@@ -1897,26 +1998,6 @@ const styles = StyleSheet.create({
   },
   promoBtnText: {
     color: '#f5e6b3',
-    fontSize: 14,
-    fontWeight: '700',
-    writingDirection: 'rtl',
-  },
-  btnRow: {
-    flexDirection: 'row-reverse',
-    gap: 8,
-    marginTop: 8,
-  },
-  smallBtn: {
-    flex: 1,
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
-  },
-  smallBtnText: {
-    color: '#eafffb',
     fontSize: 14,
     fontWeight: '700',
     writingDirection: 'rtl',
