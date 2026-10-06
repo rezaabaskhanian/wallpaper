@@ -13,6 +13,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import AppText from './AppText';
 import {showAlert} from './AppAlert';
 // import {launchImageLibrary} from 'react-native-image-picker';
@@ -134,6 +135,7 @@ export default function SettingsPanel({
   // Persists across opens/closes (the panel stays mounted, only `visible`
   // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('home');
+  const insets = useSafeAreaInsets();
   // True while a finger is on a RowSlider, so the ScrollView doesn't take
   // over a horizontal drag partway through.
   const [sliderActive, setSliderActive] = useState(false);
@@ -308,7 +310,7 @@ export default function SettingsPanel({
           ref={scrollRef}
           scrollEnabled={!sliderActive}
           style={styles.scroll}
-          contentContainerStyle={styles.content}>
+          contentContainerStyle={[styles.content, {paddingBottom: insets.bottom + 24}]}>
           {tab === 'more' ? (
             <>
               <Pressable style={styles.helpEntry} onPress={() => onOpenHelp?.()}>
@@ -1493,7 +1495,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
-    paddingBottom: 24,
     paddingTop: 10,
     borderTopWidth: 1,
     borderColor: 'rgba(139, 92, 246, 0.25)',
@@ -1513,7 +1514,6 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row-reverse',
-    marginBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.1)',
   },
@@ -1548,7 +1548,9 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   content: {
-    paddingBottom: 8,
+    // Each tab scrolls on its own below the fixed tab bar; the top gap keeps
+    // the first row clear of the bar, bottom padding comes from the safe area.
+    paddingTop: 12,
   },
   row: {
     flexDirection: 'row-reverse',
