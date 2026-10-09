@@ -28,6 +28,7 @@ import {
   Lock,
   MessageSquare,
   Minus,
+  Palette,
   Plus,
   Redo2,
   RotateCcw,
@@ -67,6 +68,8 @@ type Props = {
   onOpenGallery?: () => void;
   /** Open the in-app "how to use the app" guide. */
   onOpenHelp?: () => void;
+  /** Open the themes screen (wallpaper + matching home-screen widgets). */
+  onOpenThemes?: () => void;
   // /** Open the "generate wallpaper from text with AI" screen. */
   // onOpenAIGenerate?: () => void; // [AI disabled for this version]
 };
@@ -125,6 +128,7 @@ export default function SettingsPanel({
   onSetLiveWallpaper,
   onOpenGallery,
   onOpenHelp,
+  onOpenThemes,
   // onOpenAIGenerate, // [AI disabled for this version]
 }: Props) {
   // applyTheme از useSettings() اینجا موقتاً استفاده نمی‌شود چون بخش «تم
@@ -1135,6 +1139,12 @@ export default function SettingsPanel({
                 <ImageIcon size={22} color={ICON_COLOR} />
               </Pressable>
 
+              <ListRow
+                icon={Palette}
+                title="تم‌ها"
+                subtitle="والپیپر با ویجت‌های هماهنگ"
+                onPress={() => onOpenThemes?.()}
+              />
               <ListRow
                 icon={Lock}
                 title="عکس صفحه قفل"

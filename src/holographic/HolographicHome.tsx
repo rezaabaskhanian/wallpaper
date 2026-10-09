@@ -42,6 +42,7 @@ import {useWeather} from './useWeather';
 import OrbitItemModal from './OrbitItemModal';
 import type {OrbitItem} from './data';
 import WallpaperGallery from './WallpaperGallery';
+import ThemesScreen from './themes/ThemesScreen';
 import MoodPicker from './MoodPicker';
 import AppDrawer from './AppDrawer';
 import HelpGuide from './HelpGuide';
@@ -150,6 +151,7 @@ export default function HolographicHome({dream = false}: Props) {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [themesOpen, setThemesOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   // const [aiGenerateOpen, setAiGenerateOpen] = useState(false); // [AI disabled for this version]
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -266,6 +268,7 @@ export default function HolographicHome({dream = false}: Props) {
       setDrawerOpen(false);
       setSettingsOpen(false);
       setGalleryOpen(false);
+      setThemesOpen(false);
       setHelpOpen(false);
       setActiveOrbitItem(null);
     });
@@ -569,6 +572,10 @@ export default function HolographicHome({dream = false}: Props) {
               setSettingsOpen(false);
               setHelpOpen(true);
             }}
+            onOpenThemes={() => {
+              setSettingsOpen(false);
+              setThemesOpen(true);
+            }}
             // [AI disabled for this version] re-enable together with the
             // AIGenerateScreen below and its button in SettingsPanel.tsx.
             // onOpenAIGenerate={() => {
@@ -587,6 +594,8 @@ export default function HolographicHome({dream = false}: Props) {
             visible={galleryOpen}
             onClose={() => setGalleryOpen(false)}
           />
+
+          <ThemesScreen visible={themesOpen} onClose={() => setThemesOpen(false)} />
 
           {/* [AI disabled for this version] AI wallpaper generation — the
               screen itself (AIGenerateScreen.tsx) and its API client

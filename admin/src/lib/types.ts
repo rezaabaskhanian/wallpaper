@@ -187,3 +187,17 @@ export type AnalyticsSummary = {
   // دستگاه‌های یکتا در هر مرحله‌ی قیف لانچر.
   launcher: {shown: number; accepted: number; enabled: number};
 };
+
+/** «تم»: والپیپر + پس‌زمینه‌ی ویجت‌های صفحه‌ی اصلی با همان طرح. */
+export type AppTheme = {
+  id: string;
+  title: string;
+  wallpaperUrl: string;
+  widgetBgSmall: string;
+  widgetBgWide: string;
+  textColor: string;
+  accentColor: string;
+  isPremium: boolean;
+  sort: number;
+  isActive: boolean;
+};

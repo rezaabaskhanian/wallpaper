@@ -118,3 +118,24 @@ export type HeroData = {
   slogan: string;
   image: string;
 };
+
+/** A «تم»: a wallpaper plus home-screen widget backgrounds in the same look,
+ * from `GET /api/v1/themes`. The widgets' look comes from the background
+ * images; the app only lays text/photos on top in textColor/accentColor. */
+export type AppTheme = {
+  id: string;
+  title: string;
+  /** https URL, or a bundled image's uri for the built-in sample theme. */
+  wallpaperUrl: string;
+  /** Background of the 2×2 widgets. Empty → a plain tinted card. */
+  widgetBgSmall: string;
+  /** Background of the 4×2 widgets. Empty → a plain tinted card. */
+  widgetBgWide: string;
+  textColor: string;
+  accentColor: string;
+  /** Only a flag for now — there is no payment behind it yet. */
+  isPremium: boolean;
+  sort: number;
+  /** True only for the built-in sample shown while the server has none. */
+  isSample?: boolean;
+};

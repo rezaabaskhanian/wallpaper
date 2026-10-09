@@ -23,6 +23,7 @@ import (
 	postgresorbit "wallpaperstore/internal/repository/postgres/orbit"
 	postgrespromocode "wallpaperstore/internal/repository/postgres/promocode"
 	postgresquote "wallpaperstore/internal/repository/postgres/quote"
+	postgrestheme "wallpaperstore/internal/repository/postgres/theme"
 	postgreswallpaper "wallpaperstore/internal/repository/postgres/wallpaper"
 	aigenerateservice "wallpaperstore/internal/service/aigenerate"
 	aiproxyservice "wallpaperstore/internal/service/aiproxy"
@@ -34,6 +35,7 @@ import (
 	orbitservice "wallpaperstore/internal/service/orbit"
 	promocodeservice "wallpaperstore/internal/service/promocode"
 	quoteservice "wallpaperstore/internal/service/quote"
+	themeservice "wallpaperstore/internal/service/theme"
 	wallpaperservice "wallpaperstore/internal/service/wallpaper"
 )
 
@@ -85,6 +87,7 @@ func main() {
 	heroSvc := heroservice.New(postgreshero.New(db.DB))
 	promoCodeSvc := promocodeservice.New(postgrespromocode.New(db.DB))
 	analyticsSvc := analyticsservice.New(postgresappevent.New(db.DB))
+	themeSvc := themeservice.New(postgrestheme.New(db.DB))
 
 	deepseekClient := deepseek.New(cfg.DeepSeek.APIKey, cfg.DeepSeek.BaseURL, cfg.DeepSeek.Model)
 	dailyQuoteSvc := dailyquoteservice.New(quoteSvc, deepseekClient)
@@ -137,7 +140,7 @@ func main() {
 
 	server := httpserver.New(
 		cfg, wallpaperSvc, martyrSvc, orbitSvc, quoteSvc, dailyQuoteSvc, heroSvc, promoCodeSvc, storage,
-		aiSettingsSvc, aiProxySvc, aiGenerateSvc, analyticsSvc,
+		aiSettingsSvc, aiProxySvc, aiGenerateSvc, analyticsSvc, themeSvc,
 	)
 	server.Server()
 }

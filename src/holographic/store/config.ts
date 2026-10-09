@@ -16,6 +16,7 @@ export const QUOTES_URL = `${API_BASE_URL}/quotes`;
 export const QUOTE_CATEGORIES_URL = `${API_BASE_URL}/quote-categories`;
 export const DAILY_QUOTE_URL = `${API_BASE_URL}/daily-quote`;
 export const HERO_URL = `${API_BASE_URL}/hero`;
+export const THEMES_URL = `${API_BASE_URL}/themes`;
 export const PROMO_REDEEM_URL = `${API_BASE_URL}/promo-codes/redeem`;
 export const AI_GENERATE_URL = `${API_BASE_URL}/ai/generate`;
 export const AI_CREDITS_REDEEM_URL = `${API_BASE_URL}/ai/credits/redeem`;

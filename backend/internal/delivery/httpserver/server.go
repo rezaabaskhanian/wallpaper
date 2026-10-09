@@ -18,6 +18,7 @@ import (
 	orbithandler "wallpaperstore/internal/delivery/httpserver/orbit"
 	promocodehandler "wallpaperstore/internal/delivery/httpserver/promocode"
 	quotehandler "wallpaperstore/internal/delivery/httpserver/quote"
+	themehandler "wallpaperstore/internal/delivery/httpserver/theme"
 	uploadhandler "wallpaperstore/internal/delivery/httpserver/upload"
 	wallpaperhandler "wallpaperstore/internal/delivery/httpserver/wallpaper"
 
@@ -31,6 +32,7 @@ import (
 	orbitservice "wallpaperstore/internal/service/orbit"
 	promocodeservice "wallpaperstore/internal/service/promocode"
 	quoteservice "wallpaperstore/internal/service/quote"
+	themeservice "wallpaperstore/internal/service/theme"
 	wallpaperservice "wallpaperstore/internal/service/wallpaper"
 
 	"github.com/labstack/echo/v4"
@@ -52,6 +54,7 @@ type Service struct {
 	aiProxyHandler    aiproxyhandler.Handler
 	aiGenerateHandler aigeneratehandler.Handler
 	analyticsHandler  analyticshandler.Handler
+	themeHandler      themehandler.Handler
 }
 
 func New(
@@ -68,6 +71,7 @@ func New(
 	aiProxySvc aiproxyservice.Service,
 	aiGenerateSvc aigenerateservice.Service,
 	analyticsSvc analyticsservice.Service,
+	themeSvc themeservice.Service,
 ) Service {
 	return Service{
 		cfg:               cfg,
@@ -83,6 +87,7 @@ func New(
 		aiProxyHandler:    aiproxyhandler.New(aiProxySvc),
 		aiGenerateHandler: aigeneratehandler.New(aiGenerateSvc),
 		analyticsHandler:  analyticshandler.New(analyticsSvc),
+		themeHandler:      themehandler.New(themeSvc),
 	}
 }
 
@@ -148,6 +153,7 @@ func (s Service) Server() {
 	s.aiGenerateHandler.SetRoutes(api)
 	s.aiGenerateHandler.SetAdminRoutes(admin)
 	s.analyticsHandler.SetRoutes(api, admin)
+	s.themeHandler.SetRoutes(api, admin)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", s.cfg.HttpServer.Port)))
 }
