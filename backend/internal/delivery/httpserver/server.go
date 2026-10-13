@@ -13,8 +13,10 @@ import (
 	aisettingshandler "wallpaperstore/internal/delivery/httpserver/aisettings"
 	analyticshandler "wallpaperstore/internal/delivery/httpserver/analytics"
 	dailyquotehandler "wallpaperstore/internal/delivery/httpserver/dailyquote"
+	feedbackhandler "wallpaperstore/internal/delivery/httpserver/feedback"
 	herohandler "wallpaperstore/internal/delivery/httpserver/hero"
 	martyrhandler "wallpaperstore/internal/delivery/httpserver/martyr"
+	occasionhandler "wallpaperstore/internal/delivery/httpserver/occasion"
 	orbithandler "wallpaperstore/internal/delivery/httpserver/orbit"
 	promocodehandler "wallpaperstore/internal/delivery/httpserver/promocode"
 	quotehandler "wallpaperstore/internal/delivery/httpserver/quote"
@@ -27,8 +29,10 @@ import (
 	aisettingsservice "wallpaperstore/internal/service/aisettings"
 	analyticsservice "wallpaperstore/internal/service/analytics"
 	dailyquoteservice "wallpaperstore/internal/service/dailyquote"
+	feedbackservice "wallpaperstore/internal/service/feedback"
 	heroservice "wallpaperstore/internal/service/hero"
 	martyrservice "wallpaperstore/internal/service/martyr"
+	occasionservice "wallpaperstore/internal/service/occasion"
 	orbitservice "wallpaperstore/internal/service/orbit"
 	promocodeservice "wallpaperstore/internal/service/promocode"
 	quoteservice "wallpaperstore/internal/service/quote"
@@ -55,6 +59,8 @@ type Service struct {
 	aiGenerateHandler aigeneratehandler.Handler
 	analyticsHandler  analyticshandler.Handler
 	themeHandler      themehandler.Handler
+	occasionHandler   occasionhandler.Handler
+	feedbackHandler   feedbackhandler.Handler
 }
 
 func New(
@@ -72,6 +78,8 @@ func New(
 	aiGenerateSvc aigenerateservice.Service,
 	analyticsSvc analyticsservice.Service,
 	themeSvc themeservice.Service,
+	occasionSvc occasionservice.Service,
+	feedbackSvc feedbackservice.Service,
 ) Service {
 	return Service{
 		cfg:               cfg,
@@ -88,6 +96,8 @@ func New(
 		aiGenerateHandler: aigeneratehandler.New(aiGenerateSvc),
 		analyticsHandler:  analyticshandler.New(analyticsSvc),
 		themeHandler:      themehandler.New(themeSvc),
+		occasionHandler:   occasionhandler.New(occasionSvc),
+		feedbackHandler:   feedbackhandler.New(feedbackSvc),
 	}
 }
 
@@ -154,6 +164,8 @@ func (s Service) Server() {
 	s.aiGenerateHandler.SetAdminRoutes(admin)
 	s.analyticsHandler.SetRoutes(api, admin)
 	s.themeHandler.SetRoutes(api, admin)
+	s.occasionHandler.SetRoutes(api, admin)
+	s.feedbackHandler.SetRoutes(api, admin)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", s.cfg.HttpServer.Port)))
 }

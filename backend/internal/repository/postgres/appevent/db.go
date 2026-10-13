@@ -185,3 +185,22 @@ func (d DB) LauncherFunnel(ctx context.Context, days int) (analyticsservice.Laun
 	}
 	return f, nil
 }
+
+// PurchaseFunnel دستگاه‌های یکتا در هر مرحله‌ی قیف خرید، در `days` روز اخیر.
+func (d DB) PurchaseFunnel(ctx context.Context, days int) (analyticsservice.PurchaseFunnel, error) {
+	const op = "postgresappevent.PurchaseFunnel"
+	var f analyticsservice.PurchaseFunnel
+	err := d.conn.QueryRow(ctx, `
+		SELECT
+			COUNT(DISTINCT device_id) FILTER (WHERE event = 'paywall_shown'),
+			COUNT(DISTINCT device_id) FILTER (WHERE event = 'paywall_tapped'),
+			COUNT(DISTINCT device_id) FILTER (WHERE event = 'purchase_completed')
+		FROM app_events
+		WHERE event IN ('paywall_shown', 'paywall_tapped', 'purchase_completed')
+			AND created_at >= (((NOW() AT TIME ZONE `+tz+`)::date) - ($1::int - 1))::timestamp AT TIME ZONE `+tz+``,
+		days).Scan(&f.Shown, &f.Tapped, &f.Purchased)
+	if err != nil {
+		return f, richerror.New(op).WithErr(err).WithMessage("failed to query purchase funnel")
+	}
+	return f, nil
+}

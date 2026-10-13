@@ -43,12 +43,20 @@ type LauncherFunnel struct {
 	Enabled  int64
 }
 
+// PurchaseFunnel تعداد دستگاه‌های یکتا در هر مرحله‌ی قیف خرید.
+type PurchaseFunnel struct {
+	Shown     int64
+	Tapped    int64
+	Purchased int64
+}
+
 type Repository interface {
 	Insert(ctx context.Context, e domain.Event) error
 	Daily(ctx context.Context, days int) ([]DailyRow, error)
 	Cohorts(ctx context.Context, days int) ([]CohortRow, error)
 	SetsBySource(ctx context.Context, days int) ([]SourceRow, error)
 	LauncherFunnel(ctx context.Context, days int) (LauncherFunnel, error)
+	PurchaseFunnel(ctx context.Context, days int) (PurchaseFunnel, error)
 }
 
 type Service struct {
@@ -106,8 +114,14 @@ func (s Service) Summary(ctx context.Context, days int) (dto.SummaryResponse, er
 		return dto.SummaryResponse{}, richerror.New(op).WithErr(err)
 	}
 
+	purchase, err := s.repo.PurchaseFunnel(ctx, days)
+	if err != nil {
+		return dto.SummaryResponse{}, richerror.New(op).WithErr(err)
+	}
+
 	res := dto.SummaryResponse{
 		Launcher: dto.LauncherFunnel{Shown: funnel.Shown, Accepted: funnel.Accepted, Enabled: funnel.Enabled},
+		Purchase: dto.PurchaseFunnel{Shown: purchase.Shown, Tapped: purchase.Tapped, Purchased: purchase.Purchased},
 		Days:     days,
 		Daily:    make([]dto.DailyStats, 0, len(daily)),
 		Versions: make([]dto.CohortStats, 0),

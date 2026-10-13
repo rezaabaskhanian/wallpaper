@@ -18,8 +18,10 @@ import (
 	postgresaigeneration "wallpaperstore/internal/repository/postgres/aigeneration"
 	postgresaisettings "wallpaperstore/internal/repository/postgres/aisettings"
 	postgresappevent "wallpaperstore/internal/repository/postgres/appevent"
+	postgresfeedback "wallpaperstore/internal/repository/postgres/feedback"
 	postgreshero "wallpaperstore/internal/repository/postgres/hero"
 	postgresmartyr "wallpaperstore/internal/repository/postgres/martyr"
+	postgresoccasion "wallpaperstore/internal/repository/postgres/occasion"
 	postgresorbit "wallpaperstore/internal/repository/postgres/orbit"
 	postgrespromocode "wallpaperstore/internal/repository/postgres/promocode"
 	postgresquote "wallpaperstore/internal/repository/postgres/quote"
@@ -30,8 +32,10 @@ import (
 	aisettingsservice "wallpaperstore/internal/service/aisettings"
 	analyticsservice "wallpaperstore/internal/service/analytics"
 	dailyquoteservice "wallpaperstore/internal/service/dailyquote"
+	feedbackservice "wallpaperstore/internal/service/feedback"
 	heroservice "wallpaperstore/internal/service/hero"
 	martyrservice "wallpaperstore/internal/service/martyr"
+	occasionservice "wallpaperstore/internal/service/occasion"
 	orbitservice "wallpaperstore/internal/service/orbit"
 	promocodeservice "wallpaperstore/internal/service/promocode"
 	quoteservice "wallpaperstore/internal/service/quote"
@@ -88,6 +92,8 @@ func main() {
 	promoCodeSvc := promocodeservice.New(postgrespromocode.New(db.DB))
 	analyticsSvc := analyticsservice.New(postgresappevent.New(db.DB))
 	themeSvc := themeservice.New(postgrestheme.New(db.DB))
+	occasionSvc := occasionservice.New(postgresoccasion.New(db.DB))
+	feedbackSvc := feedbackservice.New(postgresfeedback.New(db.DB))
 
 	deepseekClient := deepseek.New(cfg.DeepSeek.APIKey, cfg.DeepSeek.BaseURL, cfg.DeepSeek.Model)
 	dailyQuoteSvc := dailyquoteservice.New(quoteSvc, deepseekClient)
@@ -140,7 +146,7 @@ func main() {
 
 	server := httpserver.New(
 		cfg, wallpaperSvc, martyrSvc, orbitSvc, quoteSvc, dailyQuoteSvc, heroSvc, promoCodeSvc, storage,
-		aiSettingsSvc, aiProxySvc, aiGenerateSvc, analyticsSvc, themeSvc,
+		aiSettingsSvc, aiProxySvc, aiGenerateSvc, analyticsSvc, themeSvc, occasionSvc, feedbackSvc,
 	)
 	server.Server()
 }

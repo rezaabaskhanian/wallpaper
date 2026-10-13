@@ -15,6 +15,11 @@ const (
 	EventLauncherIntroShown    = "launcher_intro_shown"
 	EventLauncherIntroAccepted = "launcher_intro_accepted"
 	EventLauncherEnabled       = "launcher_enabled"
+
+	// قیف خرید: صفحه/پیشنهاد خرید دیده شد → دکمه‌ی خرید زده شد → خرید کامل شد.
+	EventPaywallShown     = "paywall_shown"
+	EventPaywallTapped    = "paywall_tapped"
+	EventPurchaseComplete = "purchase_completed"
 )
 
 // maxFieldLen سقف طول هر فیلد متنی؛ اندپوینت عمومی است و نباید بشود با آن
@@ -46,7 +51,8 @@ func New(deviceID, event, appVersion, method, source string) (Event, error) {
 		return Event{}, errors.New("invalid device id or app version")
 	}
 	switch event {
-	case EventAppOpen, EventLauncherIntroShown, EventLauncherIntroAccepted, EventLauncherEnabled:
+	case EventAppOpen, EventLauncherIntroShown, EventLauncherIntroAccepted, EventLauncherEnabled,
+		EventPaywallShown, EventPaywallTapped, EventPurchaseComplete:
 		return e, nil
 	case EventWallpaperSet:
 		if !validMethods[method] || !validSources[source] {

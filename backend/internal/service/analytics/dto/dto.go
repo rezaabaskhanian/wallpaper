@@ -44,6 +44,14 @@ type LauncherFunnel struct {
 	Enabled  int64 `json:"enabled"`
 }
 
+// PurchaseFunnel دستگاه‌های یکتا: پیشنهاد خرید را دیدند → دکمه‌ی خرید را زدند →
+// خرید کامل شد.
+type PurchaseFunnel struct {
+	Shown     int64 `json:"shown"`
+	Tapped    int64 `json:"tapped"`
+	Purchased int64 `json:"purchased"`
+}
+
 type SummaryResponse struct {
 	Days       int            `json:"days"`
 	Daily      []DailyStats   `json:"daily"`
@@ -52,4 +60,5 @@ type SummaryResponse struct {
 	NonSetters CohortStats    `json:"nonSetters"`
 	Sources    []SourceStats  `json:"sources"`
 	Launcher   LauncherFunnel `json:"launcher"`
+	Purchase   PurchaseFunnel `json:"purchase"`
 }
