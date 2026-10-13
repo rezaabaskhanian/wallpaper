@@ -18,7 +18,8 @@ import {
   Ticket,
   User,
   Users,
-  Palette,
+  CalendarHeart,
+  MessageSquareHeart,
 } from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Separator} from '@/components/ui/separator';
@@ -38,7 +39,8 @@ const NAV_ITEMS = [
   {to: '/analytics', label: 'آمار', icon: BarChart3},
   {to: '/wallpapers', label: 'والپیپرها', icon: Image},
   {to: '/categories', label: 'دسته‌ها', icon: Tags},
-  {to: '/themes', label: 'تم‌های ویجت', icon: Palette},
+  {to: '/occasions', label: 'مناسبت‌ها', icon: CalendarHeart},
+  {to: '/feedback', label: 'درخواست و رأی', icon: MessageSquareHeart},
   {to: '/martyrs', label: 'شهدا', icon: Users},
   {to: '/martyr-categories', label: 'دسته‌بندی شهدا', icon: FolderTree},
   {to: '/orbit-categories', label: 'تم‌های اوربیت', icon: Orbit},

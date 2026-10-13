@@ -186,6 +186,8 @@ export type AnalyticsSummary = {
   sources: AnalyticsSource[];
   // دستگاه‌های یکتا در هر مرحله‌ی قیف لانچر.
   launcher: {shown: number; accepted: number; enabled: number};
+  /** Missing from an older backend. */
+  purchase?: {shown: number; tapped: number; purchased: number};
 };
 
 /** «تم»: والپیپر + پس‌زمینه‌ی ویجت‌های صفحه‌ی اصلی با همان طرح. */
@@ -200,4 +202,39 @@ export type AppTheme = {
   isPremium: boolean;
   sort: number;
   isActive: boolean;
+};
+
+/** مناسبت: یادآور محلی چند روز قبل + کارت ویترینی بالای گالری. */
+export type Occasion = {
+  id: string;
+  title: string;
+  /** YYYY-MM-DD (میلادی) */
+  date: string;
+  categoryId: string;
+  notifyTitle: string;
+  notifyBody: string;
+  daysBefore: number;
+  isActive: boolean;
+};
+
+/** درخواست والپیپر از طرف کاربر. */
+export type WallpaperRequest = {
+  id: string;
+  deviceId: string;
+  text: string;
+  status: 'pending' | 'done' | 'rejected';
+  categoryId: string;
+  createdAt: string;
+};
+
+export type PollOption = {id: string; title: string; categoryId: string; votes: number};
+
+export type Poll = {
+  id: string;
+  question: string;
+  isActive: boolean;
+  winnerOptionId?: string | null;
+  options: PollOption[];
+  totalVotes: number;
+  createdAt?: string;
 };

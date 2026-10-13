@@ -171,6 +171,32 @@ export default function Analytics() {
           </section>
 
           <section className="flex flex-col gap-2">
+            <h2 className="text-lg font-semibold">قیف خرید</h2>
+            <p className="text-sm text-muted-foreground">
+              درصدها نسبت به کاربرانی است که پیشنهاد خرید را دیدند.
+            </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {[
+                {label: 'پیشنهاد خرید را دیدند', value: (data.purchase?.shown ?? 0)},
+                {label: 'دکمه‌ی خرید را زدند', value: (data.purchase?.tapped ?? 0)},
+                {label: 'خرید کردند', value: (data.purchase?.purchased ?? 0)},
+              ].map((step, i) => (
+                <SpotlightCard key={step.label} className="p-5">
+                  <span className="text-sm font-medium text-muted-foreground">{step.label}</span>
+                  <div className="mt-3 font-mono text-3xl font-semibold tabular-nums">
+                    {step.value}
+                  </div>
+                  {i > 0 && (data.purchase?.shown ?? 0) > 0 ? (
+                    <div className="mt-1 text-sm text-muted-foreground tabular-nums">
+                      {Math.round((step.value / (data.purchase?.shown ?? 1)) * 100)}٪
+                    </div>
+                  ) : null}
+                </SpotlightCard>
+              ))}
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-2">
             <h2 className="text-lg font-semibold">والپیپر از کجا تنظیم شد</h2>
             <Table>
               <TableHeader>

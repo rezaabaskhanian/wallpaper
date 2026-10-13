@@ -16,7 +16,8 @@ import Hero from '@/pages/Hero';
 import PromoCodes from '@/pages/PromoCodes';
 import AISettings from '@/pages/AISettings';
 import Analytics from '@/pages/Analytics';
-import AppThemes from '@/pages/AppThemes';
+import Occasions from '@/pages/Occasions';
+import Feedback from '@/pages/Feedback';
 
 function RequireAuth({children}: {children: React.ReactNode}) {
   const {isAuthed} = useAuth();
@@ -42,7 +43,8 @@ export default function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/wallpapers" element={<Wallpapers />} />
           <Route path="/categories" element={<Categories />} />
-          <Route path="/themes" element={<AppThemes />} />
+          <Route path="/occasions" element={<Occasions />} />
+          <Route path="/feedback" element={<Feedback />} />
           <Route path="/martyrs" element={<Martyrs />} />
           <Route path="/martyr-categories" element={<MartyrCategories />} />
           <Route path="/orbit-categories" element={<OrbitCategories />} />
