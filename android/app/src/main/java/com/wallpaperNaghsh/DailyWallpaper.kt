@@ -23,10 +23,10 @@ import java.net.URL
 import java.util.concurrent.TimeUnit
 
 /**
- * "Change my wallpaper every day": a WorkManager job that, once a day, picks a
- * random image from a pool of URLs (one mood's wallpapers, handed over by the
- * JS side) and sets it on both the home and lock screen — even while the app
- * is closed. The pool lives in SharedPreferences so the job never needs the
+ * «تعویض خودکار»: a WorkManager job that, every N hours (the user's choice),
+ * picks a random image from a pool of URLs (a category's, a mood's or the
+ * user's favourites, handed over by the JS side) and sets it on both the home
+ * and lock screen — even while the app is closed. The pool lives in SharedPreferences so the job never needs the
  * JS runtime or the backend.
  */
 object DailyWallpaper {
@@ -44,14 +44,19 @@ object DailyWallpaper {
     prefs(context).edit().putString(KEY_POOL, urls.joinToString(SEP)).apply()
   }
 
-  fun enable(context: Context, urls: List<String>) {
+  /** Android's floor for periodic work is 15 minutes; the app offers ≥ 1 hour. */
+  private const val MIN_HOURS = 1L
+
+  fun enable(context: Context, urls: List<String>, hours: Long) {
     savePool(context, urls)
+    val every = hours.coerceAtLeast(MIN_HOURS)
     val request =
-        PeriodicWorkRequestBuilder<DailyWallpaperWorker>(1, TimeUnit.DAYS)
+        PeriodicWorkRequestBuilder<DailyWallpaperWorker>(every, TimeUnit.HOURS)
             .setConstraints(
                 Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            // First change tomorrow: the user usually just set one by hand.
-            .setInitialDelay(1, TimeUnit.DAYS)
+            // First change one interval from now: the user usually just set
+            // a wallpaper by hand.
+            .setInitialDelay(every, TimeUnit.HOURS)
             .build()
     WorkManager.getInstance(context)
         .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
@@ -131,10 +136,11 @@ class DailyWallpaperModule(reactContext: ReactApplicationContext) :
   private fun ReadableArray.toUrls(): List<String> =
       (0 until size()).mapNotNull { getString(it) }
 
+  /** hours: how often to change (1, 3, 6, 12 or 24 from the app). */
   @ReactMethod
-  fun enable(urls: ReadableArray, promise: Promise) {
+  fun enable(urls: ReadableArray, hours: Double, promise: Promise) {
     try {
-      DailyWallpaper.enable(reactApplicationContext, urls.toUrls())
+      DailyWallpaper.enable(reactApplicationContext, urls.toUrls(), hours.toLong())
       promise.resolve(true)
     } catch (e: Exception) {
       promise.reject("daily_enable_failed", e.message, e)

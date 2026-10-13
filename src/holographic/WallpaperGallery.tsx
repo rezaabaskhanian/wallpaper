@@ -28,7 +28,18 @@ import {useStore} from './store/StoreContext';
 import type {WallpaperCategory, WallpaperItem} from './store/types';
 import {trackWallpaperDownload} from './store/wallpaperDownload';
 import {toFa} from './date';
+import {occasionDay} from './occasionReminders';
+import {trackPaywall} from './analytics';
+import {useMarkWallpapersSeen} from './newWallpapers';
+import {toggleFavorite, useFavorites} from './favorites';
+import {shareWallpaper} from './share';
+import {PollCard, RequestCard} from './FeedbackCards';
+import AutoChangeSheet from './AutoChangeSheet';
+import {hoursLabel, sameSource, useAutoWallpaper, type AutoSource} from './autoWallpaper';
 import {announceWallpaperSet} from './oneTapWallpaper';
+
+/** Width ÷ height of a category card (and of the showcase's small ones). */
+const CARD_ASPECT = 0.8;
 
 /** How many wallpapers the «تازه‌ها» / «محبوب‌ها» rows show. */
 const ROW_SIZE = 15;
@@ -38,6 +49,8 @@ const ROW_THUMB_W = 104;
 type Props = {
   visible: boolean;
   onClose: () => void;
+  /** Open straight into this category (e.g. from an occasion reminder). */
+  initialCategoryId?: string | null;
 };
 
 /**
@@ -125,7 +138,7 @@ function ChipRow({children, style}: {children: React.ReactNode; style?: any}) {
  * and lets the user apply a wallpaper as the app background or the device
  * lock/home wallpaper.
  */
-export default function WallpaperGallery({visible, onClose}: Props) {
+export default function WallpaperGallery({visible, onClose, initialCategoryId}: Props) {
   const {width} = useWindowDimensions();
   const {settings, update} = useSettings();
   const {
@@ -138,6 +151,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
     reload,
     buyUnlock,
     isUnlocked,
+    occasions,
   } = useStore();
 
   // null = the gallery's front page (rows + category cards); otherwise the
@@ -227,6 +241,7 @@ export default function WallpaperGallery({visible, onClose}: Props) {
 
   const onPressItem = (item: WallpaperItem) => {
     if (!isUnlocked(item)) {
+      trackPaywall('paywall_shown');
       showAlert(
         'والپیپر ویژه 🔒',
         'برای دسترسی به همهٔ والپیپرها، بستهٔ کامل را باز کن.',
@@ -244,27 +259,6 @@ export default function WallpaperGallery({visible, onClose}: Props) {
     setSelected(null);
     onClose();
     showAlert('انجام شد', 'به‌عنوان پس‌زمینهٔ اپ تنظیم شد.');
-  };
-
-  const MAX_RANDOM_BACKGROUNDS = 5;
-
-  const toggleRandomPick = (item: WallpaperItem) => {
-    const already = settings.randomBackgroundUris.includes(item.full);
-    if (already) {
-      update(
-        'randomBackgroundUris',
-        settings.randomBackgroundUris.filter(uri => uri !== item.full),
-      );
-      return;
-    }
-    if (settings.randomBackgroundUris.length >= MAX_RANDOM_BACKGROUNDS) {
-      showAlert(
-        'حداکثر ۵ عکس',
-        'برای اضافه‌کردن این یکی، اول یکی از عکس‌های چرخش رندوم را (تنظیمات ▸ پس‌زمینه) حذف کن.',
-      );
-      return;
-    }
-    update('randomBackgroundUris', [...settings.randomBackgroundUris, item.full]);
   };
 
   const applyToDevice = async (item: WallpaperItem, target: WallpaperTarget) => {
@@ -286,6 +280,31 @@ export default function WallpaperGallery({visible, onClose}: Props) {
     setActiveCat(id);
     setActiveSubCat('all');
   };
+  const favorites = useFavorites();
+
+  // Opening the gallery clears the «تازه» dot.
+  useMarkWallpapersSeen(visible);
+
+  // The unlock banner counts as one paywall view per gallery opening.
+  const bannerShown = !premiumUnlocked && hasPremiumWallpapers;
+  useEffect(() => {
+    if (visible && bannerShown) trackPaywall('paywall_shown');
+  }, [visible, bannerShown]);
+
+  /** Opens any category, top-level or sub (then its parent with it selected). */
+  const openCategoryById = (id: string) => {
+    const cat = catalog?.categories.find(c => c.id === id);
+    if (!cat) return;
+    setActiveCat(cat.parentId || cat.id);
+    setActiveSubCat(cat.parentId ? cat.id : 'all');
+  };
+
+  // Jump into the requested category whenever the gallery is opened for one.
+  useEffect(() => {
+    if (visible && initialCategoryId && catalog) openCategoryById(initialCategoryId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, initialCategoryId, catalog]);
+
   const backToFront = () => {
     setActiveCat(null);
     setActiveSubCat('all');
@@ -321,16 +340,79 @@ export default function WallpaperGallery({visible, onClose}: Props) {
   };
 
   /** A titled, horizontally scrolling row of thumbnails. */
-  const renderRow = (title: string, list: WallpaperItem[]) =>
+  // «تعویض خودکار» sheet (null = closed) and the one currently running.
+  const [autoSource, setAutoSource] = useState<AutoSource | null>(null);
+  const auto = useAutoWallpaper();
+
+  /** «🔁 تعویض خودکار» link for a source, showing its interval when it's the
+   * active one. */
+  const renderAutoLink = (source: AutoSource) => {
+    const on = !!auto && sameSource(auto.source, source);
+    return (
+      <Pressable onPress={() => setAutoSource(source)} hitSlop={10} style={styles.autoLink}>
+        <AppText style={[styles.autoLinkText, on && styles.autoLinkOn]}>
+          {on ? `🔁 ${hoursLabel(auto!.hours, toFa)}` : '🔁 تعویض خودکار'}
+        </AppText>
+      </Pressable>
+    );
+  };
+
+  const renderRow = (title: string, list: WallpaperItem[], action?: React.ReactNode) =>
     list.length === 0 ? null : (
       <View style={styles.section}>
-        <AppText style={styles.sectionTitle}>{title}</AppText>
+        <View style={styles.sectionHeader}>
+          <AppText style={styles.sectionTitle}>{title}</AppText>
+          {action}
+        </View>
         <ChipRow>{list.map(w => renderThumb(w, ROW_THUMB_W))}</ChipRow>
       </View>
     );
 
   /** Category card: cover photo, name, count, and the mood emoji if any. */
-  const renderCategoryCard = (c: WallpaperCategory) => {
+  // Showcase at the top of the category list: one big card — the occasion
+  // whose reminder window is open (from its reminder day to two days after),
+  // else the most-set category — beside two smaller ones stacked, then the
+  // rest in the regular 3-column grid.
+  const showcase = useMemo(() => {
+    if (topCategories.length < 4) return null;
+    const topOf = (id: string) => {
+      const c = catalog?.categories.find(x => x.id === id);
+      return c?.parentId || c?.id;
+    };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const live = occasions.find(o => {
+      const day = occasionDay(o.date);
+      if (!day || !o.categoryId) return false;
+      const from = new Date(day);
+      from.setDate(from.getDate() - o.daysBefore);
+      const to = new Date(day);
+      to.setDate(to.getDate() + 2);
+      return today >= from && today <= to && topCategories.some(c => c.id === topOf(o.categoryId));
+    });
+    const sets = (c: WallpaperCategory) =>
+      (itemsByTopCat.get(c.id) ?? []).reduce((n, w) => n + (w.downloadCount ?? 0), 0);
+    const byPopularity = [...topCategories].sort((a, b) => sets(b) - sets(a));
+    const big = live
+      ? topCategories.find(c => c.id === topOf(live.categoryId))!
+      : byPopularity[0];
+    const small = byPopularity.filter(c => c.id !== big.id).slice(0, 2);
+    return {big, small, occasion: live ?? null};
+  }, [topCategories, occasions, itemsByTopCat, catalog]);
+
+  const restCategories = showcase
+    ? topCategories.filter(c => c.id !== showcase.big.id && !showcase.small.some(s => s.id === c.id))
+    : topCategories;
+  // Rows of `columns` cards; the last row's 1–2 cards stretch to fill it.
+  const categoryRows: WallpaperCategory[][] = [];
+  for (let i = 0; i < restCategories.length; i += columns) {
+    categoryRows.push(restCategories.slice(i, i + columns));
+  }
+
+  const renderCategoryCard = (
+    c: WallpaperCategory,
+    opts: {width?: number; height?: number; badge?: string; openId?: string} = {},
+  ) => {
     const list = itemsByTopCat.get(c.id) ?? [];
     // Server-picked cover (most-set, free first); fall back to the same rule
     // locally for a catalog cached before covers existed.
@@ -338,12 +420,13 @@ export default function WallpaperGallery({visible, onClose}: Props) {
     return (
       <Pressable
         key={c.id}
-        onPress={() => openCategory(c.id)}
+        onPress={() => (opts.openId ? openCategoryById(opts.openId) : openCategory(c.id))}
         accessibilityRole="button"
-        accessibilityLabel={c.title}
+        accessibilityLabel={opts.badge ? `${opts.badge}: ${c.title}` : c.title}
         style={({pressed}) => [
           styles.catCard,
-          {width: cellWidth},
+          {width: opts.width ?? cellWidth},
+          opts.height ? {height: opts.height, aspectRatio: undefined} : null,
           pressed && styles.catCardPressed,
         ]}>
         {cover ? (
@@ -351,6 +434,11 @@ export default function WallpaperGallery({visible, onClose}: Props) {
         ) : null}
         <View style={styles.catShade} />
         {c.mood ? <AppText style={styles.catMood}>{c.mood}</AppText> : null}
+        {opts.badge ? (
+          <View style={styles.catBadge}>
+            <AppText style={styles.catBadgeText}>{opts.badge}</AppText>
+          </View>
+        ) : null}
         <View style={styles.catLabel}>
           <AppText style={styles.catTitle} numberOfLines={1}>
             {c.title}
@@ -406,12 +494,45 @@ export default function WallpaperGallery({visible, onClose}: Props) {
         ) : !activeCat ? (
           // Front page: newest + most-set rows, then every category as a card.
           <ScrollView contentContainerStyle={styles.frontContent}>
+            {renderRow(
+              'مجموعه‌ی من ❤️',
+              favorites as WallpaperItem[],
+              renderAutoLink({kind: 'favorites', title: 'مجموعه‌ی من'}),
+            )}
             {renderRow('تازه‌ها', newest)}
             {renderRow('محبوب‌ها', popular)}
             <View style={styles.section}>
               <AppText style={styles.sectionTitle}>دسته‌ها</AppText>
-              <View style={styles.catGrid}>{topCategories.map(renderCategoryCard)}</View>
+              {showcase ? (
+                <View style={styles.showcase}>
+                  {renderCategoryCard(showcase.big, {
+                    width: cellWidth * 2 + gap,
+                    height: (cellWidth / CARD_ASPECT) * 2 + gap,
+                    badge: showcase.occasion ? `مناسبت ${showcase.occasion.title}` : 'محبوب‌ترین',
+                    openId: showcase.occasion?.categoryId,
+                  })}
+                  <View style={styles.showcaseColumn}>
+                    {showcase.small.map(c => renderCategoryCard(c))}
+                  </View>
+                </View>
+              ) : null}
+              <View style={styles.catGrid}>
+                {categoryRows.map(row => (
+                  <View key={row[0].id} style={styles.catRow}>
+                    {row.map(c =>
+                      renderCategoryCard(c, {
+                        // A short last row shares the full width instead of
+                        // leaving a gap; every card keeps the same height.
+                        width: (width - 20 - gap * (row.length - 1)) / row.length,
+                        height: cellWidth / CARD_ASPECT,
+                      }),
+                    )}
+                  </View>
+                ))}
+              </View>
             </View>
+            <PollCard />
+            <RequestCard />
           </ScrollView>
         ) : (
           // Inside one category: its subcategories (if any) and the grid.
@@ -420,6 +541,17 @@ export default function WallpaperGallery({visible, onClose}: Props) {
               <AppText style={styles.backText}>‹ همه دسته‌ها</AppText>
               <AppText style={styles.catHeading}>{activeTitle}</AppText>
             </Pressable>
+            <View style={styles.autoRow}>
+              {renderAutoLink(
+                activeSubCat !== 'all'
+                  ? {
+                      kind: 'category',
+                      id: activeSubCat,
+                      title: subCategories.find(c => c.id === activeSubCat)?.title ?? activeTitle,
+                    }
+                  : {kind: 'category', id: activeCat, title: activeTitle},
+              )}
+            </View>
             {subCategories.length > 0 ? (
               <ChipRow style={styles.subCats}>
                 {[{id: 'all', title: 'همه'}, ...subCategories].map(c => {
@@ -454,6 +586,8 @@ export default function WallpaperGallery({visible, onClose}: Props) {
           </>
         )}
 
+        <AutoChangeSheet source={autoSource} onClose={() => setAutoSource(null)} />
+
         {/* Preview + actions */}
         <Modal
           visible={!!selected}
@@ -483,12 +617,15 @@ export default function WallpaperGallery({visible, onClose}: Props) {
                     </Pressable>
                     <Pressable
                       style={styles.action}
-                      onPress={() => toggleRandomPick(selected)}>
+                      onPress={() => toggleFavorite(selected)}>
                       <AppText style={styles.actionText}>
-                        {settings.randomBackgroundUris.includes(selected.full)
-                          ? '★ حذف از چرخش رندوم'
-                          : '☆ افزودن به چرخش رندوم'}
+                        {favorites.some(f => f.full === selected.full)
+                          ? '💔 حذف از مجموعه‌ی من'
+                          : '❤️ افزودن به مجموعه‌ی من'}
                       </AppText>
+                    </Pressable>
+                    <Pressable style={styles.action} onPress={() => shareWallpaper(selected)}>
+                      <AppText style={styles.actionText}>📤 ارسال برای دوستان</AppText>
                     </Pressable>
                     <View style={styles.actionRow}>
                       <Pressable
@@ -551,6 +688,24 @@ const styles = StyleSheet.create({
   unlockText: {color: '#f5e6b3', fontSize: 14, fontWeight: '700', writingDirection: 'rtl'},
   frontContent: {paddingBottom: 32},
   section: {paddingTop: 16},
+  sectionHeader: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 12,
+  },
+  autoRow: {flexDirection: 'row-reverse', paddingHorizontal: 14, paddingTop: 4},
+  autoLink: {
+    minHeight: 36,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.35)',
+  },
+  autoLinkText: {color: '#c4b5fd', fontSize: 13, fontWeight: '700', writingDirection: 'rtl'},
+  autoLinkOn: {color: '#ffffff'},
   sectionTitle: {
     color: '#eafffb',
     fontSize: 16,
@@ -560,14 +715,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     writingDirection: 'rtl',
   },
-  catGrid: {
+  showcase: {
     flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
     gap: 10,
     paddingHorizontal: 10,
+    marginBottom: 10,
   },
+  showcaseColumn: {gap: 10},
+  catBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    backgroundColor: '#7c3aed',
+  },
+  catBadgeText: {color: '#ffffff', fontSize: 12, fontWeight: '700', writingDirection: 'rtl'},
+  catGrid: {gap: 10, paddingHorizontal: 10},
+  catRow: {flexDirection: 'row-reverse', gap: 10},
   catCard: {
-    aspectRatio: 0.8,
+    aspectRatio: CARD_ASPECT,
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.06)',

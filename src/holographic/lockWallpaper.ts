@@ -19,6 +19,7 @@ type LockWallpaperNative = {
   /** True when this app's live wallpaper is the current home wallpaper. */
   isLiveWallpaperActive: () => Promise<boolean>;
   /** Mirrors the water-ripple switches into the live wallpaper service. */
+  setLiveWallpaperDrift?: (enabled: boolean) => Promise<boolean>;
   setLiveWallpaperRipple: (
     enabled: boolean,
     auto: boolean,
@@ -157,5 +158,18 @@ export async function syncLiveWallpaperRipple(
     await LockWallpaper.setLiveWallpaperRipple(enabled, auto);
   } catch {
     // Not worth surfacing — the home-screen ripple simply keeps its old state.
+  }
+}
+
+/**
+ * Mirrors «حرکت آرام» (settings.livingWallpaper) into the system live
+ * wallpaper: off = the home screen shows a still photo that only ripples on
+ * touch. Fire-and-forget like the ripple sync.
+ */
+export async function syncLiveWallpaperDrift(enabled: boolean): Promise<void> {
+  try {
+    await LockWallpaper?.setLiveWallpaperDrift?.(enabled);
+  } catch {
+    // The service keeps its previous behaviour.
   }
 }

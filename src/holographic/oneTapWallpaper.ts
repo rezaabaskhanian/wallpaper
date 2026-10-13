@@ -13,10 +13,12 @@ import {
   type WallpaperSetSource,
 } from './analytics';
 import {noteLauncherIntroWallpaperSet} from './launcherIntro';
+import {requestNotificationPermission} from './occasionReminders';
 
 const CTA_SHOWN_KEY = 'oneTapWallpaper:shown';
 const RATING_ASKED_KEY = 'rating:askedAfterWallpaper';
 const SET_COUNT_KEY = 'wallpaperSet:count';
+const NOTIFY_ASKED_KEY = 'notifications:asked';
 /** Ask for a rating only once the user has clearly found value — after this
  * many successful sets, not on the very first one. */
 const RATING_AFTER_SETS = 3;
@@ -78,6 +80,15 @@ export async function openStoreRating(): Promise<void> {
   }
 }
 
+/** The notification permission (for occasion reminders) is asked for once,
+ * right after the first successful set — when the user has just seen the
+ * app is worth hearing from, not on first launch. */
+async function askForNotificationsOnce(): Promise<void> {
+  if ((await getFlag(NOTIFY_ASKED_KEY)) !== false) return;
+  await setFlag(NOTIFY_ASKED_KEY);
+  await requestNotificationPermission();
+}
+
 async function askForRatingOnce(): Promise<void> {
   if (!(await shouldAskForRating())) return;
   await setFlag(RATING_ASKED_KEY);
@@ -97,7 +108,8 @@ async function askForRatingOnce(): Promise<void> {
 /**
  * Call once a wallpaper has really been set (for a live wallpaper: after
  * isLiveWallpaperActive confirmed it). Records the analytics event, shows the
- * short success message, and after the third success asks for a rating.
+ * short success message, asks for notification permission after the first
+ * success, and for a rating after the third.
  */
 export function announceWallpaperSet(
   method: WallpaperSetMethod,
@@ -111,7 +123,8 @@ export function announceWallpaperSet(
     {
       onDismiss: () => {
         // Let the success card fade out before the rating card fades in.
-        setTimeout(() => {
+        setTimeout(async () => {
+          await askForNotificationsOnce();
           askForRatingOnce();
         }, 350);
       },

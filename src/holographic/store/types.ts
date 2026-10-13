@@ -119,23 +119,18 @@ export type HeroData = {
   image: string;
 };
 
-/** A «تم»: a wallpaper plus home-screen widget backgrounds in the same look,
- * from `GET /api/v1/themes`. The widgets' look comes from the background
- * images; the app only lays text/photos on top in textColor/accentColor. */
-export type AppTheme = {
+/** An occasion (محرم، نوروز، یلدا…) from `GET /api/v1/occasions`: upcoming and
+ * the last few days' ones. Drives the local reminder and the gallery's big
+ * showcase card. */
+export type Occasion = {
   id: string;
   title: string;
-  /** https URL, or a bundled image's uri for the built-in sample theme. */
-  wallpaperUrl: string;
-  /** Background of the 2×2 widgets. Empty → a plain tinted card. */
-  widgetBgSmall: string;
-  /** Background of the 4×2 widgets. Empty → a plain tinted card. */
-  widgetBgWide: string;
-  textColor: string;
-  accentColor: string;
-  /** Only a flag for now — there is no payment behind it yet. */
-  isPremium: boolean;
-  sort: number;
-  /** True only for the built-in sample shown while the server has none. */
-  isSample?: boolean;
+  /** YYYY-MM-DD (Gregorian). */
+  date: string;
+  /** Wallpaper category for this occasion; "" when none. */
+  categoryId: string;
+  notifyTitle: string;
+  notifyBody: string;
+  /** The reminder fires this many days before `date`. */
+  daysBefore: number;
 };

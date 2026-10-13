@@ -28,9 +28,9 @@ import {
   Lock,
   MessageSquare,
   Minus,
-  Palette,
   Plus,
   Redo2,
+  Repeat,
   RotateCcw,
   SlidersHorizontal,
   X,
@@ -48,6 +48,11 @@ import {openLauncherSettings, openScreenSaverSettings} from './systemScreens';
 import {useSettings} from './SettingsContext';
 import SunDayPreview from './SunDayPreview';
 import PresetRow from './PresetRow';
+import {useHasNewWallpapers} from './newWallpapers';
+import {removeFavorite, ROTATION_SIZE} from './favorites';
+import {toFa} from './date';
+import AutoChangeSheet from './AutoChangeSheet';
+import {hoursLabel, useAutoWallpaper, type AutoSource} from './autoWallpaper';
 import type {WallpaperSettings} from './SettingsContext';
 import {useStore} from './store/StoreContext';
 // «تم آماده» فعلاً از UI کامنت شده — این ایمپورت هم موقتاً غیرفعال است.
@@ -68,8 +73,6 @@ type Props = {
   onOpenGallery?: () => void;
   /** Open the in-app "how to use the app" guide. */
   onOpenHelp?: () => void;
-  /** Open the themes screen (wallpaper + matching home-screen widgets). */
-  onOpenThemes?: () => void;
   // /** Open the "generate wallpaper from text with AI" screen. */
   // onOpenAIGenerate?: () => void; // [AI disabled for this version]
 };
@@ -128,7 +131,6 @@ export default function SettingsPanel({
   onSetLiveWallpaper,
   onOpenGallery,
   onOpenHelp,
-  onOpenThemes,
   // onOpenAIGenerate, // [AI disabled for this version]
 }: Props) {
   // applyTheme از useSettings() اینجا موقتاً استفاده نمی‌شود چون بخش «تم
@@ -172,6 +174,9 @@ export default function SettingsPanel({
   // toggles) so reopening Settings picks up on the same tab the user left.
   const [tab, setTab] = useState<TabId>('home');
   const insets = useSafeAreaInsets();
+  const hasNewWallpapers = useHasNewWallpapers();
+  const auto = useAutoWallpaper();
+  const [autoSource, setAutoSource] = useState<AutoSource | null>(null);
   const [moreAdvancedOpen, setMoreAdvancedOpen] = useState(false);
   // One open group per tab at a time; the first group starts open.
   const [openGroup, setOpenGroup] = useState<{look: string; text: string}>({
@@ -487,11 +492,11 @@ export default function SettingsPanel({
                 <AppText style={styles.sectionTitle}>چرخش رندوم پس‌زمینه‌ها</AppText>
 
                 <RowSwitch
-                  label="چرخش بین عکس‌های ستاره‌دار"
-                  hint="هر بار یکی از عکس‌های ستاره‌دارت می‌اد"
+                  label="چرخش بین علاقه‌مندی‌ها"
+                  hint={`هر بار یکی از ${toFa(ROTATION_SIZE)} علاقه‌مندی آخرت میاد`}
                   value={settings.randomBackgroundEnabled}
                   onChange={v => update('randomBackgroundEnabled', v)}
-                  info="هر بار که اپ باز می‌شه، یکی از عکس‌های زیر رندوم پس‌زمینه می‌شه. از «گالری والپیپرها» یه عکس رو باز کن و «افزودن به چرخش رندوم» رو بزن (حداکثر ۵ عکس)."
+                  info={`هر بار که اپ باز می‌شه، یکی از ${toFa(ROTATION_SIZE)} علاقه‌مندی آخرت پس‌زمینه می‌شه. توی گالری یا صفحه‌ی مود، روی والپیپر دلخواهت ❤️ بزن تا به «مجموعه‌ی من» اضافه بشه.`}
                 />
 
                 {settings.randomBackgroundUris.length > 0 ? (
@@ -506,13 +511,8 @@ export default function SettingsPanel({
                           style={styles.randomBgRemove}
                         hitSlop={14}
                         accessibilityRole="button"
-                        accessibilityLabel="حذف از چرخش"
-                          onPress={() =>
-                            update(
-                              'randomBackgroundUris',
-                              settings.randomBackgroundUris.filter(u => u !== uri),
-                            )
-                          }>
+                        accessibilityLabel="حذف از علاقه‌مندی‌ها"
+                          onPress={() => removeFavorite(uri)}>
                           <X size={12} color="#eafffb" />
                         </Pressable>
                       </View>
@@ -541,11 +541,11 @@ export default function SettingsPanel({
                 />
 
                 <RowSwitch
-                  label="نور خورشید"
-                  hint="نور با ساعت روز حرکت می‌کنه"
+                  label="خورشید و ماه"
+                  hint="روز خورشید و شب ماه، با ساعت حرکت می‌کنن"
                   value={settings.sunFlare}
                   onChange={v => update('sunFlare', v)}
-                  info="یه هاله نور شبیه خورشید که با ساعت واقعی روز روی آسمون حرکت می‌کنه و نورش عوض می‌شه: صبح از سمت چپ و پایین با نور نارنجی طلوع می‌کنه، ظهر بالای صفحه سفید و ملایمه، و عصر سمت راست با نور نارنجی غروب می‌کنه؛ شب خاموشه. زمان طلوع و غروب از موقعیت گوشیت گرفته می‌شه."
+                  info="یه هاله نور شبیه خورشید که با ساعت واقعی روز روی آسمون حرکت می‌کنه و نورش عوض می‌شه: صبح از سمت چپ و پایین با نور نارنجی طلوع می‌کنه، ظهر بالای صفحه سفید و ملایمه، و عصر سمت راست با نور نارنجی غروب می‌کنه. شب‌ها ماه با شکل واقعی همون شب (هلال، نیمه یا کامل) جاش رو می‌گیره. زمان طلوع و غروب از موقعیت گوشیت گرفته می‌شه."
                 />
                 {settings.sunFlare ? (
                   <>
@@ -1135,15 +1135,24 @@ export default function SettingsPanel({
               <Pressable
                 style={({pressed}) => [styles.outlineBtn, pressed && styles.liveBtnPressed]}
                 onPress={() => onOpenGallery?.()}>
+                {hasNewWallpapers ? (
+                  <View style={styles.newBadge}>
+                    <AppText style={styles.newBadgeText}>تازه</AppText>
+                  </View>
+                ) : null}
                 <AppText style={styles.outlineBtnText}>گالری والپیپرها</AppText>
                 <ImageIcon size={22} color={ICON_COLOR} />
               </Pressable>
 
               <ListRow
-                icon={Palette}
-                title="تم‌ها"
-                subtitle="والپیپر با ویجت‌های هماهنگ"
-                onPress={() => onOpenThemes?.()}
+                icon={Repeat}
+                title="تعویض خودکار والپیپر"
+                subtitle={
+                  auto
+                    ? `از «${auto.source.title}»، ${hoursLabel(auto.hours, toFa)}`
+                    : 'خاموش — توی گالری یا مودها روشنش کن'
+                }
+                onPress={() => (auto ? setAutoSource(auto.source) : onOpenGallery?.())}
               />
               <ListRow
                 icon={Lock}
@@ -1162,6 +1171,8 @@ export default function SettingsPanel({
             </>
           ) : null}
         </ScrollView>
+
+        <AutoChangeSheet source={autoSource} onClose={() => setAutoSource(null)} />
 
         {undo ? (
           <View style={[styles.undoBar, {bottom: insets.bottom + 12}]}>
@@ -1931,6 +1942,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.14)',
     backgroundColor: 'rgba(255,255,255,0.04)',
   },
+  newBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: '#ef4444',
+  },
+  newBadgeText: {color: '#ffffff', fontSize: 12, fontWeight: '700'},
   outlineBtnText: {color: '#ffffff', fontSize: 17, fontWeight: '700'},
   homeSectionTitle: {
     color: 'rgba(255,255,255,0.6)',

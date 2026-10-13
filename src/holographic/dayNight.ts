@@ -141,3 +141,56 @@ export function hourForMode(
   if (mode === 'night') return 0;
   return realHour;
 }
+
+export type MoonSample = {
+  /** 0 (left edge) .. 1 (right edge), fraction of screen width. */
+  x: number;
+  /** 0 (near top) .. 1 (lower band), fraction of screen height. */
+  y: number;
+  /** 0 = invisible .. 1 = full brightness (fades at dusk/dawn and near new moon). */
+  intensity: number;
+  /** 0 = new moon … 0.5 = full … 1 = next new moon. */
+  phase: number;
+};
+
+/** Mean length of a lunar cycle and a known new moon (2000-01-06 18:14 UTC). */
+const SYNODIC_DAYS = 29.530588853;
+const KNOWN_NEW_MOON_MS = Date.UTC(2000, 0, 6, 18, 14);
+
+/** Moon phase for a moment: 0 = new, 0.5 = full. Accurate to about a day,
+ * which is plenty to draw the right crescent. */
+export function moonPhase(date: Date): number {
+  const days = (date.getTime() - KNOWN_NEW_MOON_MS) / 86_400_000;
+  const p = (days % SYNODIC_DAYS) / SYNODIC_DAYS;
+  return p < 0 ? p + 1 : p;
+}
+
+/**
+ * The night-time counterpart of sampleSunFlare: the moon crosses the sky
+ * left → right between sunset and sunrise along the same upper band, with
+ * its real phase for the date. A simplification — the real moon rises at a
+ * different hour each night — chosen so the sky is never empty at night.
+ */
+export function sampleMoon(hour: number, sun: SunTimes, date: Date): MoonSample {
+  const {sunrise, sunset} = sun;
+  const phase = moonPhase(date);
+  const nightLen = 24 - (sunset - sunrise) || 1;
+  const sinceSunset = (hour - sunset + 24) % 24;
+  const t = sinceSunset / nightLen;
+  const hidden = {x: 0.5, y: FLARE_BOTTOM_BAND, intensity: 0, phase};
+  if (t <= 0 || t >= 1) return hidden;
+
+  const arc = 1 - Math.pow(2 * t - 1, 2);
+  // Fade in after dusk / out before dawn over the same margin the sun uses.
+  const margin = FLARE_EDGE_MARGIN / nightLen;
+  const edgeFade = Math.min(1, t / margin, (1 - t) / margin);
+  // Lit fraction 0..1; a near-new moon is all but invisible.
+  const lit = (1 - Math.cos(2 * Math.PI * phase)) / 2;
+  const visibility = Math.min(1, Math.max(0, (lit - 0.03) / 0.12));
+  return {
+    x: t,
+    y: FLARE_TOP_BAND + (1 - arc) * (FLARE_BOTTOM_BAND - FLARE_TOP_BAND),
+    intensity: Math.max(0, edgeFade) * visibility,
+    phase,
+  };
+}

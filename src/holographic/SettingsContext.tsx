@@ -2,7 +2,11 @@ import React, {createContext, useContext, useEffect, useMemo, useRef, useState} 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {BACKGROUNDS, COUNTDOWN, DEFAULT_BACKGROUND_ID, RINGS} from './config';
 import {DEFAULT_EN_FONT_ID, DEFAULT_FA_FONT_ID, getFont} from './fonts';
-import {syncLiveWallpaperRipple, syncLiveWallpaperSources} from './lockWallpaper';
+import {
+  syncLiveWallpaperDrift,
+  syncLiveWallpaperRipple,
+  syncLiveWallpaperSources,
+} from './lockWallpaper';
 import {pruneOversizedImageCache} from './imageCache';
 import {setAppFonts} from './setupFonts';
 import {THEMES} from './themes';
@@ -363,6 +367,11 @@ export function SettingsProvider({children}: {children: React.ReactNode}) {
   useEffect(() => {
     syncLiveWallpaperRipple(settings.waterRipple, settings.waterRippleAuto);
   }, [settings.waterRipple, settings.waterRippleAuto]);
+
+  // «حرکت آرام» likewise decides whether the home-screen live wallpaper drifts.
+  useEffect(() => {
+    syncLiveWallpaperDrift(settings.livingWallpaper);
+  }, [settings.livingWallpaper]);
 
   // Same reason, for the rotation pool: the service downloads and keeps its
   // own copies, since it can reach neither the JS store nor the image cache.

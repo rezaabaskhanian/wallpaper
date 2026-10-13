@@ -13,7 +13,10 @@ import {fetchMartyrCategories} from './martyrCategories';
 import {fetchOrbitCatalog} from './orbitCatalog';
 import {fetchQuoteCategories, fetchQuotes} from './quotes';
 import {fetchHero} from './hero';
-import {fetchThemes} from './themes';
+import {fetchOccasions} from './occasions';
+import {scheduleOccasionReminders} from '../occasionReminders';
+import {trackPaywall} from '../analytics';
+import {startInbox} from './feedback';
 import {redeemPromoCode} from './promo';
 import {
   BAZAAR_RSA_PUBLIC_KEY,
@@ -26,8 +29,8 @@ import {
 // import {redeemAICredits} from './aiGenerate';
 import type {
   Catalog,
-  AppTheme,
   HeroData,
+  Occasion,
   MartyrCategory,
   MartyrItem,
   OrbitCatalogItem,
@@ -49,8 +52,8 @@ type StoreValue = {
   quotes: QuoteItem[];
   quoteCategories: QuoteCategory[];
   hero: HeroData | null;
-  /** Themes from the server ([] while loading, offline, or none yet). */
-  themes: AppTheme[];
+  /** Upcoming (and the last few days') occasions; [] offline or none. */
+  occasions: Occasion[];
   loading: boolean;
   error: string | null;
   /** SKUs the user owns. */
@@ -89,7 +92,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   const [quotes, setQuotes] = useState<QuoteItem[]>([]);
   const [quoteCategories, setQuoteCategories] = useState<QuoteCategory[]>([]);
   const [hero, setHero] = useState<HeroData | null>(null);
-  const [themes, setThemes] = useState<AppTheme[]>([]);
+  const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [owned, setOwned] = useState<string[]>([]);
@@ -120,11 +123,15 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       })
       .catch(e => setError(e?.message ?? 'خطا در دریافت اطلاعات'))
       .finally(() => setLoading(false));
-    // Separate from the rest so a server without /themes (older deploy)
-    // doesn't fail the whole catalog load.
-    fetchThemes()
-      .then(setThemes)
-      .catch(() => setThemes([]));
+    // Separate from the rest so a server without /occasions (older deploy)
+    // doesn't fail the whole catalog load. Every successful fetch also
+    // re-plans the on-device reminders.
+    fetchOccasions()
+      .then(list => {
+        setOccasions(list);
+        scheduleOccasionReminders(list);
+      })
+      .catch(() => setOccasions([]));
   }, []);
 
   const refreshEntitlements = useCallback(async () => {
@@ -139,6 +146,8 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   useEffect(() => {
     reload();
     refreshEntitlements();
+    // Daily check for «your request is ready» / poll results.
+    startInbox();
     AsyncStorage.getItem(PROMO_UNLOCKED_STORAGE_KEY)
       .then(v => setCodeUnlocked(v === '1'))
       .catch(() => {});
@@ -153,6 +162,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
   );
 
   const buyUnlock = useCallback(async () => {
+    trackPaywall('paywall_tapped');
     if (!isBillingAvailable()) {
       throw new Error('BILLING_UNAVAILABLE');
     }
@@ -165,6 +175,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       throw e;
     }
     await refreshEntitlements();
+    trackPaywall('purchase_completed');
     return true;
   }, [bazaar, refreshEntitlements]);
 
@@ -208,7 +219,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       quotes,
       quoteCategories,
       hero,
-      themes,
+      occasions,
       loading,
       error,
       owned,
@@ -231,7 +242,7 @@ export function StoreProvider({children}: {children: React.ReactNode}) {
       quotes,
       quoteCategories,
       hero,
-      themes,
+      occasions,
       loading,
       error,
       owned,

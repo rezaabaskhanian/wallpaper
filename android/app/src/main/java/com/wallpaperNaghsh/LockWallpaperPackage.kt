@@ -16,6 +16,8 @@ class LockWallpaperPackage : ReactPackage {
           HomeWidgetModule(reactContext),
           StoreRatingModule(reactContext),
           DailyWallpaperModule(reactContext),
+          OccasionRemindersModule(reactContext),
+          InboxModule(reactContext),
       )
 
   override fun createViewManagers(

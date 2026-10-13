@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {
   AppState,
   DeviceEventEmitter,
+  Linking,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -42,8 +43,9 @@ import {useWeather} from './useWeather';
 import OrbitItemModal from './OrbitItemModal';
 import type {OrbitItem} from './data';
 import WallpaperGallery from './WallpaperGallery';
-import ThemesScreen from './themes/ThemesScreen';
 import MoodPicker from './MoodPicker';
+import {useFavoritesSync} from './favorites';
+import {useAutoWallpaperSync} from './autoWallpaper';
 import AppDrawer from './AppDrawer';
 import HelpGuide from './HelpGuide';
 import LauncherIntroModal from './LauncherIntroModal';
@@ -91,8 +93,15 @@ type Props = {
   dream?: boolean;
 };
 
+/** Gap between the demo ripples shown under the first-launch button. */
+const DEMO_RIPPLE_MS = 3500;
+
 export default function HolographicHome({dream = false}: Props) {
   const {settings, update} = useSettings();
+  // Keeps the photo-rotation pool = the newest hearted wallpapers.
+  useFavoritesSync();
+  // Keeps the «تعویض خودکار» pool in step with catalog / favourites.
+  useAutoWallpaperSync();
   // Read inside the random-background-rotation effect below without making
   // it re-subscribe to AppState on every settings change (see that effect).
   const settingsRef = useRef(settings);
@@ -151,7 +160,23 @@ export default function HolographicHome({dream = false}: Props) {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
-  const [themesOpen, setThemesOpen] = useState(false);
+  // Category the gallery should open straight into (occasion reminder tap).
+  const [galleryCategory, setGalleryCategory] = useState<string | null>(null);
+
+  // Occasion reminders (OccasionReminders.kt) open reyhan://category/<id>
+  // or reyhan://gallery — both on a cold start and while running.
+  useEffect(() => {
+    if (dream) return;
+    const handle = (url: string | null) => {
+      if (!url?.startsWith('reyhan://')) return;
+      const m = /^reyhan:\/\/category\/(.+)$/.exec(url);
+      setGalleryCategory(m ? decodeURIComponent(m[1]) : null);
+      setGalleryOpen(true);
+    };
+    Linking.getInitialURL().then(handle).catch(() => {});
+    const sub = Linking.addEventListener('url', e => handle(e.url));
+    return () => sub.remove();
+  }, [dream]);
   const [helpOpen, setHelpOpen] = useState(false);
   // const [aiGenerateOpen, setAiGenerateOpen] = useState(false); // [AI disabled for this version]
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -193,6 +218,10 @@ export default function HolographicHome({dream = false}: Props) {
     return () => sub.remove();
   }, [dream]);
 
+  // `update` changes identity with every settings change; the first-run
+  // check below must not re-run for that, so it reads it through a ref.
+  const updateRef = useRef(update);
+  updateRef.current = update;
   useEffect(() => {
     if (dream) return;
     let cancelled = false;
@@ -200,6 +229,12 @@ export default function HolographicHome({dream = false}: Props) {
       const firstRun =
         (await shouldShowOneTapWallpaper()) && !(await isLiveWallpaperActive());
       if (cancelled || !firstRun) return;
+      // Show what «زنده» means from the very first second: the touch ripple
+      // the home screen gets once it's set (Android 13+ there). The slow
+      // drift stays off by default — it's in the «آرام» preset and its own
+      // switch. Auto ripples stay off to spare the battery; the demo drops
+      // below run only in the app.
+      updateRef.current('waterRipple', true);
       setOneTapVisible(true);
       markOneTapWallpaperShown();
     })();
@@ -268,7 +303,6 @@ export default function HolographicHome({dream = false}: Props) {
       setDrawerOpen(false);
       setSettingsOpen(false);
       setGalleryOpen(false);
-      setThemesOpen(false);
       setHelpOpen(false);
       setActiveOrbitItem(null);
     });
@@ -285,6 +319,23 @@ export default function HolographicHome({dream = false}: Props) {
   // Water-surface ripple on the photo itself — the drop is spawned by
   // MainBackground, which owns the canvas and the transform it sits under.
   const waterRippleRef = useRef<WaterRippleHandle>(null);
+
+  // While the first-launch button is up, drop a demo ripple every few seconds
+  // so the motion is obvious without the user having to discover touch.
+  useEffect(() => {
+    if (!oneTapVisible) return;
+    const drop = () =>
+      waterRippleRef.current?.addDrop(
+        width * (0.25 + Math.random() * 0.5),
+        height * (0.2 + Math.random() * 0.35),
+      );
+    const first = setTimeout(drop, 900);
+    const t = setInterval(drop, DEMO_RIPPLE_MS);
+    return () => {
+      clearTimeout(first);
+      clearInterval(t);
+    };
+  }, [oneTapVisible, width, height]);
   const triggerWaterDrop = (x: number, y: number) => {
     waterRippleRef.current?.addDrop(x, y);
   };
@@ -572,10 +623,6 @@ export default function HolographicHome({dream = false}: Props) {
               setSettingsOpen(false);
               setHelpOpen(true);
             }}
-            onOpenThemes={() => {
-              setSettingsOpen(false);
-              setThemesOpen(true);
-            }}
             // [AI disabled for this version] re-enable together with the
             // AIGenerateScreen below and its button in SettingsPanel.tsx.
             // onOpenAIGenerate={() => {
@@ -592,10 +639,12 @@ export default function HolographicHome({dream = false}: Props) {
 
           <WallpaperGallery
             visible={galleryOpen}
-            onClose={() => setGalleryOpen(false)}
+            initialCategoryId={galleryCategory}
+            onClose={() => {
+              setGalleryOpen(false);
+              setGalleryCategory(null);
+            }}
           />
-
-          <ThemesScreen visible={themesOpen} onClose={() => setThemesOpen(false)} />
 
           {/* [AI disabled for this version] AI wallpaper generation — the
               screen itself (AIGenerateScreen.tsx) and its API client

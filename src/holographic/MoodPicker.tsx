@@ -5,7 +5,6 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   View,
 } from 'react-native';
@@ -14,28 +13,18 @@ import AppText from './AppText';
 import {showAlert} from './AppAlert';
 import {setWallpaperFromUrl} from './lockWallpaper';
 import {announceWallpaperSet} from './oneTapWallpaper';
-import {
-  disableDailyWallpaper,
-  enableDailyWallpaper,
-  getDailyMood,
-  updateDailyPool,
-} from './dailyWallpaper';
+import AutoChangeSheet from './AutoChangeSheet';
+import {hoursLabel, sameSource, useAutoWallpaper, type AutoSource} from './autoWallpaper';
+import {toFa} from './date';
 import {useStore} from './store/StoreContext';
 import type {WallpaperCategory, WallpaperItem} from './store/types';
 import {trackWallpaperDownload} from './store/wallpaperDownload';
+import {trackPaywall} from './analytics';
+import {toggleFavorite, useFavorites} from './favorites';
+import {shareWallpaper} from './share';
 
 /** Width of a mood card; the cover is a portrait 1:1.4 like a phone screen. */
 const CARD_W = 68;
-
-const STORE_URL = 'https://cafebazaar.ir/app/com.wallpaperNaghsh';
-
-/** Shares the wallpaper link plus the app's store page — every share is a
- * free install ad. Best-effort: a dismissed share sheet is not an error. */
-function shareWallpaper(item: WallpaperItem) {
-  Share.share({
-    message: `این والپیپر رو ببین 😍\n${item.full}\n\nکلی والپیپر دیگه تو اپ ریحان:\n${STORE_URL}`,
-  }).catch(() => {});
-}
 
 function shuffled<T>(list: T[]): T[] {
   const a = [...list];
@@ -61,8 +50,9 @@ export default function MoodPicker({bottom}: {bottom: number}) {
   const [imgLoading, setImgLoading] = useState(true);
   // Shuffled queue per open mood, so "another one" doesn't repeat until the
   // whole mood has been seen.
-  // Mood the daily auto-change draws from (null = off).
-  const [dailyMood, setDailyMood] = useState<string | null>(null);
+  // «تعویض خودکار» sheet for the open mood (null = closed).
+  const [autoSource, setAutoSource] = useState<AutoSource | null>(null);
+  const auto = useAutoWallpaper();
   const queueRef = useRef<WallpaperItem[]>([]);
   const posRef = useRef(0);
 
@@ -78,46 +68,6 @@ export default function MoodPicker({bottom}: {bottom: number}) {
       ),
     [catalog],
   );
-
-  // Only wallpapers this user can actually have go to the daily job — a
-  // locked premium one would otherwise be handed out for free.
-  const dailyUrls = useCallback(
-    (cat: WallpaperCategory) => poolFor(cat).filter(isUnlocked).map(w => w.full),
-    [poolFor, isUnlocked],
-  );
-
-  useEffect(() => {
-    getDailyMood().then(setDailyMood);
-  }, []);
-
-  // Keep the native pool in step with the catalog (new/removed wallpapers,
-  // premium unlocked since).
-  useEffect(() => {
-    const cat = moods.find(c => c.id === dailyMood);
-    if (cat) updateDailyPool(dailyUrls(cat));
-  }, [moods, dailyMood, dailyUrls]);
-
-  const toggleDaily = async () => {
-    if (!mood) return;
-    try {
-      if (dailyMood === mood.id) {
-        await disableDailyWallpaper();
-        setDailyMood(null);
-        return;
-      }
-      const urls = dailyUrls(mood);
-      if (urls.length === 0) {
-        showAlert('فعلاً نمی‌شه', 'این مود هنوز والپیپر رایگان نداره.');
-        return;
-      }
-      await enableDailyWallpaper(mood.id, urls);
-      setDailyMood(mood.id);
-      showAlert('🔁 روشن شد', `از فردا هر روز یه والپیپر تازه از «${mood.title}» روی گوشیت میاد.`);
-    } catch (e) {
-      const detail = e instanceof Error ? e.message : String(e);
-      showAlert('خطا', detail);
-    }
-  };
 
   const show = (item: WallpaperItem) => {
     setImgLoading(true);
@@ -186,9 +136,15 @@ export default function MoodPicker({bottom}: {bottom: number}) {
     }
   };
 
-  if (moods.length === 0) return null;
-
   const locked = current ? !isUnlocked(current) : false;
+  const favorites = useFavorites();
+  const liked = !!current && favorites.some(f => f.full === current.full);
+  // A locked wallpaper on screen shows the unlock button: one paywall view.
+  useEffect(() => {
+    if (locked) trackPaywall('paywall_shown');
+  }, [locked, current?.id]);
+
+  if (moods.length === 0) return null;
 
   return (
     <>
@@ -254,6 +210,16 @@ export default function MoodPicker({bottom}: {bottom: number}) {
               <AppText style={styles.closeText}>📤</AppText>
             </Pressable>
           ) : null}
+          {current ? (
+            <Pressable
+              style={[styles.closeBtn, styles.heartBtn, {top: insets.top + 12}]}
+              onPress={() => toggleFavorite(current)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={liked ? 'حذف از مجموعه‌ی من' : 'افزودن به مجموعه‌ی من'}>
+              <AppText style={styles.closeText}>{liked ? '❤️' : '🤍'}</AppText>
+            </Pressable>
+          ) : null}
 
           <View style={[styles.actions, {paddingBottom: insets.bottom + 20}]}>
             {busy ? (
@@ -270,17 +236,23 @@ export default function MoodPicker({bottom}: {bottom: number}) {
                 <Pressable style={styles.secondary} onPress={another}>
                   <AppText style={styles.secondaryText}>🔄 یکی دیگه</AppText>
                 </Pressable>
-                <Pressable style={styles.dailyRow} onPress={toggleDaily} hitSlop={8}>
-                  <AppText style={styles.dailyText}>
-                    {dailyMood === mood?.id
-                      ? '✅ هر روز خودش عوض می‌شه (برای خاموش کردن بزن)'
-                      : '🔁 هر روز خودش از این مود عوض کنه'}
-                  </AppText>
-                </Pressable>
+                {mood ? (
+                  <Pressable
+                    style={styles.dailyRow}
+                    onPress={() => setAutoSource({kind: 'category', id: mood.id, title: mood.title})}
+                    hitSlop={8}>
+                    <AppText style={styles.dailyText}>
+                      {auto && sameSource(auto.source, {kind: 'category', id: mood.id, title: ''})
+                        ? `✅ ${hoursLabel(auto.hours, toFa)} خودش عوض می‌شه (برای تغییر بزن)`
+                        : '🔁 تعویض خودکار از این مود'}
+                    </AppText>
+                  </Pressable>
+                ) : null}
               </>
             )}
           </View>
         </View>
+        <AutoChangeSheet source={autoSource} onClose={() => setAutoSource(null)} />
       </Modal>
     </>
   );
@@ -341,6 +313,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   shareBtn: {left: undefined, right: 16},
+  heartBtn: {left: undefined, right: 68},
   closeText: {color: '#fff', fontSize: 18},
   actions: {
     position: 'absolute',

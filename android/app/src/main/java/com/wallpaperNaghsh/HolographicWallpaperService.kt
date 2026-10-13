@@ -65,6 +65,9 @@ class HolographicWallpaperService : WallpaperService() {
     private var pendingWakeDrop = false
     private var rippleEnabled = false
     private var rippleAuto = false
+    /** The slow Ken-Burns drift + wake zoom — follows the app's «حرکت آرام»
+     * switch (livingWallpaper). Off = a still photo that only ripples on touch. */
+    private var driftEnabled = true
     private var randomSources = false
     private var sourceCount = 0
     private var currentSourceIndex = -1
@@ -90,12 +93,24 @@ class HolographicWallpaperService : WallpaperService() {
         maybeWakeDrop()
         maybeAutoDrop()
         draw()
-        if (visible) {
+        if (visible && needsFrames()) {
           // Only pay for smooth frames while a ripple is actually spreading.
           val interval = if (anyDropAlive()) FRAME_INTERVAL_ACTIVE_MS else FRAME_INTERVAL_MS
           handler.postDelayed(this, interval)
         }
       }
+    }
+
+    /** A still photo needs no frames at all until something moves: a ripple
+     * spreading, an auto/wake drop still to come, or the drift itself. */
+    private fun needsFrames(): Boolean =
+        driftEnabled || anyDropAlive() || pendingWakeDrop || (rippleActive() && rippleAuto)
+
+    /** Restarts the frame loop if it went idle (still photo + a new touch). */
+    private fun kick() {
+      if (!visible) return
+      handler.removeCallbacks(drawRunnable)
+      handler.post(drawRunnable)
     }
 
     private fun prefs() =
@@ -107,6 +122,8 @@ class HolographicWallpaperService : WallpaperService() {
       val p = prefs()
       rippleEnabled = p.getBoolean(PREF_RIPPLE_ENABLED, false)
       rippleAuto = p.getBoolean(PREF_RIPPLE_AUTO, false)
+      // Default on: matches the behaviour before the app started syncing it.
+      driftEnabled = p.getBoolean(PREF_DRIFT_ENABLED, true)
       randomSources = p.getBoolean(PREF_RANDOM_SOURCES, false)
       sourceCount = p.getInt(PREF_SOURCE_COUNT, 0)
     }
@@ -164,6 +181,7 @@ class HolographicWallpaperService : WallpaperService() {
       dropX[slot] = x
       dropY[slot] = y
       dropStart[slot] = System.currentTimeMillis()
+      kick()
     }
 
     override fun onCreate(holder: SurfaceHolder) {
@@ -296,8 +314,12 @@ class HolographicWallpaperService : WallpaperService() {
         if (canvas == null) return
         canvas.drawColor(android.graphics.Color.BLACK)
         if (bitmap != null && !bitmap.isRecycled) {
-          val elapsed = (System.currentTimeMillis() - wakeStartMs).toDouble()
-          val wakeProgress = (elapsed / WAKE_DURATION_MS).coerceIn(0.0, 1.0)
+          // With the drift off the photo just sits still (no wake zoom either):
+          // treat it as permanently "settled" at scale 1 with no offset.
+          val elapsed =
+              if (driftEnabled) (System.currentTimeMillis() - wakeStartMs).toDouble()
+              else Double.NEGATIVE_INFINITY
+          val wakeProgress = if (driftEnabled) (elapsed / WAKE_DURATION_MS).coerceIn(0.0, 1.0) else 0.0
           val wakeEase = 1 - (1 - wakeProgress).pow(3.0)
           val baseScale = 1.0 + WAKE_ZOOM * wakeEase
           val settled = elapsed - WAKE_DURATION_MS
@@ -416,6 +438,8 @@ class HolographicWallpaperService : WallpaperService() {
     const val PREFS_NAME = "live_wallpaper_prefs"
     const val PREF_RIPPLE_ENABLED = "ripple_enabled"
     const val PREF_RIPPLE_AUTO = "ripple_auto"
+    /** «حرکت آرام» — see LockWallpaperModule.setLiveWallpaperDrift. */
+    const val PREF_DRIFT_ENABLED = "drift_enabled"
 
     /** Random photo rotation — written by
      * LockWallpaperModule.setLiveWallpaperSources alongside the files. */

@@ -67,3 +67,11 @@ export type LauncherEvent =
 export function trackLauncherEvent(event: LauncherEvent): void {
   send({event});
 }
+
+/** Purchase funnel: the unlock offer was shown → its buy button tapped → the
+ * purchase completed. */
+export type PaywallEvent = 'paywall_shown' | 'paywall_tapped' | 'purchase_completed';
+
+export function trackPaywall(event: PaywallEvent): void {
+  send({event});
+}

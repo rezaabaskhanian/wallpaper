@@ -6,6 +6,7 @@ import DraggableWidget from './DraggableWidget';
 import BatteryIcon from './BatteryIcon';
 import BoltIcon from './BoltIcon';
 import GearIcon from './GearIcon';
+import {useHasNewWallpapers} from './newWallpapers';
 import WeatherIcon from './WeatherIcon';
 import {toFa} from './date';
 import {useSettings} from './SettingsContext';
@@ -32,6 +33,7 @@ export default function TopLeftBar({
   weather = null,
 }: Props) {
   const {settings, update} = useSettings();
+  const hasNew = useHasNewWallpapers();
   const batteryLevel = useBatteryLevel(); // 0..1 (null/-1 when unavailable)
   const {batteryState} = usePowerState();
 
@@ -77,8 +79,13 @@ export default function TopLeftBar({
             </View>
           ) : null}
 
-          <Pressable onPress={onOpenSettings} hitSlop={12} style={styles.gearBtn}>
+          <Pressable
+            onPress={onOpenSettings}
+            hitSlop={12}
+            style={styles.gearBtn}
+            accessibilityLabel={hasNew ? 'تنظیمات، والپیپر تازه اومده' : 'تنظیمات'}>
             <GearIcon size={20} color="#eafffb" />
+            {hasNew ? <View style={styles.newDot} /> : null}
           </Pressable>
         </View>
       )}
@@ -122,5 +129,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 2,
+  },
+  newDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#f87171',
+    borderWidth: 1.5,
+    borderColor: '#170b28',
   },
 });

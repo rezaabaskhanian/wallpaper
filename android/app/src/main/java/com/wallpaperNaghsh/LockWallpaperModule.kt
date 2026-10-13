@@ -507,4 +507,23 @@ class LockWallpaperModule(reactContext: ReactApplicationContext) :
       promise.reject("prefs_failed", e.message, e)
     }
   }
+
+  /** Mirrors the app's «حرکت آرام» switch into the live wallpaper: off = a
+   * still photo (taps still ripple when that's on). Read on the next wake. */
+  @ReactMethod
+  fun setLiveWallpaperDrift(enabled: Boolean, promise: Promise) {
+    try {
+      reactApplicationContext
+          .getSharedPreferences(
+              HolographicWallpaperService.PREFS_NAME,
+              android.content.Context.MODE_PRIVATE,
+          )
+          .edit()
+          .putBoolean(HolographicWallpaperService.PREF_DRIFT_ENABLED, enabled)
+          .apply()
+      promise.resolve(true)
+    } catch (e: Exception) {
+      promise.reject("prefs_failed", e.message, e)
+    }
+  }
 }

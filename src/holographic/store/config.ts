@@ -6,7 +6,7 @@
 // Production API (api.wallpaperapp.ir). For local dev against a Go backend
 // running on your Mac, swap this to 'http://10.0.2.2:8090/api/v1' (Android
 // emulator) — 10.0.2.2 maps to the host machine's localhost.
-const API_BASE_URL = 'https://api.wallpaperapp.ir/api/v1';
+export const API_BASE_URL = 'https://api.wallpaperapp.ir/api/v1';
 
 export const CATALOG_URL = `${API_BASE_URL}/catalog`;
 export const ORBIT_CATALOG_URL = `${API_BASE_URL}/orbit-catalog`;
@@ -16,7 +16,7 @@ export const QUOTES_URL = `${API_BASE_URL}/quotes`;
 export const QUOTE_CATEGORIES_URL = `${API_BASE_URL}/quote-categories`;
 export const DAILY_QUOTE_URL = `${API_BASE_URL}/daily-quote`;
 export const HERO_URL = `${API_BASE_URL}/hero`;
-export const THEMES_URL = `${API_BASE_URL}/themes`;
+export const OCCASIONS_URL = `${API_BASE_URL}/occasions`;
 export const PROMO_REDEEM_URL = `${API_BASE_URL}/promo-codes/redeem`;
 export const AI_GENERATE_URL = `${API_BASE_URL}/ai/generate`;
 export const AI_CREDITS_REDEEM_URL = `${API_BASE_URL}/ai/credits/redeem`;

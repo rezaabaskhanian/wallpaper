@@ -2,9 +2,10 @@ import React, {useEffect, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {useSettings} from './SettingsContext';
 import {useSunTimes} from './useSunTimes';
-import {hourForMode, sampleDayNight, sampleSunFlare} from './dayNight';
+import {hourForMode, sampleDayNight, sampleMoon, sampleSunFlare} from './dayNight';
 import StarField from './StarField';
 import SunFlare from './SunFlare';
+import Moon from './Moon';
 
 function decimalHour(d: Date): number {
   return d.getHours() + d.getMinutes() / 60;
@@ -38,11 +39,14 @@ export default function DayNightLayer({hideStars = false}: Props) {
   const effHour = hourForMode(mode, sun, hour);
   const {tint, starIntensity} = sampleDayNight(effHour, sun);
   const flare = sampleSunFlare(effHour, sun);
+  const moon = sampleMoon(effHour, sun, new Date());
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <View style={[StyleSheet.absoluteFill, {backgroundColor: tint}]} />
       {settings.sunFlare ? <SunFlare sample={flare} /> : null}
+      {/* Same «خورشید و ماه» switch: the moon takes over at night. */}
+      {settings.sunFlare ? <Moon sample={moon} /> : null}
       {hideStars ? null : <StarField intensity={starIntensity} />}
     </View>
   );
