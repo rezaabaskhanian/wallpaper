@@ -12,6 +12,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import SpotlightCard from '@/components/SpotlightCard';
 import DeleteConfirmButton from '@/components/DeleteConfirmButton';
 import {ApiError} from '@/lib/api';
@@ -20,6 +26,7 @@ import {
   useClosePoll,
   useCreatePoll,
   useDeletePoll,
+  useDevice,
   usePolls,
   useRequests,
   useUpdateRequests,
@@ -46,16 +53,92 @@ function CategorySelect({value, onChange}: {value: string; onChange: (v: string)
   );
 }
 
+/** First 6 characters of an anonymous device id — enough to tell devices apart. */
+const shortId = (id: string) => id.slice(0, 6);
+
+const STATUS_LABEL: Record<WallpaperRequest['status'], string> = {
+  pending: 'در انتظار',
+  done: 'انجام شد',
+  rejected: 'رد شد',
+};
+
+function faDate(iso?: string): string {
+  if (!iso) return '—';
+  try {
+    return new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+/**
+ * One anonymous device: every request it sent plus a short activity summary
+ * from the analytics events sharing the same id. No personal data exists —
+ * the id is an anonymous per-phone code.
+ */
+function DeviceDialog({deviceId, onClose}: {deviceId: string | null; onClose: () => void}) {
+  const {data, isLoading} = useDevice(deviceId);
+  return (
+    <Dialog open={!!deviceId} onOpenChange={o => (!o ? onClose() : undefined)}>
+      <DialogContent className="glass-panel max-h-[90vh] max-w-lg overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            دستگاه <span className="font-mono">{deviceId ? shortId(deviceId) : ''}</span>
+          </DialogTitle>
+        </DialogHeader>
+        {isLoading || !data ? (
+          <p>در حال بارگذاری…</p>
+        ) : (
+          <div className="flex flex-col gap-4 text-sm">
+            <div className="grid grid-cols-2 gap-2">
+              <div>اولین ورود: {faDate(data.firstSeen)}</div>
+              <div>آخرین ورود: {faDate(data.lastSeen)}</div>
+              <div>نسخه‌ی اپ: <span className="font-mono">{data.appVersion || '—'}</span></div>
+              <div>دفعات باز کردن: {data.opens}</div>
+              <div>والپیپرهای گذاشته‌شده: {data.wallpaperSets}</div>
+              <div>رأی‌ها: {data.pollVotes}</div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="font-semibold">درخواست‌ها ({data.requests.length})</div>
+              {data.requests.map(r => (
+                <div key={r.id} className="rounded-md border p-2">
+                  <div>{r.text}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {STATUS_LABEL[r.status]} · {faDate(r.createdAt)}
+                    {r.reply ? ` · جواب: ${r.reply}` : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              این شناسه ناشناس است؛ اطلاعات شخصی کاربر (اسم، شماره) ثبت نمی‌شود.
+            </p>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /**
  * Requests are grouped by their (normalized) text, most-asked first, so the
  * admin sees demand at a glance and resolves a whole group at once — every
- * device in it then gets the «آماده شد» notification.
+ * device in it then gets a notification, carrying the admin's reply if one
+ * was written (a rejection is only notified when it has a reply).
  */
 function RequestsSection() {
   const {data: requests, isLoading} = useRequests();
   const update = useUpdateRequests();
   const [showDone, setShowDone] = useState(false);
   const [catFor, setCatFor] = useState<Record<string, string>>({});
+  const [replyFor, setReplyFor] = useState<Record<string, string>>({});
+  const [device, setDevice] = useState<string | null>(null);
 
   const groups = useMemo(() => {
     const map = new Map<string, WallpaperRequest[]>();
@@ -64,13 +147,26 @@ function RequestsSection() {
       const key = `${r.status}|${r.text.trim().toLowerCase()}`;
       map.set(key, [...(map.get(key) ?? []), r]);
     }
-    return [...map.entries()].sort((a, b) => b[1].length - a[1].length);
+    const devices = (list: WallpaperRequest[]) => new Set(list.map(r => r.deviceId)).size;
+    return [...map.entries()].sort((a, b) => devices(b[1]) - devices(a[1]));
   }, [requests, showDone]);
 
   const resolve = async (list: WallpaperRequest[], status: WallpaperRequest['status'], key: string) => {
+    const reply = (replyFor[key] ?? '').trim();
     try {
-      await update.mutateAsync({ids: list.map(r => r.id), status, categoryId: catFor[key] ?? ''});
-      toast.success(status === 'done' ? 'انجام شد؛ به درخواست‌دهنده‌ها خبر می‌رسد' : 'ذخیره شد');
+      await update.mutateAsync({
+        ids: list.map(r => r.id),
+        status,
+        categoryId: catFor[key] ?? '',
+        reply,
+      });
+      toast.success(
+        status === 'done'
+          ? 'انجام شد؛ به درخواست‌دهنده‌ها خبر می‌رسد'
+          : status === 'rejected' && reply
+            ? 'رد شد؛ جوابت به درخواست‌دهنده‌ها می‌رسد'
+            : 'ذخیره شد',
+      );
     } catch (err) {
       toast.error(errText(err, 'ذخیره ناموفق بود'));
     }
@@ -82,8 +178,9 @@ function RequestsSection() {
         <div>
           <h2 className="text-lg font-semibold">درخواست‌ها</h2>
           <p className="text-sm text-muted-foreground">
-            درخواست‌های هم‌متن کنار هم‌اند؛ پرتکرارترها بالا. با «انجام شد» به همه‌ی درخواست‌دهنده‌ها
-            خبر می‌رسد و با زدن خبر، دسته‌ی انتخاب‌شده باز می‌شود.
+            درخواست‌های هم‌متن کنار هم‌اند؛ آن‌هایی که گوشی‌های بیشتری خواسته‌اند بالاترند. «جواب»
+            اختیاری است و در نوتیفیکیشن کاربر نشان داده می‌شود؛ برای «رد» فقط وقتی جواب بنویسی خبر
+            می‌رود. روی کد هر دستگاه بزن تا درخواست‌ها و آمارش را ببینی.
           </p>
         </div>
         <label className="flex items-center gap-2 text-sm">
@@ -96,63 +193,100 @@ function RequestsSection() {
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead>درخواست</TableHead>
-              <TableHead>تعداد</TableHead>
+              <TableHead>گوشی‌ها</TableHead>
+              <TableHead>پیام‌ها</TableHead>
               <TableHead>وضعیت</TableHead>
-              <TableHead>دسته</TableHead>
+              <TableHead>دسته و جواب</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5}>در حال بارگذاری…</TableCell>
+                <TableCell colSpan={6}>در حال بارگذاری…</TableCell>
               </TableRow>
             ) : groups.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground">
+                <TableCell colSpan={6} className="text-muted-foreground">
                   درخواستی نیست.
                 </TableCell>
               </TableRow>
             ) : (
-              groups.map(([key, list]) => (
-                <TableRow key={key}>
-                  <TableCell className="font-medium">{list[0].text}</TableCell>
-                  <TableCell className="font-mono">{list.length}</TableCell>
-                  <TableCell className="text-sm">
-                    {{pending: 'در انتظار', done: 'انجام شد', rejected: 'رد شد'}[list[0].status]}
-                  </TableCell>
-                  <TableCell>
-                    {list[0].status === 'pending' ? (
-                      <CategorySelect
-                        value={catFor[key] ?? ''}
-                        onChange={v => setCatFor({...catFor, [key]: v})}
-                      />
-                    ) : (
-                      <span className="font-mono text-xs">{list[0].categoryId || '—'}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="flex justify-end gap-1">
-                    {list[0].status === 'pending' ? (
-                      <>
-                        <Button size="sm" onClick={() => resolve(list, 'done', key)}>
-                          انجام شد
+              groups.map(([key, list]) => {
+                const deviceIds = [...new Set(list.map(r => r.deviceId))];
+                const pending = list[0].status === 'pending';
+                return (
+                  <TableRow key={key}>
+                    <TableCell className="max-w-xs">
+                      <div className="font-medium">{list[0].text}</div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {deviceIds.slice(0, 8).map(id => (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => setDevice(id)}
+                            className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs hover:bg-primary/20"
+                            title="درخواست‌ها و آمار این گوشی">
+                            {shortId(id)}
+                          </button>
+                        ))}
+                        {deviceIds.length > 8 ? (
+                          <span className="text-xs text-muted-foreground">
+                            +{deviceIds.length - 8}
+                          </span>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono">{deviceIds.length}</TableCell>
+                    <TableCell className="font-mono text-muted-foreground">{list.length}</TableCell>
+                    <TableCell className="text-sm">{STATUS_LABEL[list[0].status]}</TableCell>
+                    <TableCell className="min-w-56">
+                      {pending ? (
+                        <div className="flex flex-col gap-1">
+                          <CategorySelect
+                            value={catFor[key] ?? ''}
+                            onChange={v => setCatFor({...catFor, [key]: v})}
+                          />
+                          <Input
+                            value={replyFor[key] ?? ''}
+                            maxLength={200}
+                            placeholder="جواب (اختیاری) — مثل «توی دسته‌ی ملی گذاشتیم»"
+                            onChange={e => setReplyFor({...replyFor, [key]: e.target.value})}
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-xs">
+                          <span className="font-mono">{list[0].categoryId || '—'}</span>
+                          {list[0].reply ? (
+                            <div className="mt-1 text-muted-foreground">جواب: {list[0].reply}</div>
+                          ) : null}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="flex justify-end gap-1">
+                      {pending ? (
+                        <>
+                          <Button size="sm" onClick={() => resolve(list, 'done', key)}>
+                            انجام شد
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => resolve(list, 'rejected', key)}>
+                            رد
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => resolve(list, 'pending', key)}>
+                          برگشت به انتظار
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => resolve(list, 'rejected', key)}>
-                          رد
-                        </Button>
-                      </>
-                    ) : (
-                      <Button size="sm" variant="ghost" onClick={() => resolve(list, 'pending', key)}>
-                        برگشت به انتظار
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </SpotlightCard>
+      <DeviceDialog deviceId={device} onClose={() => setDevice(null)} />
     </section>
   );
 }

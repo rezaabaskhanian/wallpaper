@@ -1,6 +1,6 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {api} from '@/lib/api';
-import type {Poll, WallpaperRequest} from '@/lib/types';
+import type {DeviceInfo, Poll, WallpaperRequest} from '@/lib/types';
 
 export function useRequests() {
   return useQuery({
@@ -13,9 +13,21 @@ export function useRequests() {
 export function useUpdateRequests() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: {ids: string[]; status: WallpaperRequest['status']; categoryId: string}) =>
-      api.put('/admin/requests', input),
+    mutationFn: (input: {
+      ids: string[];
+      status: WallpaperRequest['status'];
+      categoryId: string;
+      reply: string;
+    }) => api.put('/admin/requests', input),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin', 'requests']}),
+  });
+}
+
+export function useDevice(deviceId: string | null) {
+  return useQuery({
+    queryKey: ['admin', 'device', deviceId],
+    queryFn: () => api.get<DeviceInfo>(`/admin/devices/${encodeURIComponent(deviceId!)}`),
+    enabled: !!deviceId,
   });
 }
 

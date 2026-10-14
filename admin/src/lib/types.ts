@@ -224,7 +224,21 @@ export type WallpaperRequest = {
   text: string;
   status: 'pending' | 'done' | 'rejected';
   categoryId: string;
+  /** جواب ادمین؛ در نوتیفیکیشن درخواست‌دهنده نشان داده می‌شود. */
+  reply: string;
   createdAt: string;
+};
+
+/** خلاصه‌ی یک دستگاه ناشناس: درخواست‌ها و آمار فعالیتش. */
+export type DeviceInfo = {
+  deviceId: string;
+  requests: WallpaperRequest[];
+  firstSeen?: string;
+  lastSeen?: string;
+  appVersion: string;
+  opens: number;
+  wallpaperSets: number;
+  pollVotes: number;
 };
 
 export type PollOption = {id: string; title: string; categoryId: string; votes: number};
