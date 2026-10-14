@@ -2,7 +2,9 @@ package feedbackservice
 
 import (
 	"context"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	domain "wallpaperstore/internal/domain/feedback"
 	"wallpaperstore/internal/pkg/richerror"
@@ -15,7 +17,9 @@ type Repository interface {
 	CountRequestsSince(ctx context.Context, deviceID string, since time.Time) (int, error)
 	InsertRequest(ctx context.Context, r domain.Request) error
 	ListRequests(ctx context.Context) ([]domain.Request, error)
-	UpdateRequests(ctx context.Context, ids []string, status, categoryID string) error
+	UpdateRequests(ctx context.Context, ids []string, status, categoryID, reply string) error
+	DeviceRequests(ctx context.Context, deviceID string) ([]domain.Request, error)
+	DeviceStats(ctx context.Context, deviceID string) (domain.DeviceStats, error)
 	DeleteRequest(ctx context.Context, id string) error
 
 	ActivePoll(ctx context.Context) (*domain.Poll, error)
@@ -149,14 +153,49 @@ func (s Service) AdminListRequests(ctx context.Context) (dto.ListRequestsRespons
 	if err != nil {
 		return dto.ListRequestsResponse{}, richerror.New(op).WithErr(err)
 	}
+	return dto.ListRequestsResponse{Requests: requestDTOs(rs)}, nil
+}
+
+func requestDTOs(rs []domain.Request) []dto.RequestDTO {
 	out := make([]dto.RequestDTO, 0, len(rs))
 	for _, r := range rs {
 		out = append(out, dto.RequestDTO{
 			ID: r.ID, DeviceID: r.DeviceID, Text: r.Text, Status: r.Status,
-			CategoryID: r.CategoryID, CreatedAt: r.CreatedAt.Format(time.RFC3339),
+			CategoryID: r.CategoryID, Reply: r.Reply, CreatedAt: r.CreatedAt.Format(time.RFC3339),
 		})
 	}
-	return dto.ListRequestsResponse{Requests: out}, nil
+	return out
+}
+
+// AdminDevice همه‌ی درخواست‌های یک دستگاه به‌اضافه‌ی خلاصه‌ی آمارش.
+func (s Service) AdminDevice(ctx context.Context, deviceID string) (dto.DeviceResponse, error) {
+	const op = "feedbackservice.AdminDevice"
+	if !domain.ValidDevice(deviceID) {
+		return dto.DeviceResponse{}, richerror.New(op).WithErr(domain.ErrBadDevice).WithMessage(domain.ErrBadDevice.Error())
+	}
+	rs, err := s.repo.DeviceRequests(ctx, deviceID)
+	if err != nil {
+		return dto.DeviceResponse{}, richerror.New(op).WithErr(err)
+	}
+	st, err := s.repo.DeviceStats(ctx, deviceID)
+	if err != nil {
+		return dto.DeviceResponse{}, richerror.New(op).WithErr(err)
+	}
+	res := dto.DeviceResponse{
+		DeviceID:      deviceID,
+		Requests:      requestDTOs(rs),
+		AppVersion:    st.AppVersion,
+		Opens:         st.Opens,
+		WallpaperSets: st.WallpaperSets,
+		PollVotes:     st.PollVotes,
+	}
+	if st.FirstSeen != nil {
+		res.FirstSeen = st.FirstSeen.Format(time.RFC3339)
+	}
+	if st.LastSeen != nil {
+		res.LastSeen = st.LastSeen.Format(time.RFC3339)
+	}
+	return res, nil
 }
 
 func (s Service) AdminUpdateRequests(ctx context.Context, req dto.UpdateRequestsRequest) error {
@@ -164,7 +203,11 @@ func (s Service) AdminUpdateRequests(ctx context.Context, req dto.UpdateRequests
 	if !domain.ValidStatus(req.Status) || len(req.IDs) == 0 {
 		return richerror.New(op).WithErr(domain.ErrBadStatus).WithMessage(domain.ErrBadStatus.Error())
 	}
-	return s.repo.UpdateRequests(ctx, req.IDs, req.Status, req.CategoryID)
+	reply := strings.TrimSpace(req.Reply)
+	if utf8.RuneCountInString(reply) > domain.MaxReplyLen {
+		return richerror.New(op).WithMessage("جواب حداکثر ۲۰۰ حرف باشد")
+	}
+	return s.repo.UpdateRequests(ctx, req.IDs, req.Status, req.CategoryID, reply)
 }
 
 func (s Service) AdminDeleteRequest(ctx context.Context, id string) error {

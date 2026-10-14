@@ -29,6 +29,7 @@ func (h Handler) SetRoutes(api *echo.Group, admin *echo.Group) {
 	admin.GET("/requests", h.AdminListRequests)
 	admin.PUT("/requests", h.AdminUpdateRequests)
 	admin.DELETE("/requests/:id", h.AdminDeleteRequest)
+	admin.GET("/devices/:deviceId", h.AdminDevice)
 	admin.GET("/polls", h.AdminListPolls)
 	admin.POST("/polls", h.AdminCreatePoll)
 	admin.PUT("/polls/:id/close", h.AdminClosePoll)
@@ -99,6 +100,15 @@ func (h Handler) AdminUpdateRequests(c echo.Context) error {
 		return richerror.New(op).WithErr(err)
 	}
 	return c.NoContent(http.StatusNoContent)
+}
+
+func (h Handler) AdminDevice(c echo.Context) error {
+	const op = "feedbackhandler.AdminDevice"
+	res, err := h.svc.AdminDevice(context.Background(), c.Param("deviceId"))
+	if err != nil {
+		return richerror.New(op).WithErr(err)
+	}
+	return c.JSON(http.StatusOK, res)
 }
 
 func (h Handler) AdminDeleteRequest(c echo.Context) error {

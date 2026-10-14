@@ -54,6 +54,7 @@ type RequestDTO struct {
 	Text       string `json:"text"`
 	Status     string `json:"status"`
 	CategoryID string `json:"categoryId"`
+	Reply      string `json:"reply"`
 	CreatedAt  string `json:"createdAt"`
 }
 
@@ -67,6 +68,21 @@ type UpdateRequestsRequest struct {
 	IDs        []string `json:"ids"`
 	Status     string   `json:"status"`
 	CategoryID string   `json:"categoryId"`
+	// Reply اختیاری؛ در نوتیفیکیشن درخواست‌دهنده‌ها نشان داده می‌شود.
+	Reply string `json:"reply"`
+}
+
+// DeviceResponse همه‌ی درخواست‌ها و خلاصه‌ی آمار یک دستگاه (فقط شناسه‌ی ناشناس؛
+// هیچ اطلاعات شخصی‌ای نداریم).
+type DeviceResponse struct {
+	DeviceID      string       `json:"deviceId"`
+	Requests      []RequestDTO `json:"requests"`
+	FirstSeen     string       `json:"firstSeen,omitempty"`
+	LastSeen      string       `json:"lastSeen,omitempty"`
+	AppVersion    string       `json:"appVersion"`
+	Opens         int          `json:"opens"`
+	WallpaperSets int          `json:"wallpaperSets"`
+	PollVotes     int          `json:"pollVotes"`
 }
 
 type ListPollsResponse struct {

@@ -44,16 +44,23 @@ func (d DB) InsertRequest(ctx context.Context, r domain.Request) error {
 func (d DB) ListRequests(ctx context.Context) ([]domain.Request, error) {
 	const op = "postgresfeedback.ListRequests"
 	rows, err := d.conn.Query(ctx, `
-		SELECT id, device_id, text, status, category_id, created_at, updated_at
+		SELECT `+requestColumns+`
 		FROM wallpaper_requests ORDER BY created_at DESC LIMIT 2000`)
 	if err != nil {
 		return nil, richerror.New(op).WithErr(err)
 	}
+	return scanRequests(op, rows)
+}
+
+const requestColumns = `id, device_id, text, status, category_id, reply, created_at, updated_at`
+
+func scanRequests(op richerror.Op, rows pgx.Rows) ([]domain.Request, error) {
 	defer rows.Close()
 	out := make([]domain.Request, 0)
 	for rows.Next() {
 		var r domain.Request
-		if err := rows.Scan(&r.ID, &r.DeviceID, &r.Text, &r.Status, &r.CategoryID, &r.CreatedAt, &r.UpdatedAt); err != nil {
+		if err := rows.Scan(&r.ID, &r.DeviceID, &r.Text, &r.Status, &r.CategoryID, &r.Reply,
+			&r.CreatedAt, &r.UpdatedAt); err != nil {
 			return nil, richerror.New(op).WithErr(err)
 		}
 		out = append(out, r)
@@ -61,11 +68,42 @@ func (d DB) ListRequests(ctx context.Context) ([]domain.Request, error) {
 	return out, rows.Err()
 }
 
-func (d DB) UpdateRequests(ctx context.Context, ids []string, status, categoryID string) error {
+func (d DB) DeviceRequests(ctx context.Context, deviceID string) ([]domain.Request, error) {
+	const op = "postgresfeedback.DeviceRequests"
+	rows, err := d.conn.Query(ctx, `
+		SELECT `+requestColumns+`
+		FROM wallpaper_requests WHERE device_id = $1 ORDER BY created_at DESC LIMIT 200`, deviceID)
+	if err != nil {
+		return nil, richerror.New(op).WithErr(err)
+	}
+	return scanRequests(op, rows)
+}
+
+// DeviceStats خلاصه‌ی فعالیت یک دستگاه از app_events (همان شناسه‌ی ناشناسی که
+// اپ با رویدادهای آنالیتیکس و درخواست‌ها می‌فرستد) و رأی‌هایش.
+func (d DB) DeviceStats(ctx context.Context, deviceID string) (domain.DeviceStats, error) {
+	const op = "postgresfeedback.DeviceStats"
+	var st domain.DeviceStats
+	err := d.conn.QueryRow(ctx, `
+		SELECT
+			MIN(created_at), MAX(created_at),
+			COALESCE((ARRAY_AGG(app_version ORDER BY created_at DESC))[1], ''),
+			COUNT(*) FILTER (WHERE event = 'app_open'),
+			COUNT(*) FILTER (WHERE event = 'wallpaper_set'),
+			(SELECT COUNT(*) FROM poll_votes WHERE device_id = $1)
+		FROM app_events WHERE device_id = $1`, deviceID).
+		Scan(&st.FirstSeen, &st.LastSeen, &st.AppVersion, &st.Opens, &st.WallpaperSets, &st.PollVotes)
+	if err != nil {
+		return st, richerror.New(op).WithErr(err)
+	}
+	return st, nil
+}
+
+func (d DB) UpdateRequests(ctx context.Context, ids []string, status, categoryID, reply string) error {
 	const op = "postgresfeedback.UpdateRequests"
 	_, err := d.conn.Exec(ctx, `
-		UPDATE wallpaper_requests SET status = $2, category_id = $3, updated_at = NOW()
-		WHERE id = ANY($1)`, ids, status, categoryID)
+		UPDATE wallpaper_requests SET status = $2, category_id = $3, reply = $4, updated_at = NOW()
+		WHERE id = ANY($1)`, ids, status, categoryID, reply)
 	if err != nil {
 		return richerror.New(op).WithErr(err).WithMessage("به‌روزرسانی درخواست‌ها ممکن نشد")
 	}
@@ -216,23 +254,20 @@ func (d DB) Inbox(ctx context.Context, deviceID string) ([]domain.InboxMessage, 
 	out := make([]domain.InboxMessage, 0)
 
 	rows, err := d.conn.Query(ctx, `
-		SELECT id, text, category_id FROM wallpaper_requests
-		WHERE device_id = $1 AND status = 'done' AND updated_at >= NOW() - INTERVAL '60 days'`, deviceID)
+		SELECT id, text, status, category_id, reply FROM wallpaper_requests
+		WHERE device_id = $1
+			AND (status = 'done' OR (status = 'rejected' AND reply <> ''))
+			AND updated_at >= NOW() - INTERVAL '60 days'`, deviceID)
 	if err != nil {
 		return nil, richerror.New(op).WithErr(err)
 	}
 	for rows.Next() {
-		var id, text, cat string
-		if err := rows.Scan(&id, &text, &cat); err != nil {
+		var id, text, status, cat, reply string
+		if err := rows.Scan(&id, &text, &status, &cat, &reply); err != nil {
 			rows.Close()
 			return nil, richerror.New(op).WithErr(err)
 		}
-		out = append(out, domain.InboxMessage{
-			ID:         "request-" + id,
-			Title:      "والپیپری که خواسته بودی آماده شد 🎉",
-			Body:       "«" + text + "» اضافه شد. بزن و ببین.",
-			CategoryID: cat,
-		})
+		out = append(out, requestMessage(id, text, status, cat, reply))
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
@@ -262,4 +297,21 @@ func (d DB) Inbox(ctx context.Context, deviceID string) ([]domain.InboxMessage, 
 		})
 	}
 	return out, rows.Err()
+}
+
+// requestMessage خبر یک درخواست: «انجام شد» (با جواب ادمین یا متن پیش‌فرض) یا
+// «رد» با جوابی که ادمین نوشته (بی‌جواب‌ها خبری ندارند).
+func requestMessage(id, text, status, categoryID, reply string) domain.InboxMessage {
+	m := domain.InboxMessage{ID: "request-" + id, CategoryID: categoryID}
+	if status == domain.StatusDone {
+		m.Title = "والپیپری که خواسته بودی آماده شد 🎉"
+		m.Body = "«" + text + "» اضافه شد. بزن و ببین."
+	} else {
+		m.Title = "جواب درخواستت"
+		m.CategoryID = ""
+	}
+	if reply != "" {
+		m.Body = reply
+	}
+	return m
 }

@@ -41,8 +41,23 @@ type Request struct {
 	Text       string
 	Status     string
 	CategoryID string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	// Reply جواب کوتاه ادمین؛ اگر باشد، متن نوتیفیکیشن همین می‌شود.
+	Reply     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// MaxReplyLen سقف طول جواب ادمین (یک نوتیفیکیشن است، نه نامه).
+const MaxReplyLen = 200
+
+// DeviceStats خلاصه‌ی فعالیت یک دستگاه از روی رویدادهای آنالیتیکس.
+type DeviceStats struct {
+	FirstSeen     *time.Time
+	LastSeen      *time.Time
+	AppVersion    string
+	Opens         int
+	WallpaperSets int
+	PollVotes     int
 }
 
 type PollOption struct {
